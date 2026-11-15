@@ -1,11 +1,8 @@
 import { configureStore } from '@reduxjs/toolkit';
 
-import lang from '@/locale/translation/en_us';
-
 import rootReducer from './rootReducer';
 import storePersist from './storePersist';
-
-// localStorageHealthCheck();
+import { DEMO_STORAGE_KEY } from './demo/demoSlice';
 
 const AUTH_INITIAL_STATE = {
   current: {},
@@ -21,11 +18,19 @@ const initialState = { auth: auth_state };
 const store = configureStore({
   reducer: rootReducer,
   preloadedState: initialState,
-  devTools: import.meta.env.PROD === false, // Enable Redux DevTools in development mode
+  devTools: import.meta.env.DEV,
 });
 
-console.log(
-  '🚀 Welcome to IDURAR ERP CRM! Did you know that we also offer commercial customization services? Contact us at hello@idurarapp.com for more information.'
-);
+if (typeof window !== 'undefined') {
+  const persistDemo = () => {
+    try {
+      window.localStorage.setItem(DEMO_STORAGE_KEY, JSON.stringify(store.getState().demo));
+    } catch (error) {
+      console.warn('Could not save demo data to localStorage.', error);
+    }
+  };
+  store.subscribe(persistDemo);
+  persistDemo();
+}
 
 export default store;
