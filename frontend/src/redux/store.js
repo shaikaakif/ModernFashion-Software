@@ -1,23 +1,9 @@
 import { configureStore } from '@reduxjs/toolkit';
 
-import rootReducer from './rootReducer';
-import storePersist from './storePersist';
-import { DEMO_STORAGE_KEY } from './demo/demoSlice';
-
-const AUTH_INITIAL_STATE = {
-  current: {},
-  isLoggedIn: false,
-  isLoading: false,
-  isSuccess: false,
-};
-
-const auth_state = storePersist.get('auth') ? storePersist.get('auth') : AUTH_INITIAL_STATE;
-
-const initialState = { auth: auth_state };
+import demoReducer, { DEMO_STORAGE_KEY } from './demo/demoSlice';
 
 const store = configureStore({
-  reducer: rootReducer,
-  preloadedState: initialState,
+  reducer: { demo: demoReducer },
   devTools: import.meta.env.DEV,
 });
 

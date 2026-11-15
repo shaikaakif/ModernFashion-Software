@@ -2,7 +2,6 @@ import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { App, Button, Input, Select, Space, Table, Tag, Tooltip } from 'antd';
 import {
-  BarcodeOutlined,
   DeleteOutlined,
   EditOutlined,
   EyeOutlined,
@@ -14,7 +13,7 @@ import { useDemo } from '@/retail/hooks/useDemo';
 import { formatMoney, formatNumber } from '@/retail/utils/format';
 import { productStock, variantCount, lowStockVariants } from '@/retail/utils/metrics';
 import { productService } from '@/retail/services/productService';
-import { PageHeader, ProductThumb, SectionCard, StatusTag } from '@/retail/components/ui';
+import { PageHeader, ProductThumb, SectionCard } from '@/retail/components/ui';
 import ProductFormModal from './ProductFormModal';
 
 export default function ProductsPage() {

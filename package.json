@@ -1,0 +1,12 @@
+{
+  "name": "modern-fashion-brand-hub-demo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Frontend-only retail ERP demo for Modern Fashion (Brand Hub), Attapur, Hyderabad.",
+  "scripts": {
+    "dev": "npm --prefix frontend run dev",
+    "build": "npm --prefix frontend run build",
+    "preview": "npm --prefix frontend run preview",
+    "verify:demo": "npm --prefix frontend run verify:demo"
+  }
+}

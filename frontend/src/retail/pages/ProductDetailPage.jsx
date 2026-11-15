@@ -5,7 +5,7 @@ import { ArrowLeftOutlined, BarcodeOutlined, EditOutlined, PlusOutlined } from '
 import { useDemo } from '@/retail/hooks/useDemo';
 import { formatMoney, formatNumber } from '@/retail/utils/format';
 import { productStock } from '@/retail/utils/metrics';
-import { PageHeader, ProductThumb, SectionCard, StatCard, StockStatus } from '@/retail/components/ui';
+import { ProductThumb, SectionCard, StatCard, StockStatus } from '@/retail/components/ui';
 import ProductFormModal from './ProductFormModal';
 
 export default function ProductDetailPage() {
