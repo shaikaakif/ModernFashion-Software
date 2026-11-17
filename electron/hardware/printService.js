@@ -1,5 +1,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { execFile } from 'node:child_process';
 import { BrowserWindow, clipboard, shell } from 'electron';
 import { AppError, fail } from '../core/errors.js';
 import { nowIso, requireInt } from '../core/validation.js';
@@ -338,26 +339,66 @@ export function createPrintService({ auth, saleService, catalogService, settings
     return { path: target, filename };
   }
 
+  function whatsappDesktopRunning() {
+    return new Promise((resolve) => {
+      execFile(
+        'tasklist.exe',
+        ['/FI', 'IMAGENAME eq WhatsApp.Root.exe', '/NH'],
+        { windowsHide: true, timeout: 5000 },
+        (error, stdout) => resolve(!error && /WhatsApp\.Root/i.test(String(stdout || '')))
+      );
+    });
+  }
+
   async function whatsappHandoff(saleId) {
     requirePrintPermission('sales.print');
     const { path: pdfPath, filename } = await saveInvoicePdf(saleId);
-    clipboard.writeText(pdfPath);
     const sale = saleService.getSale(saleId);
     const phone = String(sale.customerPhone || '').replace(/\D/g, '').slice(-10);
-    const message = encodeURIComponent(
-      `Hello ${sale.customerName || ''}, thank you for shopping at Modern Fashion. Invoice ${sale.invoiceNo} for ${(
-        sale.totalPaise / 100
-      ).toFixed(2)} is attached.`
-    );
-    const url = phone ? `https://wa.me/91${phone}?text=${message}` : `https://web.whatsapp.com/`;
-    await shell.openExternal(url);
+    const customer = sale.customerName || 'Walk-in customer';
+    const messageText = `Hello ${sale.customerName || ''}, thank you for shopping at Modern Fashion. Invoice ${
+      sale.invoiceNo
+    } for ${(sale.totalPaise / 100).toFixed(2)} is attached.`;
+    const message = encodeURIComponent(messageText);
+
+    // Show the generated PDF first so Explorer selects it, then bring WhatsApp
+    // Desktop to the front with the correct chat and a pre-filled message.
+    // Attachment remains manual: WhatsApp's WebView content is not exposed to
+    // Windows UI Automation on the installed build, and file-drop paste is
+    // rejected. Never press Send from this application.
+    clipboard.writeText(pdfPath);
     shell.showItemInFolder(pdfPath);
+
+    const wasRunning = await whatsappDesktopRunning();
+    let opened = false;
+    let reason = '';
+    if (!phone) {
+      reason = 'no-phone';
+    } else {
+      try {
+        await shell.openExternal(`whatsapp://send?phone=91${phone}&text=${message}`);
+        opened = true;
+      } catch (error) {
+        reason = 'whatsapp-unavailable';
+        logger?.warn('WhatsApp Desktop could not be opened', { message: error?.message });
+      }
+    }
+
+    const instructions = opened
+      ? `WhatsApp Desktop was ${wasRunning ? 'brought to the front' : 'started'} for ${customer} (${phone}). The message is pre-filled. The PDF is selected in the folder that just opened — drag it into WhatsApp, verify the recipient, then press Send yourself.`
+      : phone
+        ? `WhatsApp Desktop could not be opened automatically. The PDF is selected in the folder. Attach it manually in WhatsApp, verify the recipient, then press Send.`
+        : 'This invoice has no saved mobile number. The PDF folder is open; choose the customer manually in WhatsApp and attach the PDF.';
+
     return {
       path: pdfPath,
       filename,
-      whatsappOpened: true,
-      instructions:
-        'The PDF path is copied to the clipboard and its folder is open. Attach the PDF in WhatsApp manually, then press Send.',
+      whatsappOpened: opened,
+      whatsappRunning: wasRunning,
+      customerName: customer,
+      customerPhone: phone,
+      reason,
+      instructions,
     };
   }
 

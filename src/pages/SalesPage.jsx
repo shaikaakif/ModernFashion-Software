@@ -185,27 +185,46 @@ export default function SalesPage() {
     }
   }
 
-  async function whatsapp() {
+  function whatsapp() {
     if (!detail) return;
-    setActionBusy('whatsapp');
-    try {
-      const result = await api('print.whatsapp', { saleId: detail.id });
-      Modal.info({
-        title: 'Attach the PDF in WhatsApp',
-        content: (
-          <div>
-            <p>{result.instructions}</p>
-            <p className="mono small break-all">{result.path}</p>
-          </div>
-        ),
-        okText: 'Got it',
-      });
-      await refreshDetail();
-    } catch (error) {
-      message.error(errorMessage(error));
-    } finally {
-      setActionBusy('');
-    }
+    const customer = detail.customerName || 'Walk-in customer';
+    const phone = detail.customerPhone || 'No saved mobile';
+    Modal.confirm({
+      title: 'Open WhatsApp Desktop?',
+      content: (
+        <div>
+          <p>
+            Recipient: <strong>{customer}</strong> · {phone}
+          </p>
+          <p>
+            The invoice PDF will be generated and the message pre-filled in WhatsApp Desktop. Nothing is sent until
+            you verify the recipient and press Send.
+          </p>
+        </div>
+      ),
+      okText: 'Open WhatsApp',
+      onOk: async () => {
+        setActionBusy('whatsapp');
+        try {
+          const result = await api('print.whatsapp', { saleId: detail.id });
+          Modal.info({
+            title: result.whatsappOpened ? 'WhatsApp Desktop is ready' : 'Attach the PDF manually',
+            content: (
+              <div>
+                <p>{result.instructions}</p>
+                <p className="mono small break-all">{result.path}</p>
+              </div>
+            ),
+            okText: 'Got it',
+          });
+          await refreshDetail();
+        } catch (error) {
+          message.error(errorMessage(error));
+        } finally {
+          setActionBusy('');
+        }
+      },
+    });
   }
 
   async function submitVoid(values) {
