@@ -1,7 +1,8 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Last local checkpoint:** `0f3aa9f1` — Implement offline-first POS v1 and Windows packaging (not pushed)
+**Implementation checkpoint:** `0f3aa9f1` — Implement offline-first POS v1 and Windows packaging (local, not pushed)
+**Verification record:** `97d6d259` — packaging verification checkpoint
 **Developer:** Meninges Labs
 **Working branch:** `master` (local only; remote is unrelated and must not be pushed to)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
