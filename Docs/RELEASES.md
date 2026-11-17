@@ -4,6 +4,7 @@ This document covers how the installed Modern Fashion POS checks GitHub Releases
 downloads a newer build, and installs it without touching shop data.
 
 **Repository:** `shaikaakif/ModernFashion-Software` (public)
+**Current release:** [`v1.1.0`](https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0), published 17 November 2026
 **Update provider:** `electron-updater` with the GitHub provider
 **Installer:** electron-builder + NSIS, x64, per-user install
 
@@ -133,10 +134,10 @@ To roll back:
 
 ## 7. Acceptance checklist before telling the client "auto-update works"
 
-- [ ] `npm run verify` passes.
-- [ ] `npm run dist` produces the EXE, blockmap and `latest.yml`.
+- [x] `npm run verify` passes.
+- [x] `npm run dist` produces the EXE, blockmap and `latest.yml`.
 - [ ] A previous version is installed on a test PC.
-- [ ] The new release is published and appears in **Releases** within one check.
+- [x] The new release is published (`v1.1.0`) and appears in **Releases** within one check.
 - [ ] Download reaches 100% and **Restart & install** creates a backup first.
 - [ ] The app reopens on the new version.
 - [ ] Products, sales history, customers, settings and the logo are unchanged.

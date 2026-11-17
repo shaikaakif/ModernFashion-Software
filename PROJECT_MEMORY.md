@@ -1,11 +1,11 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Implementation checkpoint:** `0f3aa9f1` — Implement offline-first POS v1 and Windows packaging (local, not pushed)
+**Implementation checkpoint:** `593c1571` — Add print customization, logo preview and safe GitHub updates (pushed to `main`)
 **Verification record:** `97d6d259` — packaging verification checkpoint
-**Current local feature set:** 1.1.0 — print/barcode customization, logo preview, GitHub Releases and safe auto-update (uncommitted at handover; see `git log`)
+**Current release:** 1.1.0 — print/barcode customization, logo preview, GitHub Releases and safe auto-update. Published as GitHub Release `v1.1.0` with the EXE, blockmap and `latest.yml`.
 **Developer:** Meninges Labs
-**Working branch:** `master` (local only; remote is unrelated and must not be pushed to)
+**Working branch:** `main` (tracks `origin/main` at `shaikaakif/ModernFashion-Software`)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
@@ -36,9 +36,10 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Electron development startup | Verified in earlier session |
-| Packaged NSIS EXE | Built: `release/ModernFashionPOS-Setup-1.1.0.exe` (plus blockmap and `latest.yml`) |
-| Packaged 1.1.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database and folders created, empty GitHub feed handled without crashing |
-| Auto-update check/download/install | Implemented; only the empty-feed path has been exercised locally. No GitHub Release is published yet. |
+| Packaged NSIS EXE | Built and published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
+| Packaged 1.1.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database and folders created, and the published GitHub feed was read without error |
+| Auto-update check | Works: the packaged app reads the public `v1.1.0` release feed; public asset downloads return HTTP 200 |
+| Auto-update download/install | **Not yet exercised end-to-end.** Needs a test PC on 1.0.0 → check → download → backup → install → reopen. |
 | Graphify | Refreshed to 1,007 nodes, 2,955 edges, 55 communities |
 | Installed-build workflow (login, sale, print) | Not yet exercised on the client workstation |
 | Physical printers/scanner | **NOT VERIFIED** |
@@ -166,13 +167,13 @@ assets/
 6. Exact printer model labels, Windows driver names, paper width, label dimensions and scanner suffix behaviour.
 7. CA-confirmed HSN values and export format.
 8. Whether WhatsApp PDF handoff is acceptable as a manual attach-and-send flow.
-9. Approval to publish the first GitHub Release, plus a scoped `GH_TOKEN` on the build machine. No release exists yet.
+9. Scoped `GH_TOKEN` on the build machine for future releases. `v1.1.0` is already published; follow `Docs/RELEASES.md` for each new version.
 10. Decision on code signing. Without a certificate, SmartScreen will warn on first install.
 
 ## 8. Immediate next steps
 
 1. Run `npm run verify` after any code change.
-2. Publish the first GitHub Release from an approved build machine using `Docs/RELEASES.md`, then exercise check → download → backup → install → reopen on a test PC.
+2. Exercise the published update path on a test PC: install 1.0.0, open the app, check **Releases**, download `v1.1.0`, confirm the pre-update backup, install, reopen and verify that products, sales, customers, settings and the logo are unchanged.
 3. Complete a workstation acceptance pass on the installed build: create owner, add a product, make a sale, preview/save print settings, print, back up, restore a test copy. Then run `graphify update .`.
 4. Complete `Docs/HARDWARE_VALIDATION.md` on the client workstation.
 5. Update this file after any milestone; never claim hardware or update acceptance without evidence.

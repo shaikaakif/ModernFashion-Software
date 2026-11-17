@@ -96,7 +96,7 @@ MSI is not configured. NSIS is preferred for one POS workstation because it avoi
 
 The installed app reads the public repository `shaikaakif/ModernFashion-Software` through `electron-updater`. Owners see **Releases** in the navigation, can check the latest release, download it, and restart to install. An update creates a verified database backup first and replaces program files only; the database, backups, exports, documents and settings are not touched.
 
-No release has been published yet, and the installer is not code-signed. Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
+Release **v1.1.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0` with the installer, blockmap and `latest.yml`. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
 
 ## Where data lives
 
@@ -150,8 +150,8 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 - `npm test`: 22 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore, barcode formatting, logo reading, print settings and receipt layout).
 - `npm run build`: passing.
 - `npm run lint`: passing.
-- Packaged EXE: **built and startup-verified.** `release/ModernFashionPOS-Setup-1.1.0.exe` was built, and the unpacked packaged app was launched with an isolated data folder. It started on version 1.1.0, created its database and handled the empty GitHub release feed without crashing. Login, billing and printing inside the installed build still need a workstation acceptance pass; physical printing and scanner behaviour remain unverified.
-- Updates: implemented and locally smoke-tested. The download/install path cannot be exercised until the first GitHub Release is published.
+- Packaged EXE: **built, published and startup-verified.** `release/ModernFashionPOS-Setup-1.1.0.exe` was built and uploaded to GitHub Release `v1.1.0`. The unpacked packaged app was launched with an isolated data folder; it started on version 1.1.0, created its database and read the published update feed without error. Login, billing and printing inside the installed build still need a workstation acceptance pass; physical printing and scanner behaviour remain unverified.
+- Updates: `v1.1.0` is published with the EXE, blockmap and `latest.yml`. The public download URLs return HTTP 200 and the packaged app reads the feed. The download → backup → install → reopen path still needs a test-PC acceptance pass.
 - Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.
 
 ## Client inputs still required

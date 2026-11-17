@@ -1,7 +1,7 @@
 # Graph Report - ModernFashion-Software  (2026-11-17)
 
 ## Corpus Check
-- 83 files · ~93,957 words
+- 83 files · ~94,034 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .ico 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `c81a4199`
+- Built from commit: `593c1571`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -314,16 +314,16 @@ Nodes (6): react-dom@18.3.1, react-dom, SessionProvider(), theme, root, RootApp(
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `electron` connect `electron` to `createPrintService`, `devDependencies`, `main.js`?**
-  _High betweenness centrality (0.312) - this node is a cross-community bridge._
+- **Why does `fail()` connect `fail` to `createPrintService`, `createReportService`, `backupService.js`, `readLogoDataUrl`, `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE`?**
+  _High betweenness centrality (0.311) - this node is a cross-community bridge._
 - **Should `fail` be split into smaller, more focused modules?**
   _Cohesion score 0.052080462937448335 - nodes in this community are weakly interconnected._
-- **Why does `fail()` connect `fail` to `createPrintService`, `createReportService`, `backupService.js`, `readLogoDataUrl`, `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE`?**
-  _High betweenness centrality (0.287) - this node is a cross-community bridge._
+- **Why does `electron` connect `electron` to `createPrintService`, `devDependencies`, `main.js`?**
+  _High betweenness centrality (0.299) - this node is a cross-community bridge._
 - **Should `api` be split into smaller, more focused modules?**
   _Cohesion score 0.05733179250128403 - nodes in this community are weakly interconnected._
 - **Why does `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE` connect `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE` to `master-ui-skill.md`?**
-  _High betweenness centrality (0.253) - this node is a cross-community bridge._
+  _High betweenness centrality (0.266) - this node is a cross-community bridge._
 - **Should `createPrintService` be split into smaller, more focused modules?**
   _Cohesion score 0.0987012987012987 - nodes in this community are weakly interconnected._
 - **Should `4. Scope and modules` be split into smaller, more focused modules?**
