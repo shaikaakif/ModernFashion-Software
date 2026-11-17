@@ -4,7 +4,8 @@ This document covers how the installed Modern Fashion POS checks GitHub Releases
 downloads a newer build, and installs it without touching shop data.
 
 **Repository:** `shaikaakif/ModernFashion-Software` (public)
-**Current release:** [`v1.1.0`](https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0), published 17 November 2026
+**Current release:** [`v1.2.0`](https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.2.0), published 17 November 2026
+**Next candidate:** `v1.2.1` implemented locally; not published. Keep `v1.2.0` public until the new candidate passes review.
 **Update provider:** `electron-updater` with the GitHub provider
 **Installer:** electron-builder + NSIS, x64, per-user install
 

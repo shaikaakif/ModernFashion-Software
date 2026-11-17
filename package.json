@@ -1,7 +1,7 @@
 {
   "name": "modern-fashion-pos",
   "productName": "Modern Fashion POS",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "private": true,
   "type": "module",
   "description": "Offline-first Windows retail POS and inventory management for Modern Fashion (Brand Hub), Attapur, Hyderabad.",

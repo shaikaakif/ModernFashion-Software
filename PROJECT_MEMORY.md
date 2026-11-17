@@ -1,12 +1,13 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Implementation checkpoint:** v1.2.0 published release, code commit `d1527443`
-**Verification record:** v1.2.0 GitHub Release published and publicly verified
+**Implementation checkpoint:** v1.2.1 working branch — receipt, dashboard and inventory polish (unpublished)
+**Verification record:** v1.2.1 `npm run verify` passing; v1.2.0 remains the published release
 **Current public release:** 1.2.0 — central business branding, unified inventory, archive/restore, Add/Correct/Remove stock, MF application icon and packaging cleanup. Published as GitHub Release `v1.2.0`.
 **Previous public release:** 1.1.0 — remains available for rollback.
+**Next candidate:** 1.2.1 — login branding alignment, direct delete, per-variant pricing, low-stock wording, receipt redesign, dashboard quick actions and backup status.
 **Developer:** Meninges Labs
-**Working branch:** `v1.2.0` (short-lived; `main` remains stable)
+**Working branch:** `v1.2.1` (short-lived; `v1.2.0` tag and release untouched)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
@@ -186,11 +187,10 @@ assets/
 
 ## 8. Immediate next steps
 
-1. Run `npm run verify` after any code change.
-2. Review the v1.2.0 diff, then exercise the installed build on the workstation: login, product create/edit/archive/restore, Add/Correct/Remove stock, sale, reports, logo upload/replace/remove, backup/restore, and print preview.
-3. Test the 1.1.0 → 1.2.0 update path with an isolated test install.
-4. Merge `v1.2.0` into `main` after acceptance. Keep v1.1.0 available for rollback.
-5. Deferred master-prompt work: richer dashboard quick actions/backup status, visual invoice designer, CSV/Vyapar import framework, first-run business wizard, complete single-folder backup export, and the final A4 invoice redesign. These need separate scoped implementation and testing.
+1. Review the `v1.2.1` diff; run `npm run verify`.
+2. Exercise the candidate on the workstation: login layout, product delete, per-variant pricing, Add/Correct/Remove stock, receipt at 58 mm and 80 mm, A4 invoice, dashboard quick actions and backup status.
+3. Build the v1.2.1 installer only after review; do not publish without explicit owner approval. v1.2.0 remains the public release.
+4. Deferred master-prompt work: CSV/Vyapar import framework, first-run business wizard, full structured invoice designer and the complete single-folder backup export.
 
 ## 9. Session continuation protocol
 

@@ -1,5 +1,5 @@
 {
-  "0": "fail",
+  "0": "createSaleService",
   "1": "api",
   "2": "createPrintService",
   "3": "4. Scope and modules",
@@ -20,7 +20,7 @@
   "18": "5. END-TO-END UI WORKFLOW",
   "19": "electron",
   "20": "backupService.js",
-  "21": "jsbarcode",
+  "21": "fail",
   "22": "16. ACCESSIBILITY AND INCLUSIVE INTERACTION",
   "23": "createIpcHandlers",
   "24": "scripts",
@@ -55,6 +55,12 @@
   "53": "Hardware Validation Checklist",
   "54": "RootApp.jsx",
   "55": "money.js",
-  "56": "print.test.js",
-  "57": "electron-builder@26.18.0"
+  "56": "requireText",
+  "57": "authService.js",
+  "58": "nowIso",
+  "59": "createReportService",
+  "60": "requireInt",
+  "61": "createAuditService",
+  "62": "@vitejs/plugin-react",
+  "63": "prettier@3.1.0"
 }

@@ -272,17 +272,17 @@ export function createCatalogService({ db, auth }) {
     if (lowStock) {
       where.push(
         `EXISTS (SELECT 1 FROM product_variants vl JOIN inventory_balances ibl ON ibl.variant_id = vl.id
-                 WHERE vl.product_id = p.id AND ibl.quantity <= vl.low_stock_threshold)`
+                 WHERE vl.product_id = p.id AND vl.status = 'active' AND ibl.quantity <= vl.low_stock_threshold)`
       );
     }
     const rows = db
       .prepare(
         `SELECT p.*, c.name AS category_name, c.code AS category_code, b.name AS brand_name, s.name AS supplier_name,
                 COUNT(v.id) AS variant_count,
-                COALESCE(SUM(ib.quantity), 0) AS stock,
+                COALESCE(SUM(CASE WHEN v.status = 'active' THEN ib.quantity ELSE 0 END), 0) AS stock,
                 MIN(v.price_paise) AS min_price_paise,
                 MAX(v.price_paise) AS max_price_paise,
-                SUM(CASE WHEN COALESCE(ib.quantity, 0) <= v.low_stock_threshold THEN 1 ELSE 0 END) AS low_stock_count
+                SUM(CASE WHEN v.status = 'active' AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold THEN 1 ELSE 0 END) AS low_stock_count
          FROM products p
          JOIN categories c ON c.id = p.category_id
          LEFT JOIN brands b ON b.id = p.brand_id
@@ -504,10 +504,24 @@ export function createCatalogService({ db, auth }) {
         )
         .get(...variantIds, ...variantIds, productId);
       if (history.sales || history.purchases || history.movements) {
-        fail(
-          'This product has sales, purchase or stock history, so it cannot be deleted. Archive it instead — historical invoices and reports stay intact.',
-          'HAS_HISTORY'
+        // A product with history must never delete the transaction records.
+        // Remove it from the active catalogue instead: old invoices and stock
+        // movements stay intact, while the owner stops seeing it in new work.
+        db.prepare('UPDATE products SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?').run(
+          'inactive',
+          nowIso(),
+          user.user.id,
+          productId
         );
+        writeAudit(db, {
+          userId: user.user.id,
+          userName: user.user.name,
+          action: 'product.removed',
+          entityType: 'product',
+          entityId: productId,
+          details: { name: product.name, mode: 'preserve_history' },
+        });
+        return { deleted: true, archived: true, id: productId, name: product.name };
       }
       db.prepare(`DELETE FROM inventory_balances WHERE variant_id IN (${placeholders})`).run(...variantIds);
       db.prepare('DELETE FROM product_variants WHERE product_id = ?').run(productId);
@@ -520,7 +534,7 @@ export function createCatalogService({ db, auth }) {
         entityId: productId,
         details: { name: product.name, variants: variantIds.length },
       });
-      return { deleted: true, id: productId };
+      return { deleted: true, archived: false, id: productId, name: product.name };
     });
   }
 

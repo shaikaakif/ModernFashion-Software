@@ -187,6 +187,8 @@ export function createReportService({ db, auth, catalog }) {
     const canSeeAll = user.permissions.includes('dashboard.viewAll');
     const ownUserId = canSeeAll ? null : user.user.id;
     const sales = totalsForRange({ from: dateKey, to: dateKey, ownUserId });
+    const month = monthRange(dateKey.slice(0, 7));
+    const monthSales = totalsForRange({ ...month, ownUserId });
     const payments = paymentBreakdown({ from: dateKey, to: dateKey, ownUserId });
     const purchases = canSeeAll ? purchaseTotal({ from: dateKey, to: dateKey }) : null;
     const expenses = canSeeAll ? expenseTotal({ from: dateKey, to: dateKey }) : null;
@@ -213,21 +215,41 @@ export function createReportService({ db, auth, catalog }) {
       }));
     const offers = db.prepare("SELECT COUNT(*) AS count FROM offers WHERE status = 'active'").get();
     const lowStock = canSeeAll ? catalog.lowStock({ limit: 8 }) : [];
+    const stockCounts = canSeeAll
+      ? db
+          .prepare(
+            `SELECT SUM(CASE WHEN COALESCE(ib.quantity, 0) = 0 THEN 1 ELSE 0 END) AS out_of_stock,
+                    SUM(CASE WHEN COALESCE(ib.quantity, 0) > 0 AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold THEN 1 ELSE 0 END) AS low_stock
+             FROM product_variants v
+             JOIN products p ON p.id = v.product_id
+             LEFT JOIN inventory_balances ib ON ib.variant_id = v.id
+             WHERE p.status = 'active' AND v.status = 'active'`
+          )
+          .get()
+      : null;
     const canSeeProfit = user.permissions.includes('reports.profit');
     const salesForUser = { ...sales };
+    const monthForUser = { ...monthSales };
     if (!canSeeProfit) {
       delete salesForUser.cogsPaise;
       delete salesForUser.grossProfitPaise;
+      delete monthForUser.cogsPaise;
+      delete monthForUser.grossProfitPaise;
     }
     return {
       scope: canSeeAll ? 'shop' : 'own',
       date: dateKey,
       sales: salesForUser,
+      monthToDate: { ...month, ...monthForUser },
       purchases,
       expenses,
       paymentMethods: payments,
       cashierSales: canSeeAll ? cashierSeries({ from: dateKey, to: dateKey }) : [],
       lowStock,
+      stockCounts: {
+        low: Number(stockCounts?.low_stock || 0),
+        out: Number(stockCounts?.out_of_stock || 0),
+      },
       topProducts: products.map((product) => {
         if (canSeeProfit) return product;
         return {

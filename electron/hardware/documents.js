@@ -123,11 +123,12 @@ export function receiptHtml({
   sample = false,
 }) {
   const width = widthMm === 58 ? 58 : 80;
-  const contentWidth = width === 58 ? 46 : 70;
+  const compact = width === 58;
+  const contentWidth = compact ? 46 : 70;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
-  const logoHeight = Math.min(30, Math.max(8, Number(invoice?.logoHeightMm || 16)));
+  const logoHeight = Math.min(24, Math.max(8, Number(invoice?.logoHeightMm || 16)));
   const showTitle = invoice?.showTitle !== false;
   const showAddress = invoice?.showAddress !== false;
   const showPhone = invoice?.showPhone !== false;
@@ -142,14 +143,10 @@ export function receiptHtml({
   const inclusiveTax = showTax && Boolean(sale.pricesIncludeTax);
   const balance = Math.max(0, Number(sale.balancePaise || 0));
   const change = Number(sale.changePaise || 0);
+  const discountTotal = Number(sale.discountTotalPaise || 0);
   const headerNote = String(receipt?.headerNote || '').trim();
-  const amountRows = showAmountReceived
-    ? `<tr><td>Amount received</td><td>${money(sale.amountPaidPaise)}</td></tr>${
-        balance > 0
-          ? `<tr><td>Balance due</td><td>${money(balance)}</td></tr>`
-          : `<tr><td>Change</td><td>${money(change)}</td></tr>`
-      }`
-    : '';
+  const returnPolicy = String(business?.returnPolicy || '').trim();
+  const thanks = String(invoice?.thankYou || 'Thank you for shopping with us!').trim();
   const stateLine = [
     showState
       ? business?.stateCode
@@ -160,29 +157,46 @@ export function receiptHtml({
   ]
     .filter(Boolean)
     .join(' · ');
+  const totalQuantity = Number(sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0);
 
-  const rows = (sale.items || [])
+  const itemRows = (sale.items || [])
     .map((item) => {
       const gross = item.unitPricePaise * item.quantity;
       const discount = item.discountPaise || 0;
       const discountPercent = gross > 0 ? (discount * 100) / gross : 0;
-      return `<div class="item">
-        <div class="item-name">${escapeHtml(item.productName)}</div>
-        <div class="item-meta">${escapeHtml(item.variantLabel)}${
-          showSku && item.sku ? ` · ${escapeHtml(item.sku)}` : ''
-        }</div>
-        <div class="line"><span>${item.quantity} x ${money(item.unitPricePaise)}</span><span>${money(gross)}</span></div>
-        ${
-          showItemDiscounts && discount > 0
-            ? `<div class="line discount"><span>Discount${
-                discountPercent > 0 ? ` (${discountPercent.toFixed(1)}%)` : ''
-              }</span><span>- ${money(discount)}</span></div>`
-            : ''
-        }
-        <div class="line strong"><span>Amount</span><span>${money(item.lineTotalPaise)}</span></div>
-      </div>`;
+      return `<tr class="item-row">
+        <td>
+          <span class="item-name">${escapeHtml(item.productName)}</span>
+          <span class="item-meta">${escapeHtml(item.variantLabel)}${
+            showSku && item.sku ? ` · ${escapeHtml(item.sku)}` : ''
+          }</span>
+        </td>
+        <td class="num">${item.quantity}</td>
+        <td class="num">${money(item.unitPricePaise)}</td>
+        <td class="num">${money(gross)}</td>
+      </tr>
+      ${
+        showItemDiscounts && discount > 0
+          ? `<tr class="sub-row"><td colspan="3">Discount${
+              discountPercent > 0 ? ` (${discountPercent.toFixed(1)}%)` : ''
+            }</td><td class="num">- ${money(discount)}</td></tr>`
+          : ''
+      }
+      <tr class="sub-row final"><td colspan="3">Final amount</td><td class="num">${money(
+        item.lineTotalPaise
+      )}</td></tr>`;
     })
     .join('');
+
+  const amountRows = showAmountReceived
+    ? `<tr><td>Amount received</td><td>${money(sale.amountPaidPaise)}</td></tr>${
+        balance > 0
+          ? `<tr><td>Balance due</td><td>${money(balance)}</td></tr>`
+          : change > 0
+            ? `<tr><td>Change</td><td>${money(change)}</td></tr>`
+            : ''
+      }`
+    : '';
 
   return `<!doctype html>
 <html><head><meta charset="utf-8" />
@@ -191,54 +205,67 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${contentWidth}mm; padding: 2mm 1mm 4mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(width === 58 ? 9 : 10)}; line-height: 1.35; }
+  body { width: ${contentWidth}mm; padding: 2mm 1.2mm 4mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
+    compact ? 9 : 10
+  )}; line-height: 1.35; }
   .center { text-align: center; }
-  .logo { display: block; margin: 0 auto 1.5mm; }
-  .business-name { font-size: ${fs(width === 58 ? 14 : 16)}; font-weight: 800; letter-spacing: 0.03em; }
-  .business-meta { font-size: ${fs(width === 58 ? 8 : 9)}; line-height: 1.35; }
-  .title { margin: 2mm 0 1mm; font-size: ${fs(width === 58 ? 10 : 11)}; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-  .duplicate, .sample { margin: 1.5mm 0; padding: 1mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; letter-spacing: 0.08em; text-align: center; }
+  .header { padding-bottom: 1.5mm; border-bottom: 1px solid #000; }
+  .logo { display: block; margin: 0 auto 1.5mm; max-width: 70%; object-fit: contain; }
+  .business-name { font-size: ${fs(compact ? 12 : 15)}; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
+  .business-meta { margin-top: 0.5mm; font-size: ${fs(compact ? 7.5 : 8.5)}; line-height: 1.4; }
+  .return-policy { margin-top: 1mm; font-size: ${fs(compact ? 7.5 : 8)}; font-weight: 700; line-height: 1.35; text-transform: uppercase; }
+  .title { margin: 2mm 0 1mm; font-size: ${fs(compact ? 10 : 11)}; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+  .duplicate, .sample { margin: 1.5mm 0; padding: 1mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
   .sample { border-style: solid; }
   .header-note { margin: 1.2mm 0; font-size: ${fs(8)}; text-align: center; }
-  .divider { border-top: 1px dashed #000; margin: 1.8mm 0; }
-  .meta { width: 100%; border-collapse: collapse; }
-  .meta td { padding: 0.35mm 0; vertical-align: top; font-size: ${fs(width === 58 ? 8 : 9)}; }
+  .meta { width: 100%; margin-top: 1mm; border-collapse: collapse; }
+  .meta td { padding: 0.35mm 0; vertical-align: top; font-size: ${fs(compact ? 7.5 : 8.5)}; }
+  .meta td:first-child { width: 24%; font-weight: 700; }
   .meta td:last-child { text-align: right; }
-  .item { padding: 1.2mm 0 0.4mm; border-top: 1px dotted #777; }
-  .item:first-child { border-top: 0; }
-  .item-name { font-weight: 700; font-size: ${fs(width === 58 ? 9 : 10)}; }
-  .item-meta { color: #333; font-size: ${fs(width === 58 ? 7.5 : 8.5)}; }
-  .line { display: flex; justify-content: space-between; gap: 2mm; font-size: ${fs(width === 58 ? 8 : 9)}; }
-  .line.strong { font-weight: 700; margin-top: 0.5mm; }
-  .line.discount { color: #333; }
-  .totals { width: 100%; border-collapse: collapse; margin-top: 1mm; }
-  .totals td { padding: 0.45mm 0; font-size: ${fs(width === 58 ? 8 : 9)}; }
+  .separator { margin: 1.5mm 0; border-top: 1px dashed #000; }
+  .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
+  .items th { padding: 1mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 7 : 8)}; font-weight: 700; text-align: left; text-transform: uppercase; }
+  .items th.num, .items td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .items th:nth-child(1) { width: 46%; }
+  .items th:nth-child(2) { width: 12%; }
+  .items th:nth-child(3) { width: 20%; }
+  .items th:nth-child(4) { width: 22%; }
+  .items td { padding: 1mm 0 0; vertical-align: top; font-size: ${fs(compact ? 7.5 : 8.5)}; word-break: break-word; overflow-wrap: anywhere; }
+  .item-row td { padding-top: 1.3mm; }
+  .item-name { display: block; font-weight: 700; }
+  .item-meta { display: block; color: #333; font-size: ${fs(compact ? 6.8 : 7.5)}; line-height: 1.3; }
+  .sub-row td { padding: 0.25mm 0; font-size: ${fs(compact ? 7.2 : 8)}; }
+  .sub-row.final td { font-weight: 700; }
+  .totals { width: 100%; margin-top: 1.5mm; border-collapse: collapse; }
+  .totals td { padding: 0.45mm 0; font-size: ${fs(compact ? 8 : 9)}; }
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  .totals .grand td { padding-top: 1.2mm; font-size: ${fs(width === 58 ? 12 : 14)}; font-weight: 800; border-top: 1px solid #000; }
-  .savings { margin-top: 1mm; padding: 0.8mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-weight: 700; text-align: center; }
-  .terms { margin-top: 2mm; font-size: ${fs(width === 58 ? 7.5 : 8)}; line-height: 1.4; }
-  .terms strong { display: block; font-size: ${fs(8)}; letter-spacing: 0.04em; text-transform: uppercase; }
+  .totals .grand td { padding-top: 1.2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 12 : 14)}; font-weight: 800; }
+  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 1.5mm; padding: 1mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-weight: 800; text-transform: uppercase; }
+  .terms { margin-top: 2mm; font-size: ${fs(compact ? 7.2 : 8)}; line-height: 1.4; }
+  .terms strong { display: block; margin-bottom: 0.5mm; font-size: ${fs(8)}; letter-spacing: 0.04em; text-transform: uppercase; }
   .footer-note { margin-top: 1.5mm; font-size: ${fs(7.5)}; text-align: center; }
-  .thanks { margin-top: 2mm; font-size: ${fs(width === 58 ? 9 : 10)}; font-weight: 700; text-align: center; }
-  .powered { margin-top: 1.5mm; font-size: ${fs(6.5)}; color: #555; text-align: center; }
+  .thanks { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #000; text-align: center; }
+  .thanks strong { display: block; font-size: ${fs(compact ? 9 : 10)}; font-weight: 800; }
+  .thanks div { margin-top: 0.7mm; font-size: ${fs(7.5)}; line-height: 1.4; }
+  .powered { margin-top: 1.5mm; color: #555; font-size: ${fs(6.5)}; text-align: center; }
   .gst { font-size: ${fs(8)}; }
 </style></head>
-<body>
-  ${showLogo ? logoMarkup(logoDataUrl, { maxHeight: `${logoHeight}mm` }) : ''}
-  <div class="center">
-    <div class="business-name">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
-    ${showAddress ? `<div class="business-meta">${addressLines(business)}</div>` : ''}
-    ${stateLine ? `<div class="business-meta">${escapeHtml(stateLine)}</div>` : ''}
-    ${showGstin && tax?.enabled && tax?.gstin ? `<div class="business-meta gst">GSTIN: ${escapeHtml(tax.gstin)}</div>` : ''}
+<body class="${compact ? 'w58' : 'w80'}">
+  <div class="header">
+    ${showLogo ? logoMarkup(logoDataUrl, { maxHeight: `${logoHeight}mm` }) : ''}
+    <div class="center">
+      <div class="business-name">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
+      ${showAddress ? `<div class="business-meta">${addressLines(business)}</div>` : ''}
+      ${stateLine ? `<div class="business-meta">${escapeHtml(stateLine)}</div>` : ''}
+      ${showGstin && tax?.enabled && tax?.gstin ? `<div class="business-meta gst">GSTIN: ${escapeHtml(tax.gstin)}</div>` : ''}
+      ${returnPolicy ? `<div class="return-policy">${escapeHtml(returnPolicy)}</div>` : ''}
+    </div>
   </div>
   ${showTitle ? `<div class="center title">${invoiceTitle(tax)}</div>` : ''}
   ${sample ? '<div class="sample">SAMPLE PREVIEW · NOT A SALE</div>' : ''}
   ${duplicate ? `<div class="duplicate">${escapeHtml(invoice?.duplicateLabel || 'DUPLICATE COPY')}</div>` : ''}
   ${headerNote ? `<div class="header-note">${escapeHtml(headerNote).replace(/\n/g, '<br/>')}</div>` : ''}
   <table class="meta">
-    <tr><td>Invoice</td><td>${escapeHtml(sale.invoiceNo)}</td></tr>
-    <tr><td>Date</td><td>${escapeHtml(formatDateTime(sale.completedAt || sale.saleDate))}</td></tr>
-    ${receipt?.showCashier !== false ? `<tr><td>Cashier</td><td>${escapeHtml(sale.cashierName || '')}</td></tr>` : ''}
     ${
       receipt?.showCustomer !== false && sale.customerName
         ? `<tr><td>Customer</td><td>${escapeHtml(sale.customerName)}</td></tr>`
@@ -249,15 +276,21 @@ export function receiptHtml({
         ? `<tr><td>Mobile</td><td>${escapeHtml(sale.customerPhone)}</td></tr>`
         : ''
     }
+    <tr><td>Invoice</td><td>${escapeHtml(sale.invoiceNo)}</td></tr>
+    <tr><td>Date</td><td>${escapeHtml(formatDateTime(sale.completedAt || sale.saleDate))}</td></tr>
+    ${receipt?.showCashier !== false ? `<tr><td>Cashier</td><td>${escapeHtml(sale.cashierName || '')}</td></tr>` : ''}
     ${showPayment ? `<tr><td>Payment</td><td>${escapeHtml(paymentLabel(sale.paymentMethod))}</td></tr>` : ''}
   </table>
-  <div class="divider"></div>
-  ${rows}
-  <div class="divider"></div>
+  <div class="separator"></div>
+  <table class="items">
+    <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+  <div class="separator"></div>
   <table class="totals">
-    <tr><td>Total quantity</td><td>${Number(sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0)}</td></tr>
+    <tr><td>Total quantity</td><td>${totalQuantity}</td></tr>
     <tr><td>Subtotal</td><td>${money(sale.subtotalPaise)}</td></tr>
-    ${Number(sale.discountTotalPaise) > 0 ? `<tr><td>Discount</td><td>- ${money(sale.discountTotalPaise)}</td></tr>` : ''}
+    ${discountTotal > 0 ? `<tr><td>Discount</td><td>- ${money(discountTotal)}</td></tr>` : ''}
     ${showTax ? `<tr><td>${inclusiveTax ? 'Tax included' : 'Tax'}</td><td>${money(sale.taxPaise)}</td></tr>` : ''}
     ${Number(sale.roundOffPaise) !== 0 ? `<tr><td>Round off</td><td>${Number(sale.roundOffPaise) > 0 ? '+' : '-'} ${money(
       Math.abs(sale.roundOffPaise)
@@ -266,12 +299,15 @@ export function receiptHtml({
     ${amountRows}
   </table>
   ${
-    receipt?.showSavings !== false && Number(sale.discountTotalPaise) > 0
-      ? `<div class="savings">You saved ${money(sale.discountTotalPaise)}</div>`
+    receipt?.showSavings !== false && discountTotal > 0
+      ? `<div class="savings"><span>You saved</span><strong>${money(discountTotal)}</strong></div>`
       : ''
   }
-  ${termsMarkup(invoice, receipt)}
-  <div class="thanks">${escapeHtml(invoice?.thankYou || 'Thank you for shopping with us.')}</div>
+  ${termsMarkup(invoice, { ...receipt, footerNote: '' })}
+  <div class="thanks">
+    <strong>${escapeHtml(thanks)}</strong>
+    ${receipt?.footerNote ? `<div>${escapeHtml(receipt.footerNote).replace(/\n/g, '<br/>')}</div>` : ''}
+  </div>
   ${showPoweredBy ? '<div class="powered">Modern Fashion POS · Engineered by Meninges Labs</div>' : ''}
 </body></html>`;
 }
@@ -285,6 +321,11 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
   const showGstin = invoice?.showGstin !== false;
   const showTitle = invoice?.showTitle !== false;
   const showPoweredBy = receipt?.showPoweredBy !== false;
+  const hasDiscount =
+    Number(sale.discountTotalPaise || 0) > 0 ||
+    (sale.items || []).some((item) => Number(item.discountPaise) > 0);
+  const showTax = Boolean(tax?.enabled);
+  const returnPolicy = String(business?.returnPolicy || '').trim();
   const stateLine = [
     showState
       ? business?.stateCode
@@ -304,14 +345,22 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
         <td><strong>${escapeHtml(item.productName)}</strong><div class="muted">${escapeHtml(
           item.variantLabel
         )} · ${escapeHtml(item.sku)}</div></td>
-        <td>${escapeHtml(item.hsnCode || '—')}</td>
+        ${showTax ? `<td>${escapeHtml(item.hsnCode || '—')}</td>` : ''}
         <td class="num">${item.quantity}</td>
         <td class="num">${money(item.unitPricePaise, { symbol: '₹', space: '' })}</td>
-        <td class="num">${money(gross, { symbol: '₹', space: '' })}</td>
-        <td class="num">${money(item.discountPaise, { symbol: '₹', space: '' })}</td>
-        <td class="num">${money(taxable, { symbol: '₹', space: '' })}</td>
-        <td class="num">${escapeHtml((item.taxRateBp / 100).toFixed(2))}%</td>
-        <td class="num">${money(item.taxPaise, { symbol: '₹', space: '' })}</td>
+        ${
+          hasDiscount
+            ? `<td class="num">${money(gross, { symbol: '₹', space: '' })}</td>
+               <td class="num">${money(item.discountPaise, { symbol: '₹', space: '' })}</td>`
+            : ''
+        }
+        ${
+          showTax
+            ? `<td class="num">${money(taxable, { symbol: '₹', space: '' })}</td>
+               <td class="num">${escapeHtml((item.taxRateBp / 100).toFixed(2))}%</td>
+               <td class="num">${money(item.taxPaise, { symbol: '₹', space: '' })}</td>`
+            : ''
+        }
         <td class="num strong">${money(item.lineTotalPaise, { symbol: '₹', space: '' })}</td>
       </tr>`;
     })
@@ -354,6 +403,7 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   .totals tr.grand td { padding-top: 8px; border-top: 2px solid #202124; font-size: 14px; font-weight: 700; }
   .terms { margin-top: 18px; padding-top: 10px; border-top: 1px solid #e2e2de; color: #55565b; font-size: 8.5px; }
+  .return-policy { margin: 4px 0 0; color: #55565b; font-size: 9px; font-weight: 700; text-transform: uppercase; }
   .foot { margin-top: 18px; display: flex; justify-content: space-between; color: #77787d; font-size: 8px; }
   .notice { margin-top: 8px; padding: 6px 8px; border: 1px solid #e4d7c8; background: #fbf7f1; color: #6b4e2e; font-size: 8px; }
 </style></head>
@@ -366,6 +416,7 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
         ${showAddress ? `<p>${(business?.addressLines || []).map((line) => escapeHtml(line)).join('<br/>')}</p>` : ''}
         ${stateLine ? `<p>${escapeHtml(stateLine)}</p>` : ''}
         ${showGstin && tax?.enabled && tax?.gstin ? `<p>GSTIN: ${escapeHtml(tax.gstin)}</p>` : ''}
+        ${returnPolicy ? `<p class="return-policy">${escapeHtml(returnPolicy)}</p>` : ''}
       </div>
     </div>
     <div class="doc">
@@ -392,7 +443,14 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
     </div>
   </div>
   <table class="items">
-    <thead><tr><th>#</th><th>Description</th><th>HSN</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Gross</th><th class="num">Discount</th><th class="num">Taxable</th><th class="num">Tax</th><th class="num">Tax amt</th><th class="num">Amount</th></tr></thead>
+    <thead><tr>
+      <th>#</th><th>Description</th>
+      ${showTax ? '<th>HSN</th>' : ''}
+      <th class="num">Qty</th><th class="num">Rate</th>
+      ${hasDiscount ? '<th class="num">Gross</th><th class="num">Discount</th>' : ''}
+      ${showTax ? '<th class="num">Taxable</th><th class="num">Tax</th><th class="num">Tax amt</th>' : ''}
+      <th class="num">Amount</th>
+    </tr></thead>
     <tbody>${rows}</tbody>
   </table>
   <div class="bottom">
@@ -403,22 +461,19 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
     </div>
     <table class="totals">
       <tr><td>Subtotal</td><td>${money(sale.subtotalPaise, { symbol: '₹', space: '' })}</td></tr>
-      <tr><td>Discount</td><td>- ${money(sale.discountTotalPaise, { symbol: '₹', space: '' })}</td></tr>
-      ${tax?.enabled ? `<tr><td>${sale.pricesIncludeTax ? 'Tax included (not added)' : 'Tax'}</td><td>${money(sale.taxPaise, { symbol: '₹', space: '' })}</td></tr>` : ''}
-      <tr><td>Round off</td><td>${money(sale.roundOffPaise, { symbol: '₹', space: '' })}</td></tr>
+      ${Number(sale.discountTotalPaise) > 0 ? `<tr><td>Discount</td><td>- ${money(sale.discountTotalPaise, { symbol: '₹', space: '' })}</td></tr>` : ''}
+      ${showTax && Number(sale.taxPaise) > 0 ? `<tr><td>${sale.pricesIncludeTax ? 'Tax included (not added)' : 'Tax'}</td><td>${money(sale.taxPaise, { symbol: '₹', space: '' })}</td></tr>` : ''}
+      ${Number(sale.roundOffPaise) !== 0 ? `<tr><td>Round off</td><td>${money(sale.roundOffPaise, { symbol: '₹', space: '' })}</td></tr>` : ''}
       <tr class="grand"><td>Total payable</td><td>${money(sale.totalPaise, { symbol: '₹', space: '' })}</td></tr>
       <tr><td>Amount received</td><td>${money(sale.amountPaidPaise, { symbol: '₹', space: '' })}</td></tr>
-      <tr><td>${sale.balancePaise > 0 ? 'Balance due' : 'Change'}</td><td>${money(
-        sale.balancePaise > 0 ? sale.balancePaise : sale.changePaise,
-        { symbol: '₹', space: '' }
-      )}</td></tr>
+      ${sale.balancePaise > 0 ? `<tr><td>Balance due</td><td>${money(sale.balancePaise, { symbol: '₹', space: '' })}</td></tr>` : Number(sale.changePaise) > 0 ? `<tr><td>Change</td><td>${money(sale.changePaise, { symbol: '₹', space: '' })}</td></tr>` : ''}
     </table>
   </div>
   <div class="terms">
     ${invoice?.terms ? `<strong>Terms &amp; Conditions</strong><div>${escapeHtml(invoice.terms).replace(/\n/g, '<br/>')}</div>` : ''}
     ${receipt?.footerNote ? `<div>${escapeHtml(receipt.footerNote)}</div>` : ''}
   </div>
-  <div class="foot"><span>${escapeHtml(invoice?.thankYou || 'Thank you for shopping with us.')}</span>${
+  <div class="foot"><span>${escapeHtml(invoice?.thankYou || 'Thank you for shopping with us!')}</span>${
     showPoweredBy ? '<span>Computer-generated invoice · Modern Fashion POS</span>' : ''
   }</div>
 </body></html>`;

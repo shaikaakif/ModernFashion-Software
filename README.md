@@ -10,11 +10,14 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 
 - Owner/cashier setup with local password hashing, three fixed roles and service-level permissions
 - Dashboard with date-scoped sales, profit, stock and activity
-- Unified Inventory with Products, Stock, Stock history, Categories and Archived tabs
-- Product archive, restore and history-safe deletion; archived products stay on old invoices but leave new sales
+- Unified Inventory with Products, Stock, Stock history, Categories and Removed tabs
+- Product delete removes the item from active inventory immediately; history-safe removal keeps old invoices readable
+- Per-variant purchase price, selling price, MRP and low-stock threshold editing
 - Stock updates as Add, Correct to actual count, or Remove, each written to the immutable ledger
 - One central business-branding source for the sidebar, login, dashboard, reports, invoices and print documents
 - Multi-resolution MF application icon for the installer, shortcut, Start Menu, taskbar and window
+- Redesigned 58 mm / 80 mm thermal receipt with return policy, discount savings, clean totals and configurable footer
+- Dashboard quick actions, backup status, month-to-date sales and out-of-stock visibility
 - Barcode-driven POS with cart, offers/manual discounts, tax-inclusive support, split payment status, change, receipt preview and reprint
 - Transactional checkout: one invoice, one stock deduction, idempotency protection and no negative stock
 - Products with colour/size variants, unique SKU/barcode, opening stock and Code 128 labels
@@ -152,9 +155,10 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 26 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product archive/restore/delete, stock add/correct/remove, Product Sales report and print settings).
+- `npm test`: 30 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product delete/history removal, stock add/correct/remove, Product Sales report, dashboard, receipt redesign and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
+- v1.2.1 candidate: implemented on the `v1.2.1` branch and verified locally. Not published; v1.2.0 remains the public release until review.
 - Packaged EXE: **v1.2.0 published.** `ModernFashionPOS-Setup-1.2.0.exe` is 122.3 MB, carries the MF monogram, and starts with an isolated `MF_DATA_DIR` on version 1.2.0. The installed-build workstation acceptance pass and the 1.1.0 → 1.2.0 update test are still recommended.
 - Updates: `v1.2.0` is the latest published release with the EXE, blockmap and `latest.yml`. Public asset URLs return HTTP 200, the published `latest.yml` checksum matches the EXE, and `/releases/latest` redirects to `v1.2.0`. v1.1.0 remains available for rollback.
 - Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.

@@ -281,6 +281,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'audit.actions': () => audit.actions(),
 
     'backup.list': (payload) => backup.list(payload),
+    'backup.status': () => backup.status(),
     'backup.create': () => backup.createManual(auth.requireSession()),
     'backup.verify': (payload) => backup.verify(payload?.path),
     'backup.restore': (payload) =>

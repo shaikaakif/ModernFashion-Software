@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-import { addStaff, createProduct, createTestApp, login, setupOwner } from './helpers.js';
+import { addStaff, completeSale, createProduct, createTestApp, login, setupOwner } from './helpers.js';
 import { barcodeExample, formatBarcode, normalizeBarcodeConfig } from '../shared/barcode.js';
 import { readLogoDataUrl } from '../electron/core/logo.js';
 import { receiptHtml } from '../electron/hardware/documents.js';
@@ -224,4 +224,59 @@ test('receipt HTML honors logo, section, text and font settings', () => {
   assert.match(taxReceipt, /TAX INVOICE/);
   assert.match(taxReceipt, /Tax included/);
   assert.match(taxReceipt, /GSTIN: 36ABCDE1234F1Z5/);
+});
+
+test('receipt redesign keeps the business policy, footer and hides empty rows', () => {
+  const base = sampleSale();
+  const noDiscount = {
+    ...base,
+    items: [{ ...base.items[0], discountPaise: 0, lineTotalPaise: 100000 }],
+    subtotalPaise: 100000,
+    discountTotalPaise: 0,
+    totalPaise: 100000,
+    amountPaidPaise: 100000,
+    changePaise: 0,
+    roundOffPaise: 0,
+  };
+  const html = receiptHtml({
+    sale: noDiscount,
+    business: {
+      name: 'MODERN FASHION',
+      addressLines: ['ATTAPUR'],
+      stateCode: '36',
+      stateName: 'Telangana',
+      phone: '7093230999',
+      returnPolicy: 'NO RETURN / EXCHANGE WITHIN 3 DAYS',
+    },
+    invoice: { terms: 'Keep the bill.', thankYou: 'Thanks for shopping with us!' },
+    receipt: { footerNote: 'We appreciate your business.', showSavings: true },
+    tax: { enabled: false },
+    widthMm: 58,
+  });
+  assert.match(html, /NO RETURN \/ EXCHANGE WITHIN 3 DAYS/);
+  assert.match(html, /Thanks for shopping with us!/);
+  assert.match(html, /We appreciate your business\./);
+  assert.match(html, /Keep the bill\./);
+  assert.match(html, /width: 46mm/);
+  assert.doesNotMatch(html, /You saved/);
+  assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
+  assert.doesNotMatch(html, /Round off/);
+});
+
+test('a completed sale renders real product and payment data on the receipt', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const product = createProduct(app, { openingStock: 2 });
+  completeSale(app, product.variants[0].id, { quantity: 1 });
+  const sale = app.services.sales.list({})[0];
+  const receipt = app.services.sales.receiptData(sale.id);
+  const html = receiptHtml({
+    ...receipt,
+    widthMm: 80,
+    tax: { enabled: false },
+    receipt: {},
+    invoice: {},
+  });
+  assert.match(html, /Everyday Tee/);
+  assert.match(html, /Total/);
 });

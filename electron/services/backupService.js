@@ -167,6 +167,36 @@ export function createBackupService({ db, dbPath, defaultBackupDir, assetsDir = 
     return makeBackup({ kind: 'manual', user });
   }
 
+  function status() {
+    auth.requirePermission('backup.manage');
+    const row = db
+      .prepare(
+        `SELECT path, size_bytes, sha256, kind, status, created_at
+         FROM backup_logs WHERE status = 'verified' ORDER BY id DESC LIMIT 1`
+      )
+      .get();
+    const settings = getSetting(db, 'backup');
+    return {
+      enabled: Boolean(settings.enabled),
+      directory: destinationDirectory(),
+      intervalHours: Number(settings.intervalHours || 24),
+      retention: Number(settings.retention || 30),
+      lastAutoAt: settings.lastAutoAt || '',
+      lastBackup: row
+        ? {
+            path: row.path,
+            filename: path.basename(row.path),
+            sizeBytes: row.size_bytes,
+            sha256: row.sha256,
+            kind: row.kind,
+            createdAt: row.created_at,
+            exists: fs.existsSync(row.path),
+            hasAssets: fs.existsSync(sidecarDirectory(row.path)),
+          }
+        : null,
+    };
+  }
+
   function restore(pathToFile, { confirm, user }) {
     auth.requirePermission('backup.manage');
     if (String(confirm || '') !== 'RESTORE') {
@@ -220,6 +250,7 @@ export function createBackupService({ db, dbPath, defaultBackupDir, assetsDir = 
     list,
     verify,
     createManual,
+    status,
     restore,
     autoBackupIfDue,
     destinationDirectory,

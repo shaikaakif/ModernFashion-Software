@@ -515,6 +515,13 @@ export default function SettingsPage() {
           >
             <Input maxLength={20} style={{ textTransform: 'uppercase' }} />
           </Form.Item>
+          <Form.Item
+            name="returnPolicy"
+            label="Return / exchange policy"
+            extra="Shown on receipts under the business details. Example: NO RETURN / EXCHANGE WITHIN 3 DAYS. Use the owner's confirmed wording."
+          >
+            <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
           <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'business'}>
             Save business details
           </Button>
@@ -687,18 +694,18 @@ export default function SettingsPage() {
             <Divider />
             <h3>Text blocks</h3>
             <div className="form-grid two">
-              <Form.Item name="headerNote" label="Header note under the title">
+              <Form.Item name="headerNote" label="Additional business message">
                 <Input.TextArea rows={2} maxLength={300} placeholder="Optional line printed above the invoice details" />
               </Form.Item>
-              <Form.Item name="footerNote" label="Footer note">
-                <Input.TextArea rows={2} maxLength={500} placeholder="Exchange policy or a short closing note" />
+              <Form.Item name="footerNote" label="Custom footer message">
+                <Input.TextArea rows={2} maxLength={500} placeholder="Printed under the thank-you line" />
               </Form.Item>
             </div>
             <div className="form-grid two">
               <Form.Item name="duplicateLabel" label="Duplicate copy label">
                 <Input maxLength={40} />
               </Form.Item>
-              <Form.Item name="thankYou" label="Closing line">
+              <Form.Item name="thankYou" label="Thank-you heading">
                 <Input maxLength={300} />
               </Form.Item>
             </div>

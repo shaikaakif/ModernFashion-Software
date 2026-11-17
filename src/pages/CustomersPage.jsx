@@ -12,6 +12,7 @@ import {
   Tag,
 } from 'antd';
 import { EditOutlined, EyeOutlined, PlusOutlined, ReloadOutlined, SearchOutlined } from '@ant-design/icons';
+import { useSearchParams } from 'react-router-dom';
 import { api, errorMessage } from '@/app/api';
 import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
@@ -29,6 +30,13 @@ export default function CustomersPage() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detailLoading, setDetailLoading] = useState(false);
   const [form] = Form.useForm();
+  const [searchParams] = useSearchParams();
+
+  useEffect(() => {
+    if (searchParams.get('new') === '1' && can('customers.manage')) {
+      setModal({ open: true, record: null });
+    }
+  }, [searchParams, can]);
 
   const customers = useAsync(() => api('customers.list', { query: debouncedQuery }), [debouncedQuery]);
 

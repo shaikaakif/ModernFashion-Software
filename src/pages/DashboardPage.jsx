@@ -1,9 +1,20 @@
 import { useMemo, useState } from 'react';
-import { Button, DatePicker, Table, Tag } from 'antd';
-import { ReloadOutlined, ShoppingOutlined, WarningOutlined } from '@ant-design/icons';
+import { Alert, App as AntApp, Button, DatePicker, Space, Table, Tag } from 'antd';
+import {
+  BarChartOutlined,
+  CloudUploadOutlined,
+  PlusOutlined,
+  ReloadOutlined,
+  SettingOutlined,
+  ShoppingCartOutlined,
+  ShoppingOutlined,
+  SwapOutlined,
+  UserAddOutlined,
+  WarningOutlined,
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { useNavigate } from 'react-router-dom';
-import { api } from '@/app/api';
+import { api, errorMessage } from '@/app/api';
 import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import BrandMark from '@/app/BrandMark';
@@ -13,11 +24,85 @@ import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard, StatusTag } fro
 const kpiGrid = 'dashboard-kpis';
 
 export default function DashboardPage() {
-  const { user } = useSession();
+  const { user, can } = useSession();
+  const { message } = AntApp.useApp();
   const navigate = useNavigate();
   const [date, setDate] = useState(businessToday());
+  const [backupBusy, setBackupBusy] = useState(false);
   const { data, loading, error, reload } = useAsync(() => api('dashboard.get', { date }), [date]);
+  const backup = useAsync(
+    () => (can('backup.manage') ? api('backup.status') : Promise.resolve(null)),
+    [can]
+  );
   const canSeeProfit = Boolean(data?.canSeeProfit);
+  const stockCounts = data?.stockCounts || {};
+
+  async function backupNow() {
+    setBackupBusy(true);
+    try {
+      const result = await api('backup.create');
+      message.success(`Backup verified and saved: ${result.path}`);
+      backup.reload();
+    } catch (backupError) {
+      message.error(errorMessage(backupError));
+    } finally {
+      setBackupBusy(false);
+    }
+  }
+
+  const quickActions = [
+    {
+      key: 'sale',
+      label: 'New Sale',
+      icon: <ShoppingCartOutlined />,
+      allowed: can('pos.use'),
+      primary: true,
+      onClick: () => navigate('/pos'),
+    },
+    {
+      key: 'product',
+      label: 'Add Product',
+      icon: <PlusOutlined />,
+      allowed: can('products.manage'),
+      onClick: () => navigate('/inventory?new=product'),
+    },
+    {
+      key: 'stock',
+      label: 'Update Stock',
+      icon: <SwapOutlined />,
+      allowed: can('inventory.adjust'),
+      onClick: () => navigate('/inventory?tab=stock'),
+    },
+    {
+      key: 'customer',
+      label: 'Add Customer',
+      icon: <UserAddOutlined />,
+      allowed: can('customers.manage'),
+      onClick: () => navigate('/customers?new=1'),
+    },
+    {
+      key: 'reports',
+      label: 'View Reports',
+      icon: <BarChartOutlined />,
+      allowed: can('reports.sales') || can('reports.profit'),
+      onClick: () => navigate('/reports'),
+    },
+    {
+      key: 'backup',
+      label: 'Back Up Now',
+      icon: <CloudUploadOutlined />,
+      allowed: can('backup.manage'),
+      loading: backupBusy,
+      onClick: backupNow,
+    },
+    {
+      key: 'settings',
+      label: 'Configure Software',
+      icon: <SettingOutlined />,
+      allowed: can('settings.manage'),
+      onClick: () => navigate('/settings'),
+    },
+  ].filter((action) => action.allowed);
 
   const seriesMax = useMemo(
     () => Math.max(1, ...(data?.sevenDaySeries || []).map((day) => day.totalPaise)),
@@ -28,6 +113,11 @@ export default function DashboardPage() {
   if (error) return <ErrorPanel error={error} onRetry={reload} />;
 
   const sales = data?.sales || {};
+  const lastBackup = backup.data?.lastBackup || null;
+  const backupStale =
+    lastBackup &&
+    backup.data?.intervalHours &&
+    Date.now() - new Date(lastBackup.createdAt).getTime() > Number(backup.data.intervalHours) * 3600000;
 
   return (
     <div>
@@ -86,6 +176,68 @@ export default function DashboardPage() {
         )}
       </div>
 
+      <SectionCard
+        title="Quick actions"
+        subtitle="Every button opens the real workflow below."
+        className="dashboard-actions"
+      >
+        <Space wrap>
+          {quickActions.map((action) => (
+            <Button
+              key={action.key}
+              type={action.primary ? 'primary' : 'default'}
+              icon={action.icon}
+              loading={action.loading}
+              onClick={action.onClick}
+            >
+              {action.label}
+            </Button>
+          ))}
+        </Space>
+      </SectionCard>
+
+      {can('backup.manage') ? (
+        <SectionCard
+          title="Backup status"
+          subtitle="Verified local snapshots of the database and business assets."
+          className="dashboard-backup"
+          extra={
+            <Button icon={<CloudUploadOutlined />} onClick={backupNow} loading={backupBusy}>
+              Back up now
+            </Button>
+          }
+        >
+          {backup.loading && !backup.data ? (
+            <LoadingPanel label="Checking the last backup…" />
+          ) : backup.error ? (
+            <ErrorPanel error={backup.error} onRetry={backup.reload} />
+          ) : lastBackup ? (
+            <Space direction="vertical" size="small" style={{ width: '100%' }}>
+              <Alert
+                type={!lastBackup.exists || backupStale ? 'warning' : 'success'}
+                showIcon
+                message={
+                  !lastBackup.exists
+                    ? 'The last backup file is missing'
+                    : backupStale
+                      ? 'The last backup is older than the configured interval'
+                      : 'Last backup verified'
+                }
+                description={`${formatDateTime(lastBackup.createdAt)} · ${lastBackup.filename}`}
+              />
+              <span className="muted small">Backup folder: {backup.data.directory}</span>
+            </Space>
+          ) : (
+            <Alert
+              type="warning"
+              showIcon
+              message="No verified backup yet"
+              description="Create a backup before closing the shop. The file is verified and recorded locally."
+            />
+          )}
+        </SectionCard>
+      ) : null}
+
       <div className="dashboard-grid">
         <SectionCard
           title="Last seven days"
@@ -130,6 +282,11 @@ export default function DashboardPage() {
               <small>{data?.purchases ? `${data.purchases.count} posted` : ''}</small>
             </div>
             <div>
+              <span>Month to date</span>
+              <strong>{money(data?.monthToDate?.netSalesPaise)}</strong>
+              <small>{Number(data?.monthToDate?.invoiceCount || 0)} invoices</small>
+            </div>
+            <div>
               <span>Operating expenses</span>
               <strong>{data?.expenses ? money(data.expenses.totalPaise) : 'Hidden for your role'}</strong>
               <small>{data?.expenses ? `${data.expenses.count} entries` : ''}</small>
@@ -141,7 +298,12 @@ export default function DashboardPage() {
           title="Low stock"
           subtitle="Variants at or below their reorder threshold."
           className="span-4"
-          extra={<WarningOutlined className="panel-icon warning" />}
+          extra={
+            <Space>
+              <Tag color="red">{Number(stockCounts.out || 0)} out</Tag>
+              <WarningOutlined className="panel-icon warning" />
+            </Space>
+          }
         >
           {(data?.lowStock || []).length ? (
             <div className="stack-list">

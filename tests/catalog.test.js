@@ -31,14 +31,21 @@ test('archived products leave the active catalogue, keep history and can be rest
   assert.equal(app.services.inventory.list({}).length, 0);
   assert.equal(app.services.inventory.list({ status: 'archived' }).length, 1);
   assert.equal(app.services.catalog.posSearch('Everyday').length, 0);
-  assert.throws(() => app.services.catalog.deleteProduct(product.id), /history/);
+  const removed = app.services.catalog.deleteProduct(product.id);
+  assert.equal(removed.archived, true, 'History is preserved by removing the product from active inventory.');
+  assert.equal(app.services.inventory.list({}).length, 0);
 
   app.services.catalog.restoreProduct(product.id);
   assert.equal(app.services.inventory.list({}).length, 1);
   assert.equal(app.services.inventory.list({ status: 'archived' }).length, 0);
 
   const clean = createProduct(app, { name: 'No History Item', openingStock: 0 });
-  assert.deepEqual(app.services.catalog.deleteProduct(clean.id), { deleted: true, id: clean.id });
+  assert.deepEqual(app.services.catalog.deleteProduct(clean.id), {
+    deleted: true,
+    archived: false,
+    id: clean.id,
+    name: 'No History Item',
+  });
   assert.equal(app.services.catalog.listProducts({ query: 'No History Item' }).length, 0);
 });
 

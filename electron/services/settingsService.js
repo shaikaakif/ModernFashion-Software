@@ -187,6 +187,7 @@ export function createSettingsService({ db, auth }) {
         email: optionalText(input.email ?? current.email, { max: 160 }),
         gstin: optionalText(input.gstin ?? current.gstin, { max: 20 }).toUpperCase(),
         legalName: optionalText(input.legalName ?? current.legalName, { max: 160 }),
+        returnPolicy: optionalText(input.returnPolicy ?? current.returnPolicy, { max: 500 }),
       },
       user.user.id
     );

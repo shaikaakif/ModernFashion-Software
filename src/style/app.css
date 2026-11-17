@@ -235,13 +235,16 @@ a {
 
 .brand-logo-frame {
   display: inline-flex;
+  align-self: flex-start;
+  width: fit-content;
+  max-width: 100%;
   flex: 0 0 auto;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   overflow: hidden;
-  border: 1px solid rgba(29, 23, 18, 0.1);
-  border-radius: 8px;
-  background: #fff;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
 }
 
 .brand-logo-frame img {
@@ -249,6 +252,7 @@ a {
   width: auto;
   height: auto;
   max-width: 100%;
+  max-height: 100%;
   object-fit: contain;
 }
 
@@ -684,6 +688,15 @@ a {
   gap: 16px;
 }
 
+.dashboard-actions,
+.dashboard-backup {
+  margin-bottom: 16px;
+}
+
+.dashboard-actions .ant-space {
+  row-gap: 8px;
+}
+
 .span-4 {
   grid-column: span 4;
 }
@@ -807,7 +820,7 @@ a {
 
 .metric-strip {
   display: grid;
-  grid-template-columns: 1.5fr 1fr 1fr;
+  grid-template-columns: 1.5fr 1fr 1fr 1fr;
   gap: 14px;
   margin-top: 16px;
   padding-top: 15px;

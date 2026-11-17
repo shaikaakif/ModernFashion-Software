@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   App as AntApp,
   Alert,
@@ -44,6 +45,7 @@ const MOVEMENT_TYPES = [
 export default function InventoryPage() {
   const { can } = useSession();
   const { message } = AntApp.useApp();
+  const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('products');
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState(null);
@@ -92,6 +94,11 @@ export default function InventoryPage() {
       }),
     [variantFilter?.variantId, movementType, movementRange, movementLimit]
   );
+
+  useEffect(() => {
+    const requested = searchParams.get('tab');
+    if (requested) setTab(requested);
+  }, [searchParams]);
 
   useEffect(() => {
     if (adjustOpen) {
@@ -211,7 +218,7 @@ export default function InventoryPage() {
                 { value: 'in', label: 'In stock' },
                 { value: 'low', label: 'Low stock' },
                 { value: 'out', label: 'Out of stock' },
-                { value: 'archived', label: 'Archived products' },
+                { value: 'archived', label: 'Removed products' },
               ]}
             />
           </label>
@@ -537,11 +544,11 @@ export default function InventoryPage() {
         activeKey={tab}
         onChange={setTab}
         items={[
-          { key: 'products', label: 'Products', children: <ProductsPage embedded initialTab="products" /> },
+          { key: 'products', label: 'Products', children: <ProductsPage embedded initialTab="products" initialAction={searchParams.get('new')} /> },
           { key: 'stock', label: 'Stock', children: stockPanel },
           { key: 'movements', label: 'Stock history', children: movementsPanel },
           { key: 'categories', label: 'Categories', children: <ProductsPage embedded initialTab="categories" /> },
-          { key: 'archived', label: 'Archived', children: <ProductsPage embedded initialTab="archived" /> },
+          { key: 'archived', label: 'Removed', children: <ProductsPage embedded initialTab="archived" /> },
           { key: 'valuation', label: 'Valuation', children: valuationPanel },
           { key: 'reconciliation', label: 'Reconciliation', children: reconciliationPanel },
         ]}

@@ -14,6 +14,7 @@ export const DEFAULT_SETTINGS = {
     email: '',
     gstin: '',
     legalName: '',
+    returnPolicy: '',
     logoPath: '',
   },
   invoice: {
@@ -29,7 +30,7 @@ export const DEFAULT_SETTINGS = {
     showGstin: true,
     showTitle: true,
     terms: '',
-    thankYou: 'Thank you for shopping with us.',
+    thankYou: 'Thank you for shopping with us!',
   },
   tax: {
     enabled: false,
@@ -85,7 +86,7 @@ export const DEFAULT_SETTINGS = {
     showPoweredBy: true,
     headerNote: '',
     fontScale: 100,
-    footerNote: '',
+    footerNote: 'We appreciate your business. Visit us again.',
   },
   barcode: {
     prefix: 'MF',

@@ -47,7 +47,7 @@ function splitList(value) {
     .filter(Boolean);
 }
 
-export default function ProductsPage({ embedded = false, initialTab = 'products' }) {
+export default function ProductsPage({ embedded = false, initialTab = 'products', initialAction = null }) {
   const { can } = useSession();
   const { message } = AntApp.useApp();
   const [tab, setTab] = useState(initialTab);
@@ -95,9 +95,17 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
   const [brandForm] = Form.useForm();
 
   useEffect(() => {
+    if (initialAction === 'product' && can('products.manage')) {
+      setProductModal({ open: true, record: null });
+    }
+  }, [initialAction, can]);
+
+  useEffect(() => {
     if (productModal.open) {
       productForm.resetFields();
       if (productModal.record) {
+        const singleVariant =
+          productModal.record.variants?.length === 1 ? productModal.record.variants[0] : null;
         productForm.setFieldsValue({
           name: productModal.record.name,
           categoryId: productModal.record.categoryId,
@@ -107,6 +115,14 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
           taxRatePercent: Number(productModal.record.taxRateBp || 0) / 100,
           status: productModal.record.status,
           description: productModal.record.description || '',
+          ...(singleVariant
+            ? {
+                costPaise: singleVariant.costPaise,
+                pricePaise: singleVariant.pricePaise,
+                mrpPaise: singleVariant.mrpPaise,
+                lowStockThreshold: singleVariant.lowStockThreshold,
+              }
+            : {}),
         });
       } else {
         productForm.setFieldsValue({
@@ -202,7 +218,20 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
         status: values.status || 'active',
       };
       if (productModal.record) {
-        const updated = await api('catalog.update', { ...payload, id: productModal.record.id });
+        const singleVariant =
+          productModal.record.variants?.length === 1 ? productModal.record.variants[0] : null;
+        let updated = await api('catalog.update', { ...payload, id: productModal.record.id });
+        if (singleVariant && values.pricePaise !== undefined) {
+          await api('catalog.updateVariant', {
+            variantId: singleVariant.id,
+            costPaise: values.costPaise || 0,
+            pricePaise: values.pricePaise,
+            mrpPaise: values.mrpPaise || 0,
+            lowStockThreshold: values.lowStockThreshold ?? singleVariant.lowStockThreshold,
+            status: singleVariant.status,
+          });
+          updated = await api('catalog.get', { id: productModal.record.id });
+        }
         message.success('Product details updated.');
         setProductModal({ open: false, record: null });
         setDetail(updated);
@@ -337,24 +366,6 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
     }
   }
 
-  function confirmArchive(record) {
-    Modal.confirm({
-      title: `Archive ${record.name}?`,
-      content:
-        'Archived products are hidden from new sales and stock entry, but stay visible on historical invoices and reports. You can restore this product later.',
-      okText: 'Archive product',
-      onOk: async () => {
-        try {
-          await api('catalog.archive', { id: record.id });
-          message.success(`${record.name} archived.`);
-          await refreshAfterStatus();
-        } catch (error) {
-          message.error(errorMessage(error));
-        }
-      },
-    });
-  }
-
   function confirmRestore(record) {
     Modal.confirm({
       title: `Restore ${record.name}?`,
@@ -374,15 +385,19 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
 
   function confirmDelete(record) {
     Modal.confirm({
-      title: `Delete ${record.name} permanently?`,
+      title: `Delete ${record.name}?`,
       content:
-        'Products with any sales, purchase or stock history cannot be deleted — archive them instead. Deletion cannot be undone.',
-      okText: 'Delete permanently',
+        'If this product has sales or stock history, it is removed from the active catalogue and historical invoices stay intact. If it has no history, it is deleted permanently. This action cannot be undone.',
+      okText: 'Delete product',
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          await api('catalog.delete', { id: record.id });
-          message.success(`${record.name} deleted.`);
+          const result = await api('catalog.delete', { id: record.id });
+          message.success(
+            result.archived
+              ? `${record.name} removed from inventory. Historical invoices are preserved.`
+              : `${record.name} deleted permanently.`
+          );
           if (detail?.id === record.id) {
             setDetailOpen(false);
             setDetail(null);
@@ -455,7 +470,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                     onChange={setStatus}
                     options={[
                       { value: 'active', label: 'Active' },
-                      { value: 'inactive', label: 'Archived (inactive)' },
+                      { value: 'inactive', label: 'Removed (inactive)' },
                     ]}
                     style={{ width: 160 }}
                   />
@@ -532,7 +547,11 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                         render: (value, row) => (
                           <Space direction="vertical" size={2} style={{ alignItems: 'flex-end' }}>
                             <strong>{value}</strong>
-                            {row.lowStockCount > 0 ? <Tag color="gold">{row.lowStockCount} low</Tag> : null}
+                            {row.lowStockCount > 0 ? (
+                              <Tag color="gold">
+                                {row.lowStockCount} variant{row.lowStockCount === 1 ? '' : 's'} low
+                              </Tag>
+                            ) : null}
                           </Space>
                         ),
                       },
@@ -558,6 +577,27 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                         width: 130,
                         render: formatDate,
                       },
+                      ...(canManage
+                        ? [
+                            {
+                              title: '',
+                              width: 100,
+                              render: (_, row) => (
+                                <Button
+                                  size="small"
+                                  danger
+                                  icon={<DeleteOutlined />}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    confirmDelete(row);
+                                  }}
+                                >
+                                  Delete
+                                </Button>
+                              ),
+                            },
+                          ]
+                        : []),
                     ]}
                   />
                 )}
@@ -655,17 +695,17 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
           },
           {
             key: 'archived',
-            label: `Archived${archivedRows.length ? ` (${archivedRows.length})` : ''}`,
+            label: `Removed${archivedRows.length ? ` (${archivedRows.length})` : ''}`,
             children: (
               <SectionCard
-                title="Archived products"
-                subtitle="Hidden from new sales and stock entry. Historical invoices, stock movements and reports are unchanged."
+                title="Removed products"
+                subtitle="Removed from active inventory. Historical invoices, stock movements and reports are unchanged."
                 bodyClassName="panel-body flush"
               >
                 {archivedRows.length === 0 ? (
                   <EmptyPanel
-                    title="No archived products"
-                    description="Archiving keeps a product and its history safe while removing it from the active catalogue."
+                    title="No removed products"
+                    description="Products with sales or stock history appear here after deletion, so old bills stay readable."
                   />
                 ) : (
                   <Table
@@ -748,7 +788,9 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                     Print all labels
                   </Button>
                   {detail.status === 'active' ? (
-                    <Button onClick={() => confirmArchive(detail)}>Archive</Button>
+                    <Button danger icon={<DeleteOutlined />} onClick={() => confirmDelete(detail)}>
+                      Delete
+                    </Button>
                   ) : (
                     <>
                       <Button onClick={() => confirmRestore(detail)}>Restore</Button>
@@ -797,6 +839,10 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
             </Descriptions>
 
             <SectionCard title="Variants" className="inner-panel" bodyClassName="panel-body flush">
+              <p className="muted small" style={{ padding: '10px 12px 0' }}>
+                Purchase price, selling price, MRP and low-stock threshold are per variant. Use <strong>Edit price</strong> on a row.
+                Opening stock is set at creation; use Inventory → Update stock for later corrections.
+              </p>
               <Table
                 rowKey="id"
                 size="small"
@@ -851,7 +897,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                   },
                   {
                     title: '',
-                    width: 110,
+                    width: 160,
                     render: (_, row) => (
                       <Space size={2}>
                         <Button
@@ -867,9 +913,11 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                             type="text"
                             size="small"
                             icon={<EditOutlined />}
-                            aria-label={`Edit ${row.sku}`}
+                            aria-label={`Edit price for ${row.sku}`}
                             onClick={() => setVariantModal({ open: true, record: row })}
-                          />
+                          >
+                            Edit price
+                          </Button>
                         ) : null}
                       </Space>
                     ),
@@ -939,7 +987,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
               <Select
                 options={[
                   { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Archived (inactive)' },
+                  { value: 'inactive', label: 'Removed (inactive)' },
                 ]}
               />
             </Form.Item>
@@ -947,6 +995,46 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
           <Form.Item name="description" label="Description">
             <Input.TextArea rows={2} maxLength={2000} />
           </Form.Item>
+
+          {productModal.record ? (
+            productModal.record.variants?.length === 1 ? (
+              <>
+                <div className="form-grid three">
+                  <Form.Item name="costPaise" label="Purchase price (₹)">
+                    <MoneyInput />
+                  </Form.Item>
+                  <Form.Item
+                    name="pricePaise"
+                    label="Selling price (₹)"
+                    rules={[{ required: true, message: 'Enter a selling price.' }]}
+                  >
+                    <MoneyInput />
+                  </Form.Item>
+                  <Form.Item name="mrpPaise" label="MRP (₹)">
+                    <MoneyInput />
+                  </Form.Item>
+                </div>
+                <Form.Item name="lowStockThreshold" label="Low-stock alert at">
+                  <InputNumber min={0} max={100000} style={{ width: '100%' }} />
+                </Form.Item>
+                <Alert
+                  type="info"
+                  showIcon
+                  className="detail-alert"
+                  message="Stock corrections use the ledger"
+                  description="Opening stock is recorded when the product is created. Use Inventory → Update stock to add, correct or remove current stock; every change is audited."
+                />
+              </>
+            ) : (
+              <Alert
+                type="info"
+                showIcon
+                className="detail-alert"
+                message={`${productModal.record.variants?.length || 0} variants`}
+                description="Edit purchase price, selling price, MRP and low-stock threshold per variant from the Variants table in the product view. This keeps each size and colour priced correctly."
+              />
+            )
+          ) : null}
 
           {!productModal.record ? (
             <>
