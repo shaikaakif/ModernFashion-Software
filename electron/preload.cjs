@@ -13,6 +13,12 @@ contextBridge.exposeInMainWorld('mf', {
     return result.data;
   },
   platform: process.platform,
+  onUpdateStatus: (listener) => {
+    if (typeof listener !== 'function') return () => {};
+    const wrapped = (_event, status) => listener(status);
+    ipcRenderer.on('mf:update-status', wrapped);
+    return () => ipcRenderer.removeListener('mf:update-status', wrapped);
+  },
   versions: {
     electron: process.versions.electron,
     chrome: process.versions.chrome,

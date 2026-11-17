@@ -4,6 +4,7 @@ import { BrowserWindow, clipboard, shell } from 'electron';
 import { AppError, fail } from '../core/errors.js';
 import { nowIso, requireInt } from '../core/validation.js';
 import { businessDate } from '../core/validation.js';
+import { readLogoDataUrl } from '../core/logo.js';
 import {
   invoiceHtml,
   labelsHtml,
@@ -11,23 +12,6 @@ import {
   testLabelHtml,
   testReceiptHtml,
 } from './documents.js';
-
-const MIME = {
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.webp': 'image/webp',
-  '.gif': 'image/gif',
-  '.bmp': 'image/bmp',
-};
-
-function readLogoDataUrl(settings) {
-  const logoPath = settings?.business?.logoPath;
-  if (!logoPath || !fs.existsSync(logoPath)) return '';
-  const mime = MIME[path.extname(logoPath).toLowerCase()];
-  if (!mime) return '';
-  return `data:${mime};base64,${fs.readFileSync(logoPath).toString('base64')}`;
-}
 
 function waitForLoad(win) {
   return new Promise((resolve, reject) => {
@@ -61,6 +45,10 @@ export function createPrintService({ auth, saleService, catalogService, settings
 
   function settingsSnapshot() {
     return settingsService.getSnapshot();
+  }
+
+  function logoFrom(settings) {
+    return readLogoDataUrl(settings?.business?.logoPath);
   }
 
   function createWindow() {
@@ -168,7 +156,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
       settings,
       html: receiptHtml({
         ...data,
-        logoDataUrl: readLogoDataUrl(settings),
+        logoDataUrl: logoFrom(settings),
         widthMm: Number(settings.hardware.receiptWidthMm || 80),
         duplicate,
       }),
@@ -203,7 +191,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     const data = saleService.receiptData(id);
     const settings = settingsSnapshot();
     const target = printerName || settings.hardware.receiptPrinter;
-    const html = invoiceHtml({ ...data, logoDataUrl: readLogoDataUrl(settings) });
+    const html = invoiceHtml({ ...data, logoDataUrl: logoFrom(settings) });
     const result = await printHtml({ html, printerName: target, widthMm: 210, heightMm: 297 });
     logger.info('A4 invoice sent to Windows print driver', { saleId: id, printerName: target });
     return result;
@@ -237,11 +225,78 @@ export function createPrintService({ auth, saleService, catalogService, settings
     const settings = settingsSnapshot();
     const html = testReceiptHtml({
       business: publicBusinessFromSettings(settings),
+      invoice: settings.invoice,
+      receipt: settings.receipt,
       tax: settings.tax,
-      logoDataUrl: readLogoDataUrl(settings),
+      logoDataUrl: logoFrom(settings),
       widthMm: Number(settings.hardware.receiptWidthMm || 80),
     });
     return printHtml({ html, printerName: settings.hardware.receiptPrinter });
+  }
+
+  function sampleSale() {
+    const items = [
+      {
+        productName: 'Cotton Anarkali Kurti',
+        variantLabel: 'Blue / M',
+        sku: 'KUR-0001-BLU-M',
+        quantity: 1,
+        unitPricePaise: 149900,
+        discountPaise: 15000,
+        lineTotalPaise: 134900,
+      },
+      {
+        productName: 'Everyday Cotton Tee',
+        variantLabel: 'Black / L',
+        sku: 'TEE-0002-BLK-L',
+        quantity: 2,
+        unitPricePaise: 49950,
+        discountPaise: 5000,
+        lineTotalPaise: 94900,
+      },
+    ];
+    const subtotalPaise = items.reduce((sum, item) => sum + item.unitPricePaise * item.quantity, 0);
+    const discountTotalPaise = items.reduce((sum, item) => sum + item.discountPaise, 0);
+    const totalPaise = subtotalPaise - discountTotalPaise;
+    return {
+      invoiceNo: 'SAMPLE-PREVIEW',
+      completedAt: new Date().toISOString(),
+      cashierName: 'Owner',
+      customerName: 'Sample customer',
+      customerPhone: '9000000000',
+      paymentMethod: 'upi',
+      paymentStatus: 'paid',
+      pricesIncludeTax: false,
+      items,
+      subtotalPaise,
+      discountTotalPaise,
+      taxPaise: 0,
+      roundOffPaise: 0,
+      totalPaise,
+      amountPaidPaise: totalPaise + 200,
+      balancePaise: 0,
+      changePaise: 200,
+    };
+  }
+
+  function previewReceipt(input = {}) {
+    requirePrintPermission('settings.manage');
+    const preview = settingsService.previewPrint(input);
+    const widthMm = Number(preview.hardware.receiptWidthMm || 80);
+    return {
+      html: receiptHtml({
+        sale: sampleSale(),
+        business: preview.business,
+        invoice: preview.invoice,
+        receipt: preview.receipt,
+        tax: preview.tax,
+        logoDataUrl: preview.logoDataUrl,
+        widthMm,
+        sample: true,
+      }),
+      widthMm,
+      barcode: preview.barcode,
+    };
   }
 
   async function printTestLabel() {
@@ -273,7 +328,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     requireSaleAccess(id);
     const data = saleService.receiptData(id);
     const settings = settingsSnapshot();
-    const html = invoiceHtml({ ...data, logoDataUrl: readLogoDataUrl(settings) });
+    const html = invoiceHtml({ ...data, logoDataUrl: logoFrom(settings) });
     const buffer = await renderPdf(html);
     const filename = `${String(data.sale.invoiceNo).replace(/[^a-zA-Z0-9._-]/g, '-')}-${businessDate()}.pdf`;
     const target = path.join(paths.documents, filename);
@@ -342,6 +397,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     printLabels,
     printTestReceipt,
     printTestLabel,
+    previewReceipt,
     saveInvoicePdf,
     whatsappHandoff,
     openPath,

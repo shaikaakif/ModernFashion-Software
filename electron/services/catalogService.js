@@ -12,6 +12,7 @@ import { getSetting } from '../core/settings.js';
 import { allocateSequence } from '../core/sequences.js';
 import { transaction } from '../core/database.js';
 import { AppError } from '../core/errors.js';
+import { DEFAULT_BARCODE, formatBarcode, normalizeBarcodeConfig } from '../../shared/barcode.js';
 
 function slugCode(value, length = 3) {
   const code = String(value || '')
@@ -22,8 +23,15 @@ function slugCode(value, length = 3) {
 }
 
 function nextBarcode(db) {
+  let config = DEFAULT_BARCODE;
+  try {
+    config = normalizeBarcodeConfig(getSetting(db, 'barcode'));
+  } catch {
+    // A damaged setting must never stop catalogue work. Existing barcodes keep
+    // their values; new variants fall back to the internal MF format.
+  }
   const sequence = allocateSequence(db, 'barcode', 'global');
-  return `MF${String(sequence).padStart(10, '0')}`;
+  return formatBarcode(config.prefix, config.digits, sequence);
 }
 
 function buildSku(db, categoryCode, productId, color, size) {

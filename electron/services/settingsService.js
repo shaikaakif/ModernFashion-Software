@@ -10,10 +10,74 @@ import {
   nowIso,
 } from '../core/validation.js';
 import { writeAudit } from '../core/audit.js';
+import { transaction } from '../core/database.js';
+import { readLogoDataUrl } from '../core/logo.js';
+import { normalizeBarcodeConfig } from '../../shared/barcode.js';
 
 export function createSettingsService({ db, auth }) {
   function requireManage() {
     return auth.requirePermission('settings.manage');
+  }
+
+  function boolOr(value, fallback) {
+    return value === undefined ? Boolean(fallback) : Boolean(value);
+  }
+
+  function normalizePrint(input = {}) {
+    const invoiceCurrent = getSetting(db, 'invoice');
+    const receiptCurrent = getSetting(db, 'receipt');
+    const hardwareCurrent = getSetting(db, 'hardware');
+    const barcodeCurrent = getSetting(db, 'barcode');
+    const width = Number(input.receiptWidthMm ?? input.paperWidthMm ?? hardwareCurrent.receiptWidthMm);
+    const receiptWidthMm = [58, 80].includes(width) ? width : hardwareCurrent.receiptWidthMm;
+    let barcode;
+    try {
+      barcode = normalizeBarcodeConfig({
+        prefix: input.barcodePrefix ?? barcodeCurrent.prefix,
+        digits: input.barcodeDigits ?? barcodeCurrent.digits,
+      });
+    } catch (error) {
+      fail(error.message);
+    }
+    return {
+      invoice: {
+        ...invoiceCurrent,
+        paperWidthMm: receiptWidthMm,
+        duplicateLabel: optionalText(input.duplicateLabel ?? invoiceCurrent.duplicateLabel, { max: 40 }),
+        showLogo: boolOr(input.showLogo, invoiceCurrent.showLogo),
+        logoHeightMm: requireInt(input.logoHeightMm ?? invoiceCurrent.logoHeightMm, 'Logo height', {
+          min: 8,
+          max: 30,
+        }),
+        showAddress: boolOr(input.showAddress, invoiceCurrent.showAddress),
+        showPhone: boolOr(input.showPhone, invoiceCurrent.showPhone),
+        showState: boolOr(input.showState, invoiceCurrent.showState),
+        showGstin: boolOr(input.showGstin, invoiceCurrent.showGstin),
+        showTitle: boolOr(input.showTitle, invoiceCurrent.showTitle),
+        terms: optionalText(input.terms ?? invoiceCurrent.terms, { max: 1000 }),
+        thankYou: optionalText(input.thankYou ?? invoiceCurrent.thankYou, { max: 300 }),
+      },
+      receipt: {
+        ...receiptCurrent,
+        showCustomer: boolOr(input.showCustomer, receiptCurrent.showCustomer),
+        showCashier: boolOr(input.showCashier, receiptCurrent.showCashier),
+        showSavings: boolOr(input.showSavings, receiptCurrent.showSavings),
+        showTax: boolOr(input.showTax, receiptCurrent.showTax),
+        showSku: boolOr(input.showSku, receiptCurrent.showSku),
+        showItemDiscounts: boolOr(input.showItemDiscounts, receiptCurrent.showItemDiscounts),
+        showPayment: boolOr(input.showPayment, receiptCurrent.showPayment),
+        showAmountReceived: boolOr(input.showAmountReceived, receiptCurrent.showAmountReceived),
+        showPoweredBy: boolOr(input.showPoweredBy, receiptCurrent.showPoweredBy),
+        headerNote: optionalText(input.headerNote ?? receiptCurrent.headerNote, { max: 300 }),
+        fontScale: requireInt(input.fontScale ?? receiptCurrent.fontScale, 'Receipt font size', {
+          min: 80,
+          max: 130,
+        }),
+        footerNote: optionalText(input.footerNote ?? receiptCurrent.footerNote, { max: 500 }),
+      },
+      hardware: { receiptWidthMm },
+      barcode,
+    };
   }
 
   function offerRows() {
@@ -51,6 +115,54 @@ export function createSettingsService({ db, auth }) {
     // paths. The POS receives the subset it needs through sales.bootstrap, so
     // this administrative view is restricted to settings managers.
     requireManage();
+    return getSnapshot();
+  }
+
+  function getLogo() {
+    requireManage();
+    const business = getSetting(db, 'business');
+    return {
+      dataUrl: readLogoDataUrl(business.logoPath),
+      filename: business.logoPath ? String(business.logoPath).split(/[\\/]/).pop() : '',
+      exists: Boolean(business.logoPath),
+    };
+  }
+
+  function previewPrint(input = {}) {
+    requireManage();
+    const normalized = normalizePrint(input);
+    return {
+      ...normalized,
+      business: publicBusiness(db),
+      tax: getSetting(db, 'tax'),
+      logoDataUrl: readLogoDataUrl(getSetting(db, 'business').logoPath),
+    };
+  }
+
+  function updatePrint(input = {}) {
+    const user = requireManage();
+    const normalized = normalizePrint(input);
+    transaction(db, () => {
+      saveSetting(db, 'invoice', normalized.invoice, user.user.id);
+      saveSetting(db, 'receipt', normalized.receipt, user.user.id);
+      saveSetting(db, 'hardware', { receiptWidthMm: normalized.hardware.receiptWidthMm }, user.user.id);
+      saveSetting(db, 'barcode', normalized.barcode, user.user.id);
+      writeAudit(db, {
+        userId: user.user.id,
+        userName: user.user.name,
+        action: 'settings.print_updated',
+        entityType: 'settings',
+        entityId: 'print',
+        details: {
+          receiptWidthMm: normalized.hardware.receiptWidthMm,
+          showLogo: normalized.invoice.showLogo,
+          logoHeightMm: normalized.invoice.logoHeightMm,
+          fontScale: normalized.receipt.fontScale,
+          barcodePrefix: normalized.barcode.prefix,
+          barcodeDigits: normalized.barcode.digits,
+        },
+      });
+    });
     return getSnapshot();
   }
 
@@ -384,6 +496,9 @@ export function createSettingsService({ db, auth }) {
   return {
     getPublic,
     getSnapshot,
+    getLogo,
+    previewPrint,
+    updatePrint,
     updateBusiness,
     updateInvoice,
     updateTax,

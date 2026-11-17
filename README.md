@@ -20,6 +20,10 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 - CSV exports and a month accounting pack for the client CA
 - Local backups with integrity + SHA-256 verification, scheduled backups and guarded restore
 - Receipt, A4 invoice and label HTML printed through the Windows driver; PDF save and WhatsApp handoff
+- Owner-editable print layout: logo size/visibility, header fields, receipt sections, header/footer notes, terms, paper width and font scale, with a live sample receipt preview
+- Owner-editable Code 128 barcode prefix and digit width for newly generated product barcodes; existing barcode values are never rewritten
+- GitHub Releases update page with check, download and backup-first install; business data stays in the user-data folder
+- Logo preview in Settings with a restart prompt after the logo changes
 
 No users, products, customers or sales are seeded. The database starts with structural defaults only (categories, expense categories, permissions, settings).
 
@@ -71,7 +75,9 @@ npm run dist
 Output:
 
 ```text
-release/ModernFashionPOS-Setup-1.0.0.exe
+release/ModernFashionPOS-Setup-1.1.0.exe
+release/ModernFashionPOS-Setup-1.1.0.exe.blockmap
+release/latest.yml
 ```
 
 The installer is per-user by default, allows choosing the install directory, creates Start Menu/Desktop shortcuts and includes an uninstaller. It does **not** delete business data on uninstall (`deleteAppDataOnUninstall: false`).
@@ -85,6 +91,12 @@ npm run dist:dir
 The unpacked application is written under `release/win-unpacked/`.
 
 MSI is not configured. NSIS is preferred for one POS workstation because it avoids the WiX toolchain and supports the required shortcut/install-directory behaviour. Add an MSI target only if the client's IT policy explicitly requires one.
+
+## Updates from GitHub Releases
+
+The installed app reads the public repository `shaikaakif/ModernFashion-Software` through `electron-updater`. Owners see **Releases** in the navigation, can check the latest release, download it, and restart to install. An update creates a verified database backup first and replaces program files only; the database, backups, exports, documents and settings are not touched.
+
+No release has been published yet, and the installer is not code-signed. Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
 
 ## Where data lives
 
@@ -135,11 +147,12 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 18 critical tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore).
+- `npm test`: 22 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore, barcode formatting, logo reading, print settings and receipt layout).
 - `npm run build`: passing.
 - `npm run lint`: passing.
-- Packaged EXE: **built and startup-verified.** `release/ModernFashionPOS-Setup-1.0.0.exe` was built, and the unpacked packaged app was launched with an isolated data folder. Its renderer loaded from `resources/app.asar/dist/index.html` and displayed the first-run owner setup screen. Login, navigation, billing and printing inside the installed build still need a workstation acceptance pass; physical printing and scanner behaviour remain unverified.
-- Logo: no client logo asset is present yet. Add it in **Settings → Business** when supplied; it is stored under the local `assets/` folder.
+- Packaged EXE: **built and startup-verified.** `release/ModernFashionPOS-Setup-1.1.0.exe` was built, and the unpacked packaged app was launched with an isolated data folder. It started on version 1.1.0, created its database and handled the empty GitHub release feed without crashing. Login, billing and printing inside the installed build still need a workstation acceptance pass; physical printing and scanner behaviour remain unverified.
+- Updates: implemented and locally smoke-tested. The download/install path cannot be exercised until the first GitHub Release is published.
+- Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.
 
 ## Client inputs still required
 

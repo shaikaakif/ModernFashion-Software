@@ -1,13 +1,14 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { AppError, fail } from '../core/errors.js';
+import { readLogoDataUrl } from '../core/logo.js';
 
 function copyFileSafely(source, target) {
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(source, target);
 }
 
-export function createIpcHandlers({ services, paths, printService, exportService, dialog, shell, app }) {
+export function createIpcHandlers({ services, paths, printService, exportService, updateService, dialog, shell, app }) {
   const {
     auth,
     settings,
@@ -33,11 +34,22 @@ export function createIpcHandlers({ services, paths, printService, exportService
       properties: ['openFile'],
     })?.[0];
     if (!file) return { changed: false };
+    if (!readLogoDataUrl(file)) {
+      fail('Choose a PNG, JPG, WebP, GIF or BMP image smaller than 5 MB.');
+    }
     const ext = path.extname(file).toLowerCase() || '.png';
     const target = path.join(paths.assets, `store-logo${ext}`);
+    const previous = settings.getPublic().business.logoPath;
     copyFileSafely(file, target);
+    if (previous && path.resolve(previous) !== path.resolve(target) && path.resolve(previous).startsWith(path.resolve(paths.assets))) {
+      try {
+        fs.unlinkSync(previous);
+      } catch {
+        // The new logo is already in place; a stale managed file is harmless.
+      }
+    }
     settings.setLogoPath(target);
-    return { changed: true, logoPath: target, business: settings.getPublic() };
+    return { changed: true, logoPath: target, business: settings.getPublic(), logo: settings.getLogo() };
   }
 
   function clearLogo() {
@@ -51,7 +63,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
       }
     }
     settings.setLogoPath('');
-    return { changed: true };
+    return { changed: true, logo: settings.getLogo() };
   }
 
   function chooseBackupFile() {
@@ -106,6 +118,37 @@ export function createIpcHandlers({ services, paths, printService, exportService
     }),
     'app.diagnostics': diagnostics,
     'app.openDataFolder': openDataFolder,
+    'app.openReleases': async () => {
+      auth.requirePermission('settings.manage');
+      await shell.openExternal(updateService.getStatus().releaseUrl);
+      return { opened: true };
+    },
+    'app.restart': () => {
+      auth.requirePermission('settings.manage');
+      setTimeout(() => {
+        app.relaunch();
+        app.quit();
+      }, 400);
+      return { restarting: true };
+    },
+    'app.updateStatus': () => {
+      auth.requirePermission('settings.manage');
+      return updateService.getStatus();
+    },
+    'app.checkUpdates': () => {
+      auth.requirePermission('settings.manage');
+      return updateService.check();
+    },
+    'app.downloadUpdate': () => {
+      auth.requirePermission('settings.manage');
+      return updateService.download();
+    },
+    'app.installUpdate': () => {
+      const user = auth.requirePermission('settings.manage');
+      // A verified backup is mandatory before program files are replaced.
+      const created = backup.createManual(user);
+      return updateService.install({ backupPath: created.path });
+    },
 
     'auth.setupStatus': () => auth.setupStatus(),
     'auth.setupOwner': (payload) => auth.setupOwner(payload),
@@ -202,6 +245,9 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'settings.updateHardware': (payload) => settings.updateHardware(payload),
     'settings.updateReceipt': (payload) => settings.updateReceipt(payload),
     'settings.updateBackup': (payload) => settings.updateBackup(payload),
+    'settings.getLogo': () => settings.getLogo(),
+    'settings.previewPrint': (payload) => settings.previewPrint(payload),
+    'settings.updatePrint': (payload) => settings.updatePrint(payload),
     'settings.chooseLogo': chooseLogo,
     'settings.clearLogo': clearLogo,
     'settings.offers': () => settings.listOffers(),
@@ -225,6 +271,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'print.labels': (payload) => printService.printLabels(payload?.variantIds),
     'print.testReceipt': () => printService.printTestReceipt(),
     'print.testLabel': () => printService.printTestLabel(),
+    'print.previewReceipt': (payload) => printService.previewReceipt(payload),
     'print.savePdf': (payload) => printService.saveInvoicePdf(payload?.saleId),
     'print.whatsapp': (payload) => printService.whatsappHandoff(payload?.saleId),
     'print.open': (payload) => printService.openPath(payload?.path),

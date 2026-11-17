@@ -10,7 +10,7 @@
   "8": "build",
   "9": "database.js",
   "10": "master-ui-skill.md",
-  "11": "helpers.js",
+  "11": "print.test.js",
   "12": "MASTER_AI_ENGINEERING_SOP.md",
   "13": "createExportService",
   "14": "devDependencies",
@@ -22,10 +22,10 @@
   "20": "backupService.js",
   "21": "dependencies",
   "22": "16. ACCESSIBILITY AND INCLUSIVE INTERACTION",
-  "23": "createIpcHandlers",
+  "23": "readLogoDataUrl",
   "24": "scripts",
   "25": "cart.js",
-  "26": "money.js",
+  "26": "createUpdateService",
   "27": "14. MICRO-INTERACTIONS AND MOTION DESIGN",
   "28": "23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE",
   "29": "25. TESTING, SCREENSHOT REVIEW, AND VISUAL REFINEMENT",
@@ -43,7 +43,7 @@
   "41": "1. MISSION AND ACTIVATION",
   "42": "20. PERFORMANCE AND TECHNICAL QUALITY",
   "43": "4. TASK INTAKE AND PROJECT RECONNAISSANCE",
-  "44": "createAuditService",
+  "44": "Releases and auto-update",
   "45": "compilerOptions",
   "46": "13. INTERACTION STATES AND BEHAVIOR CONTRACTS",
   "47": "19. AI-NATIVE INTERFACE PATTERNS",
@@ -53,6 +53,5 @@
   "51": ".eslintrc.cjs",
   "52": "Modern Fashion POS — Project Memory",
   "53": "Hardware Validation Checklist",
-  "54": "RootApp.jsx",
-  "55": "28. DEFINITION OF DONE AND QUALITY SCORING"
+  "54": "RootApp.jsx"
 }

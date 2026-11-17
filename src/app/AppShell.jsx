@@ -1,10 +1,11 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { App as AntApp, Avatar, Button, Dropdown, Form, Input, InputNumber, Layout, Menu, Modal, Tag, Tooltip } from 'antd';
 import {
   AuditOutlined,
   BarcodeOutlined,
   BarChartOutlined,
+  CloudDownloadOutlined,
   DashboardOutlined,
   DollarOutlined,
   DownOutlined,
@@ -38,6 +39,7 @@ import ExpensesPage from '@/pages/ExpensesPage';
 import ReportsPage from '@/pages/ReportsPage';
 import UsersPage from '@/pages/UsersPage';
 import SettingsPage from '@/pages/SettingsPage';
+import ReleasesPage from '@/pages/ReleasesPage';
 import AuditPage from '@/pages/AuditPage';
 
 const { Sider, Header, Content } = Layout;
@@ -55,6 +57,7 @@ const NAV = [
   { key: '/reports', label: 'Reports', icon: <BarChartOutlined />, any: ['reports.sales', 'reports.profit'] },
   { key: '/users', label: 'Users & shifts', icon: <PercentageOutlined />, any: ['users.manage'] },
   { key: '/settings', label: 'Settings', icon: <SettingOutlined />, any: ['settings.manage'] },
+  { key: '/releases', label: 'Releases', icon: <CloudDownloadOutlined />, any: ['settings.manage'] },
   { key: '/audit', label: 'Audit log', icon: <AuditOutlined />, any: ['audit.view'] },
 ];
 
@@ -72,13 +75,15 @@ function HomeRedirect() {
 
 export default function AppShell() {
   const { session, user, business, logout, lock } = useSession();
-  const { message } = AntApp.useApp();
+  const { message, notification } = AntApp.useApp();
   const navigate = useNavigate();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [updateStatus, setUpdateStatus] = useState(null);
+  const announcedVersion = useRef('');
   const [passwordForm] = Form.useForm();
   const [logoutForm] = Form.useForm();
 
@@ -86,6 +91,57 @@ export default function AppShell() {
     () => NAV.filter((item) => item.any.some((permission) => session?.permissions?.includes(permission))),
     [session]
   );
+
+  useEffect(() => {
+    if (!session?.permissions?.includes('settings.manage')) return undefined;
+    let active = true;
+    api('app.updateStatus')
+      .then((status) => {
+        if (active) setUpdateStatus(status);
+      })
+      .catch(() => {
+        // Update status is secondary to billing; never block the shell.
+      });
+    const unsubscribe = window.mf?.onUpdateStatus?.((next) => {
+      if (!active) return;
+      setUpdateStatus(next);
+      if (next.updateAvailable && next.version && announcedVersion.current !== next.version) {
+        announcedVersion.current = next.version;
+        notification.info({
+          message: next.downloaded ? 'Update ready to install' : 'Update available',
+          description: next.downloaded
+            ? `Version ${next.version} is downloaded. Restart and install it from Releases.`
+            : `Version ${next.version} is available from GitHub Releases.`,
+          btn: (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                notification.destroy();
+                navigate('/releases');
+              }}
+            >
+              View release
+            </Button>
+          ),
+          duration: 10,
+        });
+      }
+    });
+    const checkWhenOnline = () => {
+      api('app.checkUpdates')
+        .then((status) => {
+          if (active) setUpdateStatus(status);
+        })
+        .catch(() => {});
+    };
+    window.addEventListener('online', checkWhenOnline);
+    return () => {
+      active = false;
+      unsubscribe?.();
+      window.removeEventListener('online', checkWhenOnline);
+    };
+  }, [session, notification, navigate]);
 
   const selected = useMemo(() => {
     const match = NAV.filter((item) => location.pathname.startsWith(item.key)).sort(
@@ -206,6 +262,25 @@ export default function AppShell() {
             </span>
           </div>
           <div className="header-actions">
+            {updateStatus?.updateAvailable ? (
+              <Tooltip
+                title={
+                  updateStatus.downloaded
+                    ? `Version ${updateStatus.version} is downloaded. Restart and install from Releases.`
+                    : `Version ${updateStatus.version} is available. Open Releases to review it.`
+                }
+              >
+                <Button
+                  type="text"
+                  size="small"
+                  className="header-update"
+                  icon={<CloudDownloadOutlined />}
+                  onClick={() => navigate('/releases')}
+                >
+                  {updateStatus.downloaded ? 'Install update' : `v${updateStatus.version}`}
+                </Button>
+              </Tooltip>
+            ) : null}
             <Tooltip title={session?.shift ? 'Cash shift is open' : 'No cash shift is open'}>
               <Tag color={session?.shift ? 'green' : session?.user?.roleCode === 'owner' ? 'default' : 'gold'} className="shift-tag">
                 {session?.shift ? `Shift open · ${money(session.shift.expectedCashPaise)}` : session?.user?.roleCode === 'owner' ? 'Owner session' : 'No shift'}
@@ -241,6 +316,7 @@ export default function AppShell() {
             <Route path="/reports" element={<Protected any={['reports.sales', 'reports.profit']}><ReportsPage /></Protected>} />
             <Route path="/users" element={<Protected any={['users.manage']}><UsersPage /></Protected>} />
             <Route path="/settings" element={<Protected any={['settings.manage']}><SettingsPage /></Protected>} />
+            <Route path="/releases" element={<Protected any={['settings.manage']}><ReleasesPage /></Protected>} />
             <Route path="/audit" element={<Protected any={['audit.view']}><AuditPage /></Protected>} />
             <Route path="*" element={<HomeRedirect />} />
           </Routes>

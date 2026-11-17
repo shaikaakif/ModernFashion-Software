@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   Alert,
   App as AntApp,
@@ -20,6 +20,7 @@ import {
   Tag,
 } from 'antd';
 import {
+  BarcodeOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
@@ -29,14 +30,17 @@ import {
   ReloadOutlined,
   SafetyCertificateOutlined,
   SaveOutlined,
+  SyncOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import JsBarcode from 'jsbarcode';
 import { api, errorMessage } from '@/app/api';
 import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import { formatDateTime, money, percentFromBp } from '@/app/format';
 import { LoadingPanel, MoneyInput, PageHeader, SectionCard } from '@/app/components';
+import { barcodeExample, BARCODE_SYMBOLOGY } from '@shared/barcode.js';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -64,8 +68,13 @@ export default function SettingsPage() {
   const [restorePath, setRestorePath] = useState('');
   const [restoreOpen, setRestoreOpen] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
+  const [previewBusy, setPreviewBusy] = useState(false);
+  const [preview, setPreview] = useState({ html: '', widthMm: 80, error: '' });
+  const [previewNonce, setPreviewNonce] = useState(0);
+  const barcodeRef = useRef(null);
 
   const settings = useAsync(() => api('settings.get'), []);
+  const logo = useAsync(() => api('settings.getLogo'), []);
   const appInfo = useAsync(() => api('app.info'), []);
   const backups = useAsync(
     () => (can('backup.manage') ? api('backup.list') : Promise.resolve([])),
@@ -78,7 +87,7 @@ export default function SettingsPage() {
 
   const [businessForm] = Form.useForm();
   const [invoiceForm] = Form.useForm();
-  const [receiptForm] = Form.useForm();
+  const [printForm] = Form.useForm();
   const [taxForm] = Form.useForm();
   const [posForm] = Form.useForm();
   const [hardwareForm] = Form.useForm();
@@ -86,6 +95,7 @@ export default function SettingsPage() {
   const [offerForm] = Form.useForm();
   const [restoreForm] = Form.useForm();
   const offerType = Form.useWatch('discountType', offerForm);
+  const printValues = Form.useWatch([], printForm);
 
   const data = settings.data;
 
@@ -96,7 +106,13 @@ export default function SettingsPage() {
       addressLines: (data.business.addressLines || []).join('\n'),
     });
     invoiceForm.setFieldsValue(data.invoice);
-    receiptForm.setFieldsValue(data.receipt);
+    printForm.setFieldsValue({
+      ...data.invoice,
+      ...data.receipt,
+      receiptWidthMm: data.hardware.receiptWidthMm,
+      barcodePrefix: data.barcode.prefix,
+      barcodeDigits: data.barcode.digits,
+    });
     taxForm.setFieldsValue({
       ...data.tax,
       defaultRatePercent: Number(data.tax.defaultRateBp || 0) / 100,
@@ -104,7 +120,59 @@ export default function SettingsPage() {
     posForm.setFieldsValue(data.pos);
     hardwareForm.setFieldsValue(data.hardware);
     backupForm.setFieldsValue(data.backup);
-  }, [data, businessForm, invoiceForm, receiptForm, taxForm, posForm, hardwareForm, backupForm]);
+  }, [data, businessForm, invoiceForm, printForm, taxForm, posForm, hardwareForm, backupForm]);
+
+  let barcodeText = '';
+  let barcodeError = '';
+  try {
+    barcodeText =
+      printValues?.barcodePrefix !== undefined && printValues?.barcodeDigits !== undefined
+        ? barcodeExample(printValues.barcodePrefix, printValues.barcodeDigits)
+        : '';
+  } catch (error) {
+    barcodeError = error.message;
+  }
+
+  useEffect(() => {
+    const node = barcodeRef.current;
+    if (!node) return;
+    if (!barcodeText) {
+      node.innerHTML = '';
+      return;
+    }
+    try {
+      JsBarcode(node, barcodeText, {
+        format: 'CODE128',
+        width: 2,
+        height: 58,
+        displayValue: true,
+        fontSize: 14,
+        margin: 8,
+        background: '#ffffff',
+        lineColor: '#111111',
+      });
+    } catch {
+      // The visible error message already explains an invalid format.
+    }
+  }, [barcodeText]);
+
+  const printSignature = printValues ? JSON.stringify(printValues) : '';
+
+  useEffect(() => {
+    if (!data || !printSignature) return undefined;
+    const timer = setTimeout(async () => {
+      setPreviewBusy(true);
+      try {
+        const result = await api('print.previewReceipt', JSON.parse(printSignature));
+        setPreview({ html: result.html, widthMm: result.widthMm, error: '' });
+      } catch (error) {
+        setPreview((current) => ({ ...current, error: errorMessage(error) }));
+      } finally {
+        setPreviewBusy(false);
+      }
+    }, 350);
+    return () => clearTimeout(timer);
+  }, [data, printSignature, previewNonce]);
 
   useEffect(() => {
     if (!offerModal.open) return;
@@ -171,11 +239,15 @@ export default function SettingsPage() {
   }
 
   function submitInvoice(values) {
-    save('invoice', () => api('settings.updateInvoice', values), 'Invoice settings saved.');
+    save('invoice', () => api('settings.updateInvoice', values), 'Invoice numbering saved.');
   }
 
-  function submitReceipt(values) {
-    save('receipt', () => api('settings.updateReceipt', values), 'Receipt preferences saved.');
+  function submitPrint(values) {
+    save(
+      'print',
+      () => api('settings.updatePrint', values),
+      'Print layout and barcode format saved. Existing barcodes were not changed.'
+    );
   }
 
   function submitTax(values) {
@@ -202,13 +274,36 @@ export default function SettingsPage() {
     save('backup', () => api('settings.updateBackup', values), 'Backup schedule saved.');
   }
 
+  function promptRestart(title, content) {
+    modal.confirm({
+      title,
+      content,
+      icon: <SyncOutlined />,
+      okText: 'Restart now',
+      cancelText: 'Later',
+      onOk: async () => {
+        try {
+          await api('app.restart');
+        } catch (error) {
+          message.error(errorMessage(error));
+        }
+      },
+    });
+  }
+
   async function chooseLogo() {
     setLogoBusy(true);
     try {
       const result = await api('settings.chooseLogo');
       if (result.changed) {
-        message.success('Logo copied into the local application data folder.');
+        if (result.logo) logo.setData(result.logo);
+        else logo.reload();
+        message.success('Logo saved. The preview now shows the new image.');
         await reloadSettings();
+        promptRestart(
+          'Restart to apply the new logo?',
+          'The logo is saved on this computer. Restart the application so every screen and print preview uses it. Completed bills and stock are safe; unsaved form edits will be lost.'
+        );
       }
     } catch (error) {
       message.error(errorMessage(error));
@@ -220,9 +315,15 @@ export default function SettingsPage() {
   async function clearLogo() {
     setLogoBusy(true);
     try {
-      await api('settings.clearLogo');
+      const result = await api('settings.clearLogo');
+      if (result?.logo) logo.setData(result.logo);
+      else logo.reload();
       message.success('Logo removed. Receipts print without a logo.');
       await reloadSettings();
+      promptRestart(
+        'Restart to remove the logo everywhere?',
+        'The logo setting is cleared. Restart the application so every screen and print preview reflects the change. Completed bills and stock are safe.'
+      );
     } catch (error) {
       message.error(errorMessage(error));
     } finally {
@@ -444,92 +545,265 @@ export default function SettingsPage() {
         </Form>
       </SectionCard>
 
-      <SectionCard title="Logo" subtitle="The client logo asset is intentionally not bundled with the software.">
-        <Alert
-          type={data?.hasLogo ? 'success' : 'info'}
-          showIcon
-          message={data?.hasLogo ? 'A logo file is configured for receipts.' : 'No logo is configured yet.'}
-          description="Ask the client for the approved MF logo file. Adding it later is a local file selection or asset replacement; no code change is required. Thermal receipts print the logo in monochrome."
-        />
-        <Space wrap className="section-gap-sm">
-          <Button icon={<UploadOutlined />} onClick={chooseLogo} loading={logoBusy}>
-            Choose logo file
-          </Button>
-          {data?.hasLogo ? (
-            <Popconfirm title="Remove the configured logo?" onConfirm={clearLogo} okText="Remove" cancelText="Keep">
-              <Button danger icon={<DeleteOutlined />} loading={logoBusy}>
-                Remove logo
+      <SectionCard title="Logo" subtitle="The saved logo appears on receipts, invoices and the print preview.">
+        <div className="logo-config">
+          <div className={`logo-preview${logo.data?.dataUrl ? '' : ' is-empty'}`}>
+            {logo.data?.dataUrl ? (
+              <img src={logo.data.dataUrl} alt="Current business logo" />
+            ) : (
+              <span>{logo.loading ? 'Loading…' : 'No logo image'}</span>
+            )}
+          </div>
+          <div className="logo-config-copy">
+            <Alert
+              type={data?.hasLogo ? 'success' : 'info'}
+              showIcon
+              message={data?.hasLogo ? 'A logo file is configured for print.' : 'No logo is configured yet.'}
+              description="Choose a PNG, JPG or WebP file. The image is copied into the local application data folder. Thermal receipts print it in monochrome; check the real paper before acceptance."
+            />
+            <Space wrap className="section-gap-sm">
+              <Button icon={<UploadOutlined />} onClick={chooseLogo} loading={logoBusy}>
+                {data?.hasLogo ? 'Change logo file' : 'Choose logo file'}
               </Button>
-            </Popconfirm>
-          ) : null}
-        </Space>
+              {data?.hasLogo ? (
+                <Popconfirm title="Remove the configured logo?" onConfirm={clearLogo} okText="Remove" cancelText="Keep">
+                  <Button danger icon={<DeleteOutlined />} loading={logoBusy}>
+                    Remove logo
+                  </Button>
+                </Popconfirm>
+              ) : null}
+            </Space>
+          </div>
+        </div>
       </SectionCard>
     </div>
   );
 
   const billingPanel = (
     <div className="settings-stack">
-      <SectionCard title="Invoice numbering and paper" subtitle="Sequences are allocated only when a sale is completed.">
+      <SectionCard title="Invoice numbering" subtitle="Sequences are allocated only when a sale or purchase is completed.">
         <Form form={invoiceForm} layout="vertical" onFinish={submitInvoice} requiredMark={false}>
-          <div className="form-grid three">
+          <div className="form-grid two">
             <Form.Item name="prefix" label="Invoice prefix" rules={[{ required: true, max: 12 }]}>
               <Input style={{ textTransform: 'uppercase' }} />
             </Form.Item>
             <Form.Item name="purchasePrefix" label="Purchase prefix" rules={[{ required: true, max: 12 }]}>
               <Input style={{ textTransform: 'uppercase' }} />
             </Form.Item>
-            <Form.Item name="paperWidthMm" label="Receipt paper width">
-              <Select
-                options={[
-                  { value: 58, label: '58 mm' },
-                  { value: 80, label: '80 mm' },
-                ]}
-              />
-            </Form.Item>
           </div>
-          <div className="form-grid two">
-            <Form.Item name="duplicateLabel" label="Duplicate print label">
-              <Input maxLength={40} />
-            </Form.Item>
-            <Form.Item name="showLogo" label="Print the logo on receipts" valuePropName="checked">
-              <Switch />
-            </Form.Item>
+          <Alert
+            type="info"
+            showIcon
+            message="Paper width, logo, layout and barcode format moved to Print & barcodes."
+            description="That section shows a live sample receipt and a barcode preview before you save."
+          />
+          <div className="section-gap-sm">
+            <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'invoice'}>
+              Save invoice numbering
+            </Button>
           </div>
-          <Form.Item name="terms" label="Invoice terms">
-            <Input.TextArea rows={3} maxLength={1000} placeholder="Return/exchange terms approved by the client" />
-          </Form.Item>
-          <Form.Item name="thankYou" label="Footer line">
-            <Input maxLength={300} />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'invoice'}>
-            Save invoice settings
-          </Button>
         </Form>
       </SectionCard>
+    </div>
+  );
 
-      <SectionCard title="Receipt content" subtitle="Applies to thermal receipt layouts. A4 invoices remain available for reprints.">
-        <Form form={receiptForm} layout="vertical" onFinish={submitReceipt} requiredMark={false}>
-          <div className="settings-switches">
-            <Form.Item name="showCustomer" label="Show customer" valuePropName="checked">
-              <Switch />
+  const logoOn = printValues?.showLogo !== false;
+  const previewWidth = Math.round((preview.widthMm || 80) * 3.78);
+
+  const printPanel = (
+    <div className="settings-stack">
+      <Alert
+        type="info"
+        showIcon
+        message="The preview below is a sample receipt, not a sale. The real print uses the same layout engine."
+        description="Existing product barcodes keep their current values. Changing the prefix or digit width only affects barcodes generated from now on."
+      />
+      <Form form={printForm} layout="vertical" onFinish={submitPrint} requiredMark={false}>
+        <div className="settings-stack">
+          <SectionCard
+            title="Receipt layout"
+            subtitle="Owner-controlled paper layout. The live preview updates as you change these values."
+          >
+            <div className="logo-config logo-config-compact">
+              <div className={`logo-preview${logo.data?.dataUrl ? '' : ' is-empty'}`}>
+                {logo.data?.dataUrl ? (
+                  <img src={logo.data.dataUrl} alt="Current business logo" />
+                ) : (
+                  <span>{logo.loading ? 'Loading…' : 'No logo'}</span>
+                )}
+              </div>
+              <div className="logo-config-copy">
+                <strong>{logo.data?.dataUrl ? 'Logo file ready' : 'No logo file selected'}</strong>
+                <p className="muted small">
+                  Change or remove it in the Business tab. Logo size and visibility are controlled here.
+                </p>
+              </div>
+            </div>
+            <div className="form-grid three">
+              <Form.Item name="receiptWidthMm" label="Receipt paper width">
+                <Select
+                  options={[
+                    { value: 58, label: '58 mm' },
+                    { value: 80, label: '80 mm' },
+                  ]}
+                />
+              </Form.Item>
+              <Form.Item name="fontScale" label="Text size (%)" extra="80–130%. Values apply to the thermal receipt.">
+                <InputNumber min={80} max={130} style={{ width: '100%' }} />
+              </Form.Item>
+              <Form.Item name="logoHeightMm" label="Logo height (mm)">
+                <InputNumber min={8} max={30} disabled={!logoOn} style={{ width: '100%' }} />
+              </Form.Item>
+            </div>
+            <Divider />
+            <h3>Business header</h3>
+            <div className="settings-switches">
+              <Form.Item name="showLogo" label="Print logo" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showTitle" label="Print document title" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showAddress" label="Print address" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showPhone" label="Print phone" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showState" label="Print state" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showGstin" label="Print GSTIN (when tax is enabled)" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </div>
+            <Divider />
+            <h3>Receipt sections</h3>
+            <div className="settings-switches">
+              <Form.Item name="showCustomer" label="Customer" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showCashier" label="Cashier" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showSku" label="SKU on items" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showItemDiscounts" label="Item discount lines" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showTax" label="Tax rows" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showSavings" label="Savings banner" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showPayment" label="Payment method" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showAmountReceived" label="Amount received & change" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+              <Form.Item name="showPoweredBy" label="Powered-by line" valuePropName="checked">
+                <Switch />
+              </Form.Item>
+            </div>
+            <Divider />
+            <h3>Text blocks</h3>
+            <div className="form-grid two">
+              <Form.Item name="headerNote" label="Header note under the title">
+                <Input.TextArea rows={2} maxLength={300} placeholder="Optional line printed above the invoice details" />
+              </Form.Item>
+              <Form.Item name="footerNote" label="Footer note">
+                <Input.TextArea rows={2} maxLength={500} placeholder="Exchange policy or a short closing note" />
+              </Form.Item>
+            </div>
+            <div className="form-grid two">
+              <Form.Item name="duplicateLabel" label="Duplicate copy label">
+                <Input maxLength={40} />
+              </Form.Item>
+              <Form.Item name="thankYou" label="Closing line">
+                <Input maxLength={300} />
+              </Form.Item>
+            </div>
+            <Form.Item
+              name="terms"
+              label="Terms & conditions"
+              extra="Set the final wording with the client and their CA before enabling tax invoices."
+            >
+              <Input.TextArea rows={3} maxLength={1000} placeholder="Return/exchange terms approved by the client" />
             </Form.Item>
-            <Form.Item name="showCashier" label="Show cashier" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="showSavings" label="Show savings" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-            <Form.Item name="showTax" label="Show tax rows" valuePropName="checked">
-              <Switch />
-            </Form.Item>
-          </div>
-          <Form.Item name="footerNote" label="Receipt footer note">
-            <Input.TextArea rows={2} maxLength={500} />
-          </Form.Item>
-          <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'receipt'}>
-            Save receipt preferences
+          </SectionCard>
+
+          <SectionCard
+            title="Barcode format"
+            subtitle={`New product barcodes use ${BARCODE_SYMBOLOGY}. Existing barcode values are never rewritten.`}
+            extra={<Tag icon={<BarcodeOutlined />}>CODE128</Tag>}
+          >
+            <div className="form-grid two">
+              <Form.Item
+                name="barcodePrefix"
+                label="Barcode prefix"
+                rules={[
+                  { required: true, message: 'Enter a prefix.' },
+                  { pattern: /^[A-Za-z0-9]{2,6}$/, message: 'Use 2–6 letters or digits.' },
+                ]}
+                extra="Example: MF. Stored in uppercase."
+              >
+                <Input maxLength={6} style={{ textTransform: 'uppercase' }} />
+              </Form.Item>
+              <Form.Item name="barcodeDigits" label="Sequence digits" extra="6–12 digits. Wider numbers stay scannable.">
+                <InputNumber min={6} max={12} style={{ width: '100%' }} />
+              </Form.Item>
+            </div>
+            <div className="barcode-preview-card">
+              {barcodeText ? <svg ref={barcodeRef} role="img" aria-label={`Barcode preview ${barcodeText}`} /> : null}
+              {barcodeError ? <p className="form-error">{barcodeError}</p> : null}
+              <p className="mono barcode-value">{barcodeText || 'Enter a valid prefix and digit width'}</p>
+              <p className="muted small">
+                Preview value only. The printed label uses the stored internal barcode, not a fabricated EAN/GTIN.
+              </p>
+            </div>
+          </SectionCard>
+        </div>
+        <div className="print-save-bar">
+          <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'print'}>
+            Save print & barcode settings
           </Button>
-        </Form>
+          <span className="muted small">
+            Saves receipt layout, barcode format and paper width. A4 reprints use the same header, logo and footer text.
+          </span>
+        </div>
+      </Form>
+
+      <SectionCard
+        title="Live receipt preview"
+        subtitle={`Sample for ${preview.widthMm || 80} mm paper. Nothing is recorded or printed by this preview.`}
+        extra={
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={() => setPreviewNonce((value) => value + 1)}
+            loading={previewBusy}
+          >
+            Refresh preview
+          </Button>
+        }
+      >
+        <div className="receipt-preview-shell">
+          {preview.error ? (
+            <Alert type="error" showIcon message="Preview could not be generated" description={preview.error} />
+          ) : null}
+          {preview.html ? (
+            <iframe
+              title="Sample receipt preview"
+              className="receipt-preview-frame"
+              style={{ width: `${previewWidth}px` }}
+              srcDoc={preview.html}
+            />
+          ) : (
+            <LoadingPanel label="Building sample receipt…" />
+          )}
+        </div>
       </SectionCard>
     </div>
   );
@@ -690,15 +964,7 @@ export default function SettingsPage() {
               <Switch />
             </Form.Item>
           </div>
-          <div className="form-grid three">
-            <Form.Item name="receiptWidthMm" label="Receipt roll width">
-              <Select
-                options={[
-                  { value: 58, label: '58 mm' },
-                  { value: 80, label: '80 mm' },
-                ]}
-              />
-            </Form.Item>
+          <div className="form-grid two">
             <Form.Item name="labelWidthMm" label="Label width (mm)">
               <InputNumber min={20} max={150} style={{ width: '100%' }} />
             </Form.Item>
@@ -954,7 +1220,8 @@ export default function SettingsPage() {
 
   const items = [
     { key: 'business', label: 'Business', children: businessPanel },
-    { key: 'billing', label: 'Invoice & receipt', children: billingPanel },
+    { key: 'print', label: 'Print & barcodes', children: printPanel },
+    { key: 'billing', label: 'Invoice numbering', children: billingPanel },
     { key: 'tax', label: 'Tax', children: taxPanel },
     { key: 'pos', label: 'Billing & security', children: posPanel },
     { key: 'hardware', label: 'Hardware', children: hardwarePanel },
@@ -967,10 +1234,10 @@ export default function SettingsPage() {
     children: (
       <SectionCard title="Modern Fashion POS" subtitle="Offline-first retail point of sale and inventory.">
         <Descriptions bordered size="small" column={2}>
-          <Descriptions.Item label="Version">{appInfo.data?.version || '1.0.0'}</Descriptions.Item>
+          <Descriptions.Item label="Version">{appInfo.data?.version || '—'}</Descriptions.Item>
           <Descriptions.Item label="Electron">{appInfo.data?.electron || '—'}</Descriptions.Item>
           <Descriptions.Item label="Data storage">Local SQLite on this computer</Descriptions.Item>
-          <Descriptions.Item label="Internet">Not required for sales, stock or reports</Descriptions.Item>
+          <Descriptions.Item label="Internet">Only for update checks and downloads</Descriptions.Item>
           <Descriptions.Item label="Developed by" span={2}>
             Meninges Labs
           </Descriptions.Item>

@@ -20,6 +20,7 @@ import { createAuditService } from './services/auditService.js';
 import { createBackupService } from './services/backupService.js';
 import { createExportService } from './services/exportService.js';
 import { createPrintService } from './hardware/printService.js';
+import { createUpdateService } from './services/updateService.js';
 import { registerIpc } from './ipc/registerIpc.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,7 @@ let logger = null;
 let paths = null;
 let backupTimer = null;
 let services = null;
+let updateService = null;
 
 app.setName('Modern Fashion POS');
 app.setAppUserModelId('com.meningeslabs.modernfashion.pos');
@@ -109,6 +111,11 @@ function scheduleRestore({ source, safetyBackup }) {
   }, 500);
 }
 
+function broadcastUpdateStatus(status) {
+  if (!mainWindow || mainWindow.isDestroyed()) return;
+  mainWindow.webContents.send('mf:update-status', status);
+}
+
 async function bootstrap() {
   paths = initPaths(app);
   logger = createLogger({ directory: paths.logs });
@@ -181,6 +188,9 @@ async function bootstrap() {
     logger,
   });
 
+  updateService = createUpdateService({ app, logger, broadcast: broadcastUpdateStatus });
+  updateService.init();
+
   session.defaultSession.setPermissionRequestHandler((_webContents, _permission, callback) => callback(false));
   session.defaultSession.setPermissionCheckHandler(() => false);
 
@@ -191,6 +201,7 @@ async function bootstrap() {
     paths,
     printService,
     exportService,
+    updateService,
     dialog,
     shell,
     app,
@@ -199,6 +210,11 @@ async function bootstrap() {
   createMainWindow();
   createMenu();
   startAutomaticBackups(backup);
+  setTimeout(() => {
+    updateService?.check({ automatic: true }).catch((error) => {
+      logger?.warn('Automatic update check failed', { message: error?.message });
+    });
+  }, 15000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createMainWindow();
