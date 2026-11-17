@@ -1,10 +1,10 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Implementation checkpoint:** v1.2.0 working branch — branded inventory reliability release (built, not published)
-**Verification record:** v1.2.0 installer built locally; v1.1.0 remains the published release
-**Current public release:** 1.1.0 — print/barcode customization, logo preview, GitHub Releases and safe auto-update. Published as GitHub Release `v1.1.0` with the EXE, blockmap and `latest.yml`.
-**Built but unpublished:** 1.2.0 — central business branding, unified inventory, archive/restore, Add/Correct/Remove stock, MF application icon and packaging cleanup.
+**Implementation checkpoint:** v1.2.0 published release, code commit `d1527443`
+**Verification record:** v1.2.0 GitHub Release published and publicly verified
+**Current public release:** 1.2.0 — central business branding, unified inventory, archive/restore, Add/Correct/Remove stock, MF application icon and packaging cleanup. Published as GitHub Release `v1.2.0`.
+**Previous public release:** 1.1.0 — remains available for rollback.
 **Developer:** Meninges Labs
 **Working branch:** `v1.2.0` (short-lived; `main` remains stable)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
@@ -37,11 +37,11 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
-| Packaged NSIS EXE v1.2.0 | Built locally: `release-final/ModernFashionPOS-Setup-1.2.0.exe` (122,311,859 bytes); `app.asar` reduced from 46.7 MB to 3.18 MB by excluding Vite-bundled renderer dependencies |
+| Packaged NSIS EXE v1.2.0 | Published: GitHub Release `v1.2.0`; local artifact `release-final/ModernFashionPOS-Setup-1.2.0.exe` (122,311,889 bytes); `app.asar` reduced from 46.7 MB to 3.18 MB by excluding Vite-bundled renderer dependencies |
 | Packaged 1.2.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database/folders created, version 1.2.0 logged |
 | MF application icon | Multi-resolution `build/icon.ico` generated from the supplied monogram; EXE icon verified by extraction |
 | Business logo branding | Automated test verifies configured logo data URL, no local path leak, backup sidecar and restore |
-| Auto-update download/install | **Not yet exercised end-to-end.** v1.1.0 remains public; test 1.1.0 → 1.2.0 on a test install before publishing |
+| Auto-update download/install | v1.2.0 is the latest release; published `latest.yml` and public asset URLs verified. The installed 1.1.0 → 1.2.0 update path still needs a workstation test. |
 | Installed-build login/sale/print | Not yet exercised on the client workstation |
 | Physical printers/scanner | **NOT VERIFIED** |
 | GSTIN / tax invoice | Disabled until the client supplies a verified GSTIN |
@@ -181,16 +181,16 @@ assets/
 6. Exact printer model labels, Windows driver names, paper width, label dimensions and scanner suffix behaviour.
 7. CA-confirmed HSN values and export format.
 8. Whether WhatsApp PDF handoff is acceptable as a manual attach-and-send flow.
-9. Scoped `GH_TOKEN` on the build machine for future releases. `v1.1.0` is already published; follow `Docs/RELEASES.md` for each new version.
+9. Scoped `GH_TOKEN` on the build machine for future releases. `v1.2.0` is published; follow `Docs/RELEASES.md` for each new version.
 10. Decision on code signing. Without a certificate, SmartScreen will warn on first install.
 
 ## 8. Immediate next steps
 
 1. Run `npm run verify` after any code change.
-2. Review the v1.2.0 diff, then exercise the packaged `release-final` build on the workstation: login, product create/edit/archive/restore, Add/Correct/Remove stock, sale, reports, logo upload/replace/remove, backup/restore, and print preview.
-3. Test the 1.1.0 → 1.2.0 update path with an isolated test install before publishing.
-4. Publish v1.2.0 only with explicit owner approval; keep v1.1.0 public until acceptance.
-5. Deferred v1.2.0 master-prompt work: richer dashboard quick actions/backup status, visual invoice designer, CSV/Vyapar import framework, first-run business wizard, complete single-folder backup export, and the final A4 invoice redesign. These need separate scoped implementation and testing.
+2. Review the v1.2.0 diff, then exercise the installed build on the workstation: login, product create/edit/archive/restore, Add/Correct/Remove stock, sale, reports, logo upload/replace/remove, backup/restore, and print preview.
+3. Test the 1.1.0 → 1.2.0 update path with an isolated test install.
+4. Merge `v1.2.0` into `main` after acceptance. Keep v1.1.0 available for rollback.
+5. Deferred master-prompt work: richer dashboard quick actions/backup status, visual invoice designer, CSV/Vyapar import framework, first-run business wizard, complete single-folder backup export, and the final A4 invoice redesign. These need separate scoped implementation and testing.
 
 ## 9. Session continuation protocol
 

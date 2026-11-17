@@ -101,7 +101,7 @@ MSI is not configured. NSIS is preferred for one POS workstation because it avoi
 
 The installed app reads the public repository `shaikaakif/ModernFashion-Software` through `electron-updater`. Owners see **Releases** in the navigation, can check the latest release, download it, and restart to install. An update creates a verified database backup first and replaces program files only; the database, backups, exports, documents and settings are not touched.
 
-Release **v1.1.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0` with the installer, blockmap and `latest.yml`. Version **1.2.0** is built locally and has not been published; v1.1.0 remains the known-good public release until 1.2.0 passes workstation acceptance and the owner approves publication. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
+Release **v1.1.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0`, and **v1.2.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.2.0` with the installer, blockmap and `latest.yml`. Both releases remain available; v1.1.0 is the previous known-good release. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`.
 
 ## Where data lives
 
@@ -155,8 +155,8 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 - `npm test`: 26 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product archive/restore/delete, stock add/correct/remove, Product Sales report and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
-- Packaged EXE: **v1.1.0 published; v1.2.0 built and startup-verified locally.** `release-final/ModernFashionPOS-Setup-1.2.0.exe` is 122.3 MB, carries the MF monogram, and starts with an isolated `MF_DATA_DIR` on version 1.2.0. The packaged 1.2.0 build still needs a workstation acceptance pass before publication.
-- Updates: `v1.1.0` is published with the EXE, blockmap and `latest.yml`. The public download URLs return HTTP 200 and the packaged app reads the feed. The download → backup → install → reopen path still needs a test-PC acceptance pass.
+- Packaged EXE: **v1.2.0 published.** `ModernFashionPOS-Setup-1.2.0.exe` is 122.3 MB, carries the MF monogram, and starts with an isolated `MF_DATA_DIR` on version 1.2.0. The installed-build workstation acceptance pass and the 1.1.0 → 1.2.0 update test are still recommended.
+- Updates: `v1.2.0` is the latest published release with the EXE, blockmap and `latest.yml`. Public asset URLs return HTTP 200, the published `latest.yml` checksum matches the EXE, and `/releases/latest` redirects to `v1.2.0`. v1.1.0 remains available for rollback.
 - Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.
 
 ## Client inputs still required
