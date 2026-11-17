@@ -233,6 +233,25 @@ a {
   font-size: 20px;
 }
 
+.brand-logo-frame {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px solid rgba(29, 23, 18, 0.1);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.brand-logo-frame img {
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 100%;
+  object-fit: contain;
+}
+
 .brand-copy {
   display: flex;
   min-width: 0;

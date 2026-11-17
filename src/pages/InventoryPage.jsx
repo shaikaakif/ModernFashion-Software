@@ -16,7 +16,6 @@ import {
 } from 'antd';
 import {
   HistoryOutlined,
-  PlusOutlined,
   ReloadOutlined,
   SearchOutlined,
   SwapOutlined,
@@ -27,6 +26,7 @@ import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import { formatDateTime, money, movementLabel } from '@/app/format';
 import { EmptyPanel, ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard } from '@/app/components';
+import ProductsPage from '@/pages/ProductsPage';
 
 const { RangePicker } = DatePicker;
 
@@ -44,16 +44,18 @@ const MOVEMENT_TYPES = [
 export default function InventoryPage() {
   const { can } = useSession();
   const { message } = AntApp.useApp();
-  const [tab, setTab] = useState('stock');
+  const [tab, setTab] = useState('products');
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState(null);
-  const [lowStock, setLowStock] = useState(false);
-  const [outOfStock, setOutOfStock] = useState(false);
+  const [stockFilter, setStockFilter] = useState('all');
   const debouncedQuery = useDebouncedValue(query, 300);
   const [adjustRow, setAdjustRow] = useState(null);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [adjustForm] = Form.useForm();
+  const adjustMode = Form.useWatch('mode', adjustForm);
+  const adjustQuantity = Form.useWatch('quantity', adjustForm);
+  const adjustActual = Form.useWatch('actualQuantity', adjustForm);
 
   const [movementType, setMovementType] = useState(null);
   const [movementRange, setMovementRange] = useState(null);
@@ -66,8 +68,13 @@ export default function InventoryPage() {
   const summary = useAsync(() => api('inventory.summary'), []);
   const categories = useAsync(() => api('catalog.categories', {}), []);
   const stock = useAsync(
-    () => api('inventory.list', { query: debouncedQuery, categoryId, lowStock, outOfStock }),
-    [debouncedQuery, categoryId, lowStock, outOfStock]
+    () =>
+      api('inventory.list', {
+        query: debouncedQuery,
+        categoryId,
+        status: stockFilter === 'all' ? null : stockFilter,
+      }),
+    [debouncedQuery, categoryId, stockFilter]
   );
   const valuation = useAsync(() => api('inventory.valuation'), []);
   const reconciliation = useAsync(
@@ -89,14 +96,25 @@ export default function InventoryPage() {
   useEffect(() => {
     if (adjustOpen) {
       adjustForm.resetFields();
-      adjustForm.setFieldsValue({ direction: 'in', quantity: 1 });
+      adjustForm.setFieldsValue({ mode: 'add', quantity: 1 });
     }
   }, [adjustOpen, adjustForm]);
+
+  useEffect(() => {
+    if (adjustOpen && adjustMode === 'correct' && adjustRow) {
+      adjustForm.setFieldsValue({ actualQuantity: adjustRow.stock });
+    }
+  }, [adjustMode, adjustOpen, adjustRow, adjustForm]);
 
   const canAdjust = can('inventory.adjust');
   const canSeeCost = can('reports.profit');
   const stats = summary.data || {};
   const stockRows = stock.data || [];
+  const previewBalance = adjustRow
+    ? adjustMode === 'correct'
+      ? Number(adjustActual ?? adjustRow.stock)
+      : adjustRow.stock + (adjustMode === 'remove' ? -Number(adjustQuantity || 0) : Number(adjustQuantity || 0))
+    : 0;
 
   function openAdjust(row) {
     setAdjustRow(row);
@@ -107,17 +125,23 @@ export default function InventoryPage() {
     if (!adjustRow) return;
     setSaving(true);
     try {
-      const result = await api('inventory.adjust', {
+      const payload = {
         variantId: adjustRow.variantId,
-        direction: values.direction,
-        movementType: values.movementType || undefined,
-        quantity: values.quantity,
+        mode: values.mode,
         reason: values.reason,
         note: values.note || '',
-      });
-      message.success(
-        `Stock ${values.direction === 'in' ? 'increased' : 'reduced'} by ${values.quantity}. Reference ${result.reference}.`
-      );
+      };
+      if (values.mode === 'correct') payload.actualQuantity = values.actualQuantity;
+      else payload.quantity = values.quantity;
+      if (values.mode === 'remove' && values.movementType) payload.movementType = values.movementType;
+      const result = await api('inventory.adjust', payload);
+      const verb =
+        values.mode === 'add'
+          ? `Added ${values.quantity}`
+          : values.mode === 'remove'
+            ? `Removed ${values.quantity}`
+            : `Corrected to ${values.actualQuantity}`;
+      message.success(`${verb}. New balance ${result.balanceAfter}. Reference ${result.reference}.`);
       setAdjustOpen(false);
       setAdjustRow(null);
       stock.reload();
@@ -178,10 +202,18 @@ export default function InventoryPage() {
             style={{ width: 190 }}
           />
           <label className="inline-check">
-            <input type="checkbox" checked={lowStock} onChange={(event) => setLowStock(event.target.checked)} /> Low stock
-          </label>
-          <label className="inline-check">
-            <input type="checkbox" checked={outOfStock} onChange={(event) => setOutOfStock(event.target.checked)} /> Out of stock
+            <Select
+              value={stockFilter}
+              onChange={setStockFilter}
+              style={{ width: 170 }}
+              options={[
+                { value: 'all', label: 'All active stock' },
+                { value: 'in', label: 'In stock' },
+                { value: 'low', label: 'Low stock' },
+                { value: 'out', label: 'Out of stock' },
+                { value: 'archived', label: 'Archived products' },
+              ]}
+            />
           </label>
           <Button icon={<ReloadOutlined />} onClick={() => { stock.reload(); summary.reload(); }} loading={stock.loading}>
             Refresh
@@ -237,6 +269,7 @@ export default function InventoryPage() {
                 ),
               },
               { title: 'Alert at', dataIndex: 'threshold', width: 90, align: 'right' },
+              { title: 'Last updated', dataIndex: 'updatedAt', width: 160, render: formatDateTime },
               ...(canSeeCost
                 ? [
                     {
@@ -257,15 +290,15 @@ export default function InventoryPage() {
               },
               {
                 title: '',
-                width: 150,
+                width: 170,
                 render: (_, row) => (
                   <Space size={4}>
                     <Button size="small" icon={<HistoryOutlined />} onClick={() => showHistory(row)}>
                       History
                     </Button>
-                    {canAdjust ? (
+                    {canAdjust && row.productStatus === 'active' ? (
                       <Button size="small" icon={<SwapOutlined />} onClick={() => openAdjust(row)}>
-                        Adjust
+                        Update stock
                       </Button>
                     ) : null}
                   </Space>
@@ -497,33 +530,25 @@ export default function InventoryPage() {
       <PageHeader
         eyebrow="Stock control"
         title="Inventory"
-        subtitle="Stock is changed only through immutable ledger movements: openings, purchases, sales, returns and adjustments."
-        extra={
-          canAdjust ? (
-            <Button icon={<PlusOutlined />} onClick={() => message.info('Choose a variant in the stock table and use Adjust.')}>
-              How to adjust
-            </Button>
-          ) : null
-        }
+        subtitle="Products, stock levels and the immutable movement ledger live together. Archived products stay in history but leave the active catalogue."
       />
 
       <Tabs
         activeKey={tab}
         onChange={setTab}
         items={[
+          { key: 'products', label: 'Products', children: <ProductsPage embedded initialTab="products" /> },
           { key: 'stock', label: 'Stock', children: stockPanel },
-          {
-            key: 'movements',
-            label: 'Stock ledger',
-            children: movementsPanel,
-          },
+          { key: 'movements', label: 'Stock history', children: movementsPanel },
+          { key: 'categories', label: 'Categories', children: <ProductsPage embedded initialTab="categories" /> },
+          { key: 'archived', label: 'Archived', children: <ProductsPage embedded initialTab="archived" /> },
           { key: 'valuation', label: 'Valuation', children: valuationPanel },
           { key: 'reconciliation', label: 'Reconciliation', children: reconciliationPanel },
         ]}
       />
 
       <Modal
-        title="Adjust stock"
+        title="Update stock"
         open={adjustOpen}
         onCancel={() => {
           setAdjustOpen(false);
@@ -541,35 +566,44 @@ export default function InventoryPage() {
               showIcon
               className="detail-alert"
               message={`${adjustRow.productName} · ${adjustRow.color} / ${adjustRow.size}`}
-              description={`Current stock: ${adjustRow.stock}. Adjustments are written to the ledger and cannot be deleted.`}
+              description={`Current recorded stock: ${adjustRow.stock}. Every change is written to the stock ledger and cannot be deleted.`}
             />
             <Form form={adjustForm} layout="vertical" onFinish={submitAdjust} requiredMark={false}>
-              <div className="form-grid two">
-                <Form.Item name="direction" label="Direction" rules={[{ required: true }]}>
-                  <Select
-                    options={[
-                      { value: 'in', label: 'Stock in (found / correction)' },
-                      { value: 'out', label: 'Stock out (shortage / correction)' },
-                    ]}
-                  />
+              <Form.Item name="mode" label="What happened?" rules={[{ required: true }]}>
+                <Select
+                  options={[
+                    { value: 'add', label: 'Add stock — new items received' },
+                    { value: 'correct', label: 'Correct stock — match the actual count' },
+                    { value: 'remove', label: 'Remove stock — damaged, missing or removed' },
+                  ]}
+                />
+              </Form.Item>
+              {adjustMode === 'correct' ? (
+                <Form.Item
+                  name="actualQuantity"
+                  label="Actual quantity on hand"
+                  rules={[{ required: true, message: 'Enter the actual counted quantity.' }]}
+                >
+                  <InputNumber min={0} max={1000000} style={{ width: '100%' }} />
                 </Form.Item>
+              ) : (
                 <Form.Item
                   name="quantity"
-                  label="Quantity"
+                  label={adjustMode === 'remove' ? 'Quantity to remove' : 'Quantity to add'}
                   rules={[{ required: true, message: 'Enter a quantity.' }]}
                 >
                   <InputNumber min={1} max={1000000} style={{ width: '100%' }} />
                 </Form.Item>
+              )}
+              <div className={`panel-note${previewBalance < 0 ? ' text-danger' : ''}`}>
+                New balance after this movement: <strong>{previewBalance}</strong>
+                {previewBalance < 0 ? ' — stock cannot go below zero.' : ''}
               </div>
-              <Form.Item name="movementType" label="Type">
-                <Select
-                  allowClear
-                  placeholder="Standard adjustment"
-                  options={[
-                    { value: 'damage', label: 'Damage / loss (stock out only)' },
-                  ]}
-                />
-              </Form.Item>
+              {adjustMode === 'remove' ? (
+                <Form.Item name="movementType" label="Reason type">
+                  <Select allowClear placeholder="Standard correction" options={[{ value: 'damage', label: 'Damage / loss' }]} />
+                </Form.Item>
+              ) : null}
               <Form.Item
                 name="reason"
                 label="Reason"

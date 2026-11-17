@@ -1,17 +1,13 @@
 import fs from 'node:fs';
 import path from 'node:path';
+import { nativeImage } from 'electron';
 import { AppError, fail } from '../core/errors.js';
-import { readLogoDataUrl } from '../core/logo.js';
-
-function copyFileSafely(source, target) {
-  fs.mkdirSync(path.dirname(target), { recursive: true });
-  fs.copyFileSync(source, target);
-}
 
 export function createIpcHandlers({ services, paths, printService, exportService, updateService, dialog, shell, app }) {
   const {
     auth,
     settings,
+    branding,
     catalog,
     inventory,
     suppliers,
@@ -34,14 +30,33 @@ export function createIpcHandlers({ services, paths, printService, exportService
       properties: ['openFile'],
     })?.[0];
     if (!file) return { changed: false };
-    if (!readLogoDataUrl(file)) {
+    const stat = fs.statSync(file);
+    if (!stat.isFile() || stat.size > 5 * 1024 * 1024) {
       fail('Choose a PNG, JPG, WebP, GIF or BMP image smaller than 5 MB.');
     }
-    const ext = path.extname(file).toLowerCase() || '.png';
-    const target = path.join(paths.assets, `store-logo${ext}`);
+    const image = nativeImage.createFromPath(file);
+    if (image.isEmpty()) {
+      fail('That file could not be read as an image. Choose a PNG, JPG, WebP, GIF or BMP file.');
+    }
+    const size = image.getSize();
+    const scale = Math.min(1, 1024 / Math.max(size.width, size.height));
+    const optimized =
+      scale < 1
+        ? image.resize({
+            width: Math.round(size.width * scale),
+            height: Math.round(size.height * scale),
+            quality: 'best',
+          })
+        : image;
+    fs.mkdirSync(paths.assets, { recursive: true });
+    const target = path.join(paths.assets, 'store-logo.png');
     const previous = settings.getPublic().business.logoPath;
-    copyFileSafely(file, target);
-    if (previous && path.resolve(previous) !== path.resolve(target) && path.resolve(previous).startsWith(path.resolve(paths.assets))) {
+    fs.writeFileSync(target, optimized.toPNG());
+    if (
+      previous &&
+      path.resolve(previous) !== path.resolve(target) &&
+      path.resolve(previous).startsWith(path.resolve(paths.assets))
+    ) {
       try {
         fs.unlinkSync(previous);
       } catch {
@@ -54,12 +69,15 @@ export function createIpcHandlers({ services, paths, printService, exportService
 
   function clearLogo() {
     auth.requirePermission('settings.manage');
-    const current = settings.getPublic().business;
-    if (current.logoPath && path.resolve(current.logoPath).startsWith(path.resolve(paths.assets))) {
-      try {
-        fs.unlinkSync(current.logoPath);
-      } catch {
-        // The setting is cleared even if the old managed file is already gone.
+    if (fs.existsSync(paths.assets)) {
+      for (const name of fs.readdirSync(paths.assets)) {
+        if (/^store-logo\./i.test(name)) {
+          try {
+            fs.unlinkSync(path.join(paths.assets, name));
+          } catch {
+            // The setting is cleared even if an old managed file cannot be removed.
+          }
+        }
       }
     }
     settings.setLogoPath('');
@@ -161,6 +179,8 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'auth.closeShift': (payload) => auth.closeCurrentShift(payload),
     'auth.openShift': (payload) => auth.openNewShift(payload),
 
+    'branding.get': () => branding.get(),
+
     'dashboard.get': (payload) => reports.dashboard(payload),
 
     'catalog.categories': (payload) => catalog.categories(payload),
@@ -172,6 +192,9 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'catalog.get': (payload) => catalog.getProduct(payload?.id),
     'catalog.create': (payload) => catalog.createProduct(payload),
     'catalog.update': (payload) => catalog.updateProduct(payload?.id, payload),
+    'catalog.archive': (payload) => catalog.archiveProduct(payload?.id),
+    'catalog.restore': (payload) => catalog.restoreProduct(payload?.id),
+    'catalog.delete': (payload) => catalog.deleteProduct(payload?.id),
     'catalog.addVariant': (payload) => catalog.addVariant(payload?.productId, payload),
     'catalog.updateVariant': (payload) => catalog.updateVariant(payload?.variantId, payload),
     'catalog.assignBarcode': (payload) => catalog.assignBarcode(payload?.variantId),

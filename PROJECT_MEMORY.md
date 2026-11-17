@@ -1,11 +1,12 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Implementation checkpoint:** `593c1571` — Add print customization, logo preview and safe GitHub updates (pushed to `main`)
-**Verification record:** `97d6d259` — packaging verification checkpoint
-**Current release:** 1.1.0 — print/barcode customization, logo preview, GitHub Releases and safe auto-update. Published as GitHub Release `v1.1.0` with the EXE, blockmap and `latest.yml`.
+**Implementation checkpoint:** v1.2.0 working branch — branded inventory reliability release (built, not published)
+**Verification record:** v1.2.0 installer built locally; v1.1.0 remains the published release
+**Current public release:** 1.1.0 — print/barcode customization, logo preview, GitHub Releases and safe auto-update. Published as GitHub Release `v1.1.0` with the EXE, blockmap and `latest.yml`.
+**Built but unpublished:** 1.2.0 — central business branding, unified inventory, archive/restore, Add/Correct/Remove stock, MF application icon and packaging cleanup.
 **Developer:** Meninges Labs
-**Working branch:** `main` (tracks `origin/main` at `shaikaakif/ModernFashion-Software`)
+**Working branch:** `v1.2.0` (short-lived; `main` remains stable)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
@@ -32,19 +33,18 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | 22/22 passing |
+| `npm test` | **26/26 passing** on v1.2.0 (includes branding, archive/restore/delete, Add/Correct/Remove stock, Product Sales report and backup-with-assets tests) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
-| Electron development startup | Verified in earlier session |
-| Packaged NSIS EXE | Built and published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
-| Packaged 1.1.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database and folders created, and the published GitHub feed was read without error |
-| Auto-update check | Works: the packaged app reads the public `v1.1.0` release feed; public asset downloads return HTTP 200 |
-| Auto-update download/install | **Not yet exercised end-to-end.** Needs a test PC on 1.0.0 → check → download → backup → install → reopen. |
-| Graphify | Refreshed to 1,007 nodes, 2,955 edges, 55 communities |
-| Installed-build workflow (login, sale, print) | Not yet exercised on the client workstation |
+| Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
+| Packaged NSIS EXE v1.2.0 | Built locally: `release-final/ModernFashionPOS-Setup-1.2.0.exe` (122,311,859 bytes); `app.asar` reduced from 46.7 MB to 3.18 MB by excluding Vite-bundled renderer dependencies |
+| Packaged 1.2.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database/folders created, version 1.2.0 logged |
+| MF application icon | Multi-resolution `build/icon.ico` generated from the supplied monogram; EXE icon verified by extraction |
+| Business logo branding | Automated test verifies configured logo data URL, no local path leak, backup sidecar and restore |
+| Auto-update download/install | **Not yet exercised end-to-end.** v1.1.0 remains public; test 1.1.0 → 1.2.0 on a test install before publishing |
+| Installed-build login/sale/print | Not yet exercised on the client workstation |
 | Physical printers/scanner | **NOT VERIFIED** |
-| Client logo | Not supplied; owner can now choose, preview and remove it |
-| GSTIN / tax invoice | Disabled until client supplies a verified GSTIN |
+| GSTIN / tax invoice | Disabled until the client supplies a verified GSTIN |
 | Code signing | Not configured; SmartScreen may warn on first install |
 
 Do not upgrade "implemented" to "production-ready" until the hardware checklist passes on the client's actual computer. See `Docs/HARDWARE_VALIDATION.md`.
@@ -59,6 +59,20 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 - `dist/`, `electron/` and `shared/` must be included in the electron-builder `files` list. `shared/` is imported by the main process (`money.js`, `permissions.js`) and is not bundled into the renderer chunk.
 - `scripts/dev.mjs` starts Vite then Electron with `MF_DEV_SERVER_URL`.
 - `MF_DATA_DIR` / `MF_DB_PATH` isolate test/preview data.
+
+### Branding and identity
+
+- `electron/services/brandingService.js` is the single public branding source (`branding.get`). It returns the shop name, business details and a data URL for the configured logo; it never exposes the local file path.
+- The owner manages the logo in **Settings → Business → Logo**. Uploads are decoded with Electron `nativeImage`, resized to a maximum of 1024 px, saved as `assets/store-logo.png`, and included in database backups through a `.assets` sidecar folder. Restore copies the sidecar back and repoints the logo path for the current machine.
+- `src/app/BrandMark.jsx` is the shared renderer mark. It shows the business logo in the sidebar, login, setup, dashboard and reports, and falls back to the MF initials when no logo exists.
+- The Modern Fashion POS application icon is separate: `build/icon.ico` (multi-resolution PNG ICO) is used by electron-builder, the installer, shortcuts, the Start Menu, the taskbar identity and the BrowserWindow. Changing the business logo never changes this icon.
+
+### Inventory and catalogue
+
+- Products and Inventory are one navigation destination. `/products` redirects to `/inventory`; the Inventory tabs are Products, Stock, Stock history, Categories, Archived, Valuation and Reconciliation.
+- Archive means `products.status = 'inactive'`. Archived products leave active stock lists and POS search but remain on historical invoices, movements and reports.
+- Delete is allowed only when the product has no sale, purchase or stock-movement history. Products with history must be archived.
+- Stock updates are `add`, `correct` (set the actual counted quantity) and `remove`; every operation writes an immutable `stock_movements` row and an audit entry.
 
 ### Data and money
 
@@ -173,10 +187,10 @@ assets/
 ## 8. Immediate next steps
 
 1. Run `npm run verify` after any code change.
-2. Exercise the published update path on a test PC: install 1.0.0, open the app, check **Releases**, download `v1.1.0`, confirm the pre-update backup, install, reopen and verify that products, sales, customers, settings and the logo are unchanged.
-3. Complete a workstation acceptance pass on the installed build: create owner, add a product, make a sale, preview/save print settings, print, back up, restore a test copy. Then run `graphify update .`.
-4. Complete `Docs/HARDWARE_VALIDATION.md` on the client workstation.
-5. Update this file after any milestone; never claim hardware or update acceptance without evidence.
+2. Review the v1.2.0 diff, then exercise the packaged `release-final` build on the workstation: login, product create/edit/archive/restore, Add/Correct/Remove stock, sale, reports, logo upload/replace/remove, backup/restore, and print preview.
+3. Test the 1.1.0 → 1.2.0 update path with an isolated test install before publishing.
+4. Publish v1.2.0 only with explicit owner approval; keep v1.1.0 public until acceptance.
+5. Deferred v1.2.0 master-prompt work: richer dashboard quick actions/backup status, visual invoice designer, CSV/Vyapar import framework, first-run business wizard, complete single-folder backup export, and the final A4 invoice redesign. These need separate scoped implementation and testing.
 
 ## 9. Session continuation protocol
 

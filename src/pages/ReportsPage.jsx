@@ -5,6 +5,7 @@ import dayjs from 'dayjs';
 import { api, errorMessage } from '@/app/api';
 import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
+import BrandMark from '@/app/BrandMark';
 import { formatDate, money, paymentLabel } from '@/app/format';
 import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard } from '@/app/components';
 
@@ -662,6 +663,7 @@ export default function ReportsPage() {
         subtitle="Figures are computed from local invoices, stock movements, purchases and expenses. Nothing is uploaded."
         extra={
           <Space wrap>
+            <BrandMark size={38} />
             <RangePicker value={range} onChange={(value) => setRange(value || [])} allowClear={false} format="DD MMM YYYY" />
             <Button icon={<ReloadOutlined />} onClick={reloadAll}>
               Refresh

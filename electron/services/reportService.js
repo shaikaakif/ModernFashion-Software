@@ -333,7 +333,7 @@ export function createReportService({ db, auth, catalog }) {
     const { where, params } = salesWhere({ ownUserId: canSeeAll ? null : user.user.id });
     const rows = db
       .prepare(
-        `SELECT si.product_name, si.product_id, si.variant_id, si.sku, si.variant_label,
+        `SELECT si.product_name, v.product_id, si.variant_id, si.sku, si.variant_label,
                 SUM(si.quantity) AS units,
                 COALESCE(SUM(si.unit_price_paise * si.quantity), 0) AS gross,
                 COALESCE(SUM(si.line_discount_paise), 0) AS discount,
@@ -341,6 +341,7 @@ export function createReportService({ db, auth, catalog }) {
                 COALESCE(SUM(si.tax_paise), 0) AS tax,
                 COALESCE(SUM(si.unit_cost_paise * si.quantity), 0) AS cogs
          FROM sale_items si JOIN sales s ON s.id = si.sale_id
+         LEFT JOIN product_variants v ON v.id = si.variant_id
          WHERE ${where.join(' AND ')} AND s.business_date BETWEEN ? AND ?
          GROUP BY si.variant_id ORDER BY net DESC`
       )

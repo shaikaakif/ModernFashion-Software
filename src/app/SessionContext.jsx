@@ -8,6 +8,7 @@ export function SessionProvider({ children }) {
   const [bootError, setBootError] = useState(null);
   const [needsSetup, setNeedsSetup] = useState(false);
   const [publicBusiness, setPublicBusiness] = useState(null);
+  const [branding, setBranding] = useState(null);
   const [session, setSession] = useState(null);
   const [lockReason, setLockReason] = useState('');
   const lastActivity = useRef(Date.now());
@@ -18,6 +19,12 @@ export function SessionProvider({ children }) {
     return current;
   }, []);
 
+  const refreshBranding = useCallback(async () => {
+    const next = await api('branding.get');
+    setBranding(next);
+    return next;
+  }, []);
+
   useEffect(() => {
     let active = true;
     (async () => {
@@ -26,6 +33,13 @@ export function SessionProvider({ children }) {
         if (!active) return;
         setNeedsSetup(Boolean(status.needsSetup));
         setPublicBusiness(status.business || null);
+        api('branding.get')
+          .then((value) => {
+            if (active) setBranding(value);
+          })
+          .catch(() => {
+            // Branding is presentation-only; a missing logo must never block sign-in.
+          });
         if (!status.needsSetup) {
           const current = await api('auth.session');
           if (active) setSession(current);
@@ -56,8 +70,9 @@ export function SessionProvider({ children }) {
     setNeedsSetup(false);
     setLockReason('');
     setPublicBusiness(current.business || null);
+    refreshBranding().catch(() => {});
     return current;
-  }, []);
+  }, [refreshBranding]);
 
   const setupOwner = useCallback(async (input) => {
     const current = await api('auth.setupOwner', input);
@@ -65,8 +80,9 @@ export function SessionProvider({ children }) {
     setNeedsSetup(false);
     setLockReason('');
     setPublicBusiness(current.business || null);
+    refreshBranding().catch(() => {});
     return current;
-  }, []);
+  }, [refreshBranding]);
 
   const logout = useCallback(async (input = {}) => {
     const result = await api('auth.logout', input);
@@ -115,6 +131,7 @@ export function SessionProvider({ children }) {
       bootError,
       needsSetup,
       publicBusiness,
+      branding,
       session,
       user: session?.user || null,
       permissions: session?.permissions || [],
@@ -125,9 +142,10 @@ export function SessionProvider({ children }) {
       logout,
       lock,
       refresh,
+      refreshBranding,
       can,
     }),
-    [booting, bootError, needsSetup, publicBusiness, session, lockReason, login, setupOwner, logout, lock, refresh, can]
+    [booting, bootError, needsSetup, publicBusiness, branding, session, lockReason, login, setupOwner, logout, lock, refresh, refreshBranding, can]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

@@ -8,15 +8,20 @@ import {
   currentFinancialYear,
 } from '../core/validation.js';
 import { writeAudit } from '../core/audit.js';
-import { recordStockMovement } from '../core/inventory.js';
+import { recordStockMovement, getStock } from '../core/inventory.js';
 import { transaction } from '../core/database.js';
 import { allocateSequence } from '../core/sequences.js';
 
 export function createInventoryService({ db, auth }) {
-  function list({ query = '', categoryId = null, lowStock = false, outOfStock = false, limit = 1000 } = {}) {
+  function list({ query = '', categoryId = null, lowStock = false, outOfStock = false, status = null, limit = 1000 } = {}) {
     auth.requirePermission('inventory.view');
-    const where = ["p.status = 'active'"];
+    const where = [];
     const params = [];
+    if (status === 'archived') {
+      where.push("p.status = 'inactive'");
+    } else {
+      where.push("p.status = 'active'");
+    }
     if (query) {
       where.push('(p.name LIKE ? OR v.sku LIKE ? OR v.barcode LIKE ?)');
       const like = `%${String(query).trim()}%`;
@@ -26,14 +31,20 @@ export function createInventoryService({ db, auth }) {
       where.push('p.category_id = ?');
       params.push(Number(categoryId));
     }
-    if (lowStock) where.push('COALESCE(ib.quantity, 0) <= v.low_stock_threshold');
-    if (outOfStock) where.push('COALESCE(ib.quantity, 0) = 0');
+    if (status === 'in') where.push('COALESCE(ib.quantity, 0) > 0');
+    if (status === 'out' || outOfStock) where.push('COALESCE(ib.quantity, 0) = 0');
+    if (status === 'low') {
+      where.push('COALESCE(ib.quantity, 0) > 0 AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold');
+    } else if (lowStock) {
+      where.push('COALESCE(ib.quantity, 0) <= v.low_stock_threshold');
+    }
     const rows = db
       .prepare(
         `SELECT v.id AS variant_id, v.sku, v.barcode, v.color, v.size, v.price_paise, v.cost_paise,
                 v.mrp_paise, v.low_stock_threshold, v.status AS variant_status,
-                p.id AS product_id, p.name AS product_name, p.category_id, c.name AS category_name,
-                COALESCE(ib.quantity, 0) AS stock
+                p.id AS product_id, p.name AS product_name, p.category_id, p.status AS product_status,
+                c.name AS category_name, COALESCE(ib.quantity, 0) AS stock,
+                COALESCE(ib.updated_at, v.updated_at) AS updated_at
          FROM product_variants v
          JOIN products p ON p.id = v.product_id
          JOIN categories c ON c.id = p.category_id
@@ -47,6 +58,7 @@ export function createInventoryService({ db, auth }) {
       variantId: row.variant_id,
       productId: row.product_id,
       productName: row.product_name,
+      productStatus: row.product_status,
       categoryId: row.category_id,
       categoryName: row.category_name,
       sku: row.sku,
@@ -59,6 +71,7 @@ export function createInventoryService({ db, auth }) {
       stock: Number(row.stock || 0),
       threshold: row.low_stock_threshold,
       status: row.variant_status,
+      updatedAt: row.updated_at,
       stockValuePaise: Number(row.stock || 0) * row.cost_paise,
       retailValuePaise: Number(row.stock || 0) * row.price_paise,
     }));
@@ -167,10 +180,12 @@ export function createInventoryService({ db, auth }) {
   function adjust(input) {
     const user = auth.requirePermission('inventory.adjust');
     const variantId = requireInt(input.variantId, 'Product variant', { min: 1 });
-    const direction = String(input.direction || '');
-    if (!['in', 'out'].includes(direction)) fail('Choose stock in or stock out.');
-    const quantity = requirePositiveInt(input.quantity, 'Adjustment quantity');
-    const reason = requireText(input.reason, 'Adjustment reason', { max: 200 });
+    const mode = ['add', 'correct', 'remove'].includes(input.mode)
+      ? input.mode
+      : input.direction === 'out'
+        ? 'remove'
+        : 'add';
+    const reason = requireText(input.reason, 'Reason', { max: 200 });
     const note = optionalText(input.note, { max: 500 });
     const variant = db
       .prepare(
@@ -179,12 +194,28 @@ export function createInventoryService({ db, auth }) {
       .get(variantId);
     if (!variant) fail('Product variant not found.');
     return transaction(db, () => {
-      const movementType = input.movementType === 'damage' && direction === 'out' ? 'damage' : direction === 'in' ? 'adjustment_in' : 'adjustment_out';
+      const current = getStock(db, variantId);
+      let quantityChange;
+      let actualQuantity = null;
+      if (mode === 'correct') {
+        actualQuantity = requireInt(input.actualQuantity, 'Actual quantity', { min: 0, max: 1000000 });
+        quantityChange = actualQuantity - current;
+        if (quantityChange === 0) fail('The recorded quantity already matches the actual count.');
+      } else {
+        const quantity = requirePositiveInt(input.quantity, 'Quantity');
+        quantityChange = mode === 'add' ? quantity : -quantity;
+      }
+      const movementType =
+        mode === 'remove' && input.movementType === 'damage'
+          ? 'damage'
+          : quantityChange > 0
+            ? 'adjustment_in'
+            : 'adjustment_out';
       const reference = `ADJ/${currentFinancialYear()}/${String(allocateSequence(db, 'adjustment', currentFinancialYear())).padStart(4, '0')}`;
       const balanceAfter = recordStockMovement(db, {
         variantId,
         productId: variant.product_id,
-        quantityChange: direction === 'in' ? quantity : -quantity,
+        quantityChange,
         movementType,
         unitCostPaise: variant.cost_paise,
         referenceType: 'adjustment',
@@ -199,9 +230,19 @@ export function createInventoryService({ db, auth }) {
         action: 'inventory.adjusted',
         entityType: 'product_variant',
         entityId: variantId,
-        details: { direction, quantity, reason, reference, balanceAfter, productName: variant.product_name, sku: variant.sku },
+        details: {
+          mode,
+          quantityChange,
+          previousQuantity: current,
+          balanceAfter,
+          actualQuantity,
+          reason,
+          reference,
+          productName: variant.product_name,
+          sku: variant.sku,
+        },
       });
-      return { reference, balanceAfter };
+      return { reference, balanceAfter, quantityChange };
     });
   }
 

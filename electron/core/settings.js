@@ -41,8 +41,10 @@ export function saveSetting(db, key, value, userId = null) {
 export function publicBusiness(db) {
   const business = getSetting(db, 'business');
   const tax = getSetting(db, 'tax');
+  const { logoPath, ...safeBusiness } = business;
   return {
-    ...business,
+    ...safeBusiness,
+    hasLogo: Boolean(logoPath),
     gstin: tax.gstin || business.gstin || '',
     legalName: tax.legalName || business.legalName || '',
     taxEnabled: Boolean(tax.enabled),

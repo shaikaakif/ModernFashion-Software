@@ -1,17 +1,17 @@
 # Graph Report - ModernFashion-Software  (2026-11-17)
 
 ## Corpus Check
-- 83 files · ~94,034 words
+- 86 files · ~96,410 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .ico 1, .css 1)
 
 ## Summary
-- 1007 nodes · 2955 edges · 55 communities (52 shown, 3 thin omitted)
-- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 154 edges (avg confidence: 0.85)
+- 1026 nodes · 3044 edges · 58 communities (53 shown, 5 thin omitted)
+- Extraction: 95% EXTRACTED · 5% INFERRED · 0% AMBIGUOUS · INFERRED: 158 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `593c1571`
+- Built from commit: `d9de96e8`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -22,12 +22,12 @@
 - 4. Scope and modules
 - AI_ENGINEERING_CONSTITUTION.md
 - Modern Fashion --- Brand Kit & POS Interface Design System
-- createReportService
+- getSetting
 - main.js
 - build
 - database.js
 - master-ui-skill.md
-- print.test.js
+- helpers.js
 - MASTER_AI_ENGINEERING_SOP.md
 - createExportService
 - devDependencies
@@ -37,9 +37,9 @@
 - 5. END-TO-END UI WORKFLOW
 - electron
 - backupService.js
-- dependencies
+- jsbarcode
 - 16. ACCESSIBILITY AND INCLUSIVE INTERACTION
-- readLogoDataUrl
+- createIpcHandlers
 - scripts
 - cart.js
 - createUpdateService
@@ -65,20 +65,23 @@
 - 13. INTERACTION STATES AND BEHAVIOR CONTRACTS
 - 19. AI-NATIVE INTERFACE PATTERNS
 - 6. DESIGN DIRECTION AND VISUAL STYLE TAXONOMY
-- @vitejs/plugin-react
+- devDependencies
 - AGENTS.md
 - Modern Fashion POS — Project Memory
 - Hardware Validation Checklist
 - RootApp.jsx
+- money.js
+- print.test.js
+- electron-builder@26.18.0
 
 ## God Nodes (most connected - your core abstractions)
-1. `fail()` - 104 edges
-2. `api()` - 97 edges
-3. `errorMessage()` - 91 edges
-4. `nowIso()` - 76 edges
-5. `writeAudit()` - 69 edges
-6. `requireInt()` - 64 edges
-7. `getSetting()` - 49 edges
+1. `fail()` - 107 edges
+2. `api()` - 100 edges
+3. `errorMessage()` - 93 edges
+4. `nowIso()` - 77 edges
+5. `writeAudit()` - 71 edges
+6. `requireInt()` - 66 edges
+7. `getSetting()` - 52 edges
 8. `requireText()` - 44 edges
 9. `createSaleService()` - 41 edges
 10. `createSettingsService()` - 41 edges
@@ -88,25 +91,25 @@
   PROJECT_MEMORY.md → electron/core/database.js
 - `23.7 How to evaluate a resource before installing it` --references--> `fail()`  [INFERRED]
   Docs/master-ui-skill.md → electron/core/errors.js
+- `createTestApp()` --calls--> `createBackupService()`  [EXTRACTED]
+  tests/helpers.js → electron/services/backupService.js
+- `createTestApp()` --calls--> `createBrandingService()`  [EXTRACTED]
+  tests/helpers.js → electron/services/brandingService.js
 - `nextBarcode()` --calls--> `formatBarcode()`  [EXTRACTED]
   electron/services/catalogService.js → shared/barcode.js
-- `nextBarcode()` --calls--> `normalizeBarcodeConfig()`  [EXTRACTED]
-  electron/services/catalogService.js → shared/barcode.js
-- `createPurchaseService()` --calls--> `allocate()`  [EXTRACTED]
-  electron/services/purchaseService.js → shared/money.js
 
 ## Import Cycles
 - None detected.
 
-## Communities (55 total, 3 thin omitted)
+## Communities (58 total, 5 thin omitted)
 
 ### Community 0 - "fail"
-Cohesion: 0.05
-Nodes (156): writeAudit(), transaction(), AppError, assert(), fail(), assertStockAvailable(), getStock(), recordStockMovement() (+148 more)
+Cohesion: 0.06
+Nodes (131): writeAudit(), transaction(), AppError, assert(), fail(), assertStockAvailable(), getStock(), recordStockMovement() (+123 more)
 
 ### Community 1 - "api"
 Cohesion: 0.06
-Nodes (139): @ant-design/icons, antd, dayjs, react, react-router-dom, api(), errorMessage(), AppShell() (+131 more)
+Nodes (143): @ant-design/icons, antd, dayjs, react, react-router-dom, api(), errorMessage(), AppShell() (+135 more)
 
 ### Community 2 - "createPrintService"
 Cohesion: 0.10
@@ -124,17 +127,17 @@ Nodes (23): 10. FEATURE IMPLEMENTATION TEMPLATE, 11. AI AGENT PROMPT TEMPLATE, 1
 Cohesion: 0.09
 Nodes (21): 10. Responsive behaviour, 11. Design QA, 12. Brand asset handling, 13. Design definition of done, 1. Brand hierarchy, 2. Brand character, 3. Colour system, 4. Typography (+13 more)
 
-### Community 6 - "createReportService"
-Cohesion: 0.25
-Nodes (20): monthRange(), createReportService(), accountingPack(), cashierSeries(), dailySeries(), dashboard(), expenseReport(), expenseTotal() (+12 more)
+### Community 6 - "getSetting"
+Cohesion: 0.11
+Nodes (49): readLogoDataUrl(), businessDisplayName(), clone(), getAllSettings(), getSetting(), publicBusiness(), saveSetting(), monthRange() (+41 more)
 
 ### Community 7 - "main.js"
-Cohesion: 0.23
-Nodes (14): integrityCheck(), openDatabase(), createLogger(), rotateIfNeeded(), write(), initPaths(), bootstrap(), broadcastUpdateStatus() (+6 more)
+Cohesion: 0.13
+Nodes (18): integrityCheck(), openDatabase(), createLogger(), rotateIfNeeded(), write(), MIME, initPaths(), registerIpc() (+10 more)
 
 ### Community 8 - "build"
 Cohesion: 0.09
-Nodes (22): build, appId, asar, copyright, directories, files, nsis, productName (+14 more)
+Nodes (23): build, appId, asar, copyright, directories, files, nsis, productName (+15 more)
 
 ### Community 9 - "database.js"
 Cohesion: 0.13
@@ -144,9 +147,9 @@ Nodes (13): CATEGORY_SEED, DEFAULT_SETTINGS, ensureMigrationsTable(), EXPENSE_CA
 Cohesion: 0.11
 Nodes (18): 18.1 Select the representation from the question, 18.2 Chart rules, 18.3 Dashboards, 18. DATA VISUALIZATION AND DENSE INTERFACES, 27.1 Example project resource registry layout, 27. PROJECT DELIVERABLES AND DOCUMENTATION, 28.1 Definition of done, 28.2 Visual quality scorecard (+10 more)
 
-### Community 11 - "print.test.js"
-Cohesion: 0.11
-Nodes (17): BARCODE_SYMBOLOGY, barcodeExample(), DEFAULT_BARCODE, formatBarcode(), normalizeBarcodeConfig(), allocate(), computeCartTotals(), roundToRupee() (+9 more)
+### Community 11 - "helpers.js"
+Cohesion: 0.28
+Nodes (12): PNG_1X1, addStaff(), completeSale(), createProduct(), createTestApp(), login(), logout(), saleCount() (+4 more)
 
 ### Community 12 - "MASTER_AI_ENGINEERING_SOP.md"
 Cohesion: 0.14
@@ -157,8 +160,8 @@ Cohesion: 0.37
 Nodes (12): createExportService(), exportAccountingPack(), exportCatalogue(), exportCustomers(), exportExpenses(), exportInventory(), exportPurchases(), exportSalesRegister() (+4 more)
 
 ### Community 14 - "devDependencies"
-Cohesion: 0.11
-Nodes (22): author, description, devDependencies, electron-builder@26.18.0, eslint@^8.57.0, eslint-plugin-react@^7.33.2, eslint-plugin-react-hooks@^4.6.0, eslint-plugin-react-refresh@^0.4.7 (+14 more)
+Cohesion: 0.14
+Nodes (14): author, dependencies, electron-updater@^6.8.11, description, eslint-plugin-react@^7.33.2, license, main, name (+6 more)
 
 ### Community 15 - "24. INSTALLATION AND ACTIVATION RECIPES"
 Cohesion: 0.17
@@ -178,23 +181,15 @@ Nodes (11): 5. END-TO-END UI WORKFLOW, Phase 10 — Report, Phase 1 — Understa
 
 ### Community 19 - "electron"
 Cohesion: 0.20
-Nodes (6): { contextBridge, ipcRenderer }, electron@45.3.3, vite@^5.4.21, electron, vite, child
+Nodes (5): vite@^5.4.21, @vitejs/plugin-react@^4.3.1, vite, @vitejs/plugin-react, child
 
 ### Community 20 - "backupService.js"
 Cohesion: 0.24
-Nodes (11): createBackupService(), autoBackupIfDue(), createManual(), destinationDirectory(), makeBackup(), pruneAutomaticBackups(), restore(), verify() (+3 more)
-
-### Community 21 - "dependencies"
-Cohesion: 0.20
-Nodes (10): dependencies, @ant-design/icons@^5.3.0, antd@^5.29.0, dayjs@^1.11.10, electron-updater@^6.8.11, jsbarcode@^3.12.3, react@18.3.1, react-router-dom@^6.30.0 (+2 more)
+Nodes (14): createBackupService(), autoBackupIfDue(), copyAssets(), createManual(), destinationDirectory(), list(), makeBackup(), pruneAutomaticBackups() (+6 more)
 
 ### Community 22 - "16. ACCESSIBILITY AND INCLUSIVE INTERACTION"
 Cohesion: 0.22
 Nodes (9): 16.1 Semantic structure, 16.2 Keyboard and focus, 16.3 Contrast and color, 16.4 Pointer and touch targets, 16.5 Motion and vestibular comfort, 16.6 Forms, errors, and status announcements, 16.7 Reflow and zoom, 16.8 Accessibility testing policy (+1 more)
-
-### Community 23 - "readLogoDataUrl"
-Cohesion: 0.16
-Nodes (6): MIME, readLogoDataUrl(), copyFileSafely(), createIpcHandlers(), chooseLogo(), registerIpc()
 
 ### Community 24 - "scripts"
 Cohesion: 0.20
@@ -296,9 +291,13 @@ Nodes (4): 19.1 Core patterns, 19.2 Trust and control, 19.3 Context and resource
 Cohesion: 0.50
 Nodes (4): 6.1 Select a direction using five signals, 6.2 Combination rules, 6.3 Anti-template rules, 6. DESIGN DIRECTION AND VISUAL STYLE TAXONOMY
 
+### Community 49 - "devDependencies"
+Cohesion: 0.13
+Nodes (15): devDependencies, @ant-design/icons@^5.3.0, antd@^5.29.0, dayjs@^1.11.10, electron@45.3.3, eslint@^8.57.0, eslint-plugin-react-hooks@^4.6.0, eslint-plugin-react-refresh@^0.4.7 (+7 more)
+
 ### Community 52 - "Modern Fashion POS — Project Memory"
-Cohesion: 0.12
-Nodes (15): 1. Current state, 2. Verified status, 3. Architecture decisions, 4. Important files, 5. Commands, 6. Data locations, 7. Open client inputs, 8. Immediate next steps (+7 more)
+Cohesion: 0.11
+Nodes (17): 1. Current state, 2. Verified status, 3. Architecture decisions, 4. Important files, 5. Commands, 6. Data locations, 7. Open client inputs, 8. Immediate next steps (+9 more)
 
 ### Community 53 - "Hardware Validation Checklist"
 Cohesion: 0.20
@@ -308,22 +307,30 @@ Nodes (9): 1. Windows printer setup, 2. Receipt printing, 3. A4 invoice / PDF, 4
 Cohesion: 0.27
 Nodes (6): react-dom@18.3.1, react-dom, SessionProvider(), theme, root, RootApp()
 
+### Community 55 - "money.js"
+Cohesion: 0.33
+Nodes (5): allocate(), computeCartTotals(), pickBestOffer(), roundHalfUp(), roundToRupee()
+
+### Community 56 - "print.test.js"
+Cohesion: 0.36
+Nodes (5): BARCODE_SYMBOLOGY, barcodeExample(), DEFAULT_BARCODE, formatBarcode(), normalizeBarcodeConfig()
+
 ## Knowledge Gaps
-- **3 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **5 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `fail()` connect `fail` to `createPrintService`, `createReportService`, `backupService.js`, `readLogoDataUrl`, `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE`?**
-  _High betweenness centrality (0.311) - this node is a cross-community bridge._
+- **Why does `electron` connect `main.js` to `devDependencies`, `createPrintService`, `electron`, `devDependencies`?**
+  _High betweenness centrality (0.307) - this node is a cross-community bridge._
 - **Should `fail` be split into smaller, more focused modules?**
-  _Cohesion score 0.052080462937448335 - nodes in this community are weakly interconnected._
-- **Why does `electron` connect `electron` to `createPrintService`, `devDependencies`, `main.js`?**
-  _High betweenness centrality (0.299) - this node is a cross-community bridge._
+  _Cohesion score 0.05665379080512005 - nodes in this community are weakly interconnected._
+- **Why does `fail()` connect `fail` to `createPrintService`, `getSetting`, `main.js`, `backupService.js`, `createIpcHandlers`, `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE`?**
+  _High betweenness centrality (0.271) - this node is a cross-community bridge._
 - **Should `api` be split into smaller, more focused modules?**
-  _Cohesion score 0.05733179250128403 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.056037884767166535 - nodes in this community are weakly interconnected._
 - **Why does `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE` connect `23. RESOURCE CATALOG AND WHEN TO USE EACH SOURCE` to `master-ui-skill.md`?**
-  _High betweenness centrality (0.266) - this node is a cross-community bridge._
+  _High betweenness centrality (0.231) - this node is a cross-community bridge._
 - **Should `createPrintService` be split into smaller, more focused modules?**
   _Cohesion score 0.0987012987012987 - nodes in this community are weakly interconnected._
 - **Should `4. Scope and modules` be split into smaller, more focused modules?**

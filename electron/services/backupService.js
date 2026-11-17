@@ -43,8 +43,22 @@ function verifyDatabaseFile(filename) {
   }
 }
 
-export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger, onRestore }) {
+export function createBackupService({ db, dbPath, defaultBackupDir, assetsDir = null, auth, logger, onRestore }) {
   let busy = false;
+
+  function sidecarDirectory(dbFile) {
+    return `${dbFile.replace(/\.db$/i, '')}.assets`;
+  }
+
+  function copyAssets(dbFile) {
+    if (!assetsDir || !fs.existsSync(assetsDir)) return null;
+    const entries = fs.readdirSync(assetsDir);
+    if (!entries.length) return null;
+    const sidecar = sidecarDirectory(dbFile);
+    fs.rmSync(sidecar, { recursive: true, force: true });
+    fs.cpSync(assetsDir, sidecar, { recursive: true });
+    return sidecar;
+  }
 
   function destinationDirectory() {
     const settings = getSetting(db, 'backup');
@@ -63,6 +77,7 @@ export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger
       db.exec(`VACUUM INTO '${escaped}'`);
       const verification = verifyDatabaseFile(filename);
       const sha256 = sha256File(filename);
+      const assetsCopy = copyAssets(filename);
       db.prepare(
         `INSERT INTO backup_logs (path, size_bytes, sha256, kind, status, note, created_by, created_at)
          VALUES (?, ?, ?, ?, 'verified', ?, ?, ?)`
@@ -78,10 +93,17 @@ export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger
         action: 'backup.created',
         entityType: 'backup',
         entityId: filename,
-        details: { kind, sizeBytes: verification.sizeBytes, sha256, note },
+        details: { kind, sizeBytes: verification.sizeBytes, sha256, note, assetsCopy: Boolean(assetsCopy) },
       });
       logger?.info('Backup created', { kind, filename, sizeBytes: verification.sizeBytes });
-      return { path: filename, sizeBytes: verification.sizeBytes, sha256, integrity: 'ok', kind };
+      return {
+        path: filename,
+        sizeBytes: verification.sizeBytes,
+        sha256,
+        integrity: 'ok',
+        kind,
+        assetsCopied: Boolean(assetsCopy),
+      };
     } finally {
       busy = false;
     }
@@ -99,6 +121,7 @@ export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger
     for (const filename of files.slice(keep)) {
       try {
         fs.unlinkSync(filename);
+        fs.rmSync(sidecarDirectory(filename), { recursive: true, force: true });
         logger?.info('Pruned automatic backup', { filename });
       } catch (error) {
         logger?.warn('Could not prune automatic backup', { filename, error: error.message });
@@ -126,6 +149,7 @@ export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger
         createdByName: row.user_name || 'system',
         createdAt: row.created_at,
         exists: fs.existsSync(row.path),
+        hasAssets: fs.existsSync(sidecarDirectory(row.path)),
       }));
   }
 
@@ -165,8 +189,15 @@ export function createBackupService({ db, dbPath, defaultBackupDir, auth, logger
       entityId: target,
       details: { safetyBackup: safety.path, source: target },
     });
-    onRestore({ source: target, safetyBackup: safety.path });
-    return { restoring: true, safetyBackup: safety.path, source: target };
+    let assetsRestored = false;
+    const assetsSource = sidecarDirectory(target);
+    if (assetsDir && fs.existsSync(assetsSource)) {
+      fs.rmSync(assetsDir, { recursive: true, force: true });
+      fs.cpSync(assetsSource, assetsDir, { recursive: true });
+      assetsRestored = true;
+    }
+    onRestore({ source: target, safetyBackup: safety.path, assetsRestored });
+    return { restoring: true, safetyBackup: safety.path, source: target, assetsRestored };
   }
 
   async function autoBackupIfDue() {

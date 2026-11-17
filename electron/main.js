@@ -2,6 +2,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { app, BrowserWindow, dialog, ipcMain, Menu, session, shell } from 'electron';
+import { DatabaseSync } from 'node:sqlite';
 import { initPaths } from './core/paths.js';
 import { createLogger } from './core/logger.js';
 import { integrityCheck, openDatabase } from './core/database.js';
@@ -21,6 +22,7 @@ import { createBackupService } from './services/backupService.js';
 import { createExportService } from './services/exportService.js';
 import { createPrintService } from './hardware/printService.js';
 import { createUpdateService } from './services/updateService.js';
+import { createBrandingService } from './services/brandingService.js';
 import { registerIpc } from './ipc/registerIpc.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -63,7 +65,7 @@ if (!hasLock) {
   });
 }
 
-function scheduleRestore({ source, safetyBackup }) {
+function scheduleRestore({ source, safetyBackup, assetsRestored = false }) {
   setTimeout(() => {
     let fallbackUsed = false;
     try {
@@ -87,6 +89,26 @@ function scheduleRestore({ source, safetyBackup }) {
         // The verified pre-restore backup remains the authoritative fallback.
       }
       fs.renameSync(temp, paths.databasePath);
+      if (assetsRestored) {
+        const logos = fs
+          .readdirSync(paths.assets)
+          .filter((name) => /^store-logo\./i.test(name));
+        if (logos.length) {
+          const restored = new DatabaseSync(paths.databasePath);
+          try {
+            const row = restored.prepare("SELECT value FROM app_settings WHERE key = 'business'").get();
+            const business = row ? JSON.parse(row.value) : {};
+            if (business?.logoPath) {
+              business.logoPath = path.join(paths.assets, logos[0]);
+              restored
+                .prepare('UPDATE app_settings SET value = ?, updated_at = ? WHERE key = ?')
+                .run(JSON.stringify(business), new Date().toISOString(), 'business');
+            }
+          } finally {
+            restored.close();
+          }
+        }
+      }
       logger?.info('Database restored; relaunching', { source, safetyBackup });
     } catch (error) {
       fallbackUsed = true;
@@ -134,6 +156,7 @@ async function bootstrap() {
 
   const auth = createAuthService({ db, logger });
   const settings = createSettingsService({ db, auth });
+  const branding = createBrandingService({ db });
   const catalog = createCatalogService({ db, auth });
   const inventory = createInventoryService({ db, auth });
   const suppliers = createSupplierService({ db, auth });
@@ -148,6 +171,7 @@ async function bootstrap() {
     db,
     dbPath: paths.databasePath,
     defaultBackupDir: paths.backups,
+    assetsDir: paths.assets,
     auth,
     logger,
     onRestore: scheduleRestore,
@@ -156,6 +180,7 @@ async function bootstrap() {
     app,
     auth,
     settings,
+    branding,
     catalog,
     inventory,
     suppliers,
@@ -230,6 +255,7 @@ function createMainWindow() {
     show: false,
     backgroundColor: '#f6f5f2',
     title: 'Modern Fashion POS',
+    icon: path.join(app.getAppPath(), 'build', 'icon.ico'),
     autoHideMenuBar: true,
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),

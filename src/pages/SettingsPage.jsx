@@ -30,7 +30,6 @@ import {
   ReloadOutlined,
   SafetyCertificateOutlined,
   SaveOutlined,
-  SyncOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
@@ -58,7 +57,7 @@ function filesize(bytes) {
 }
 
 export default function SettingsPage() {
-  const { can, refresh } = useSession();
+  const { can, refresh, refreshBranding } = useSession();
   const { message, modal } = AntApp.useApp();
   const [tab, setTab] = useState('business');
   const [saving, setSaving] = useState('');
@@ -274,23 +273,6 @@ export default function SettingsPage() {
     save('backup', () => api('settings.updateBackup', values), 'Backup schedule saved.');
   }
 
-  function promptRestart(title, content) {
-    modal.confirm({
-      title,
-      content,
-      icon: <SyncOutlined />,
-      okText: 'Restart now',
-      cancelText: 'Later',
-      onOk: async () => {
-        try {
-          await api('app.restart');
-        } catch (error) {
-          message.error(errorMessage(error));
-        }
-      },
-    });
-  }
-
   async function chooseLogo() {
     setLogoBusy(true);
     try {
@@ -298,12 +280,9 @@ export default function SettingsPage() {
       if (result.changed) {
         if (result.logo) logo.setData(result.logo);
         else logo.reload();
-        message.success('Logo saved. The preview now shows the new image.');
+        message.success('Logo saved. Sidebar, login, reports and print previews now use it.');
         await reloadSettings();
-        promptRestart(
-          'Restart to apply the new logo?',
-          'The logo is saved on this computer. Restart the application so every screen and print preview uses it. Completed bills and stock are safe; unsaved form edits will be lost.'
-        );
+        await refreshBranding();
       }
     } catch (error) {
       message.error(errorMessage(error));
@@ -318,12 +297,9 @@ export default function SettingsPage() {
       const result = await api('settings.clearLogo');
       if (result?.logo) logo.setData(result.logo);
       else logo.reload();
-      message.success('Logo removed. Receipts print without a logo.');
+      message.success('Logo removed. Every screen and document now uses the MF fallback.');
       await reloadSettings();
-      promptRestart(
-        'Restart to remove the logo everywhere?',
-        'The logo setting is cleared. Restart the application so every screen and print preview reflects the change. Completed bills and stock are safe.'
-      );
+      await refreshBranding();
     } catch (error) {
       message.error(errorMessage(error));
     } finally {
@@ -559,7 +535,7 @@ export default function SettingsPage() {
               type={data?.hasLogo ? 'success' : 'info'}
               showIcon
               message={data?.hasLogo ? 'A logo file is configured for print.' : 'No logo is configured yet.'}
-              description="Choose a PNG, JPG or WebP file. The image is copied into the local application data folder. Thermal receipts print it in monochrome; check the real paper before acceptance."
+              description="Choose a PNG, JPG, WebP, GIF or BMP file up to 5 MB. The image is resized to a maximum of 1024 px, stored in the local data folder and included in backups. Aspect ratio is preserved."
             />
             <Space wrap className="section-gap-sm">
               <Button icon={<UploadOutlined />} onClick={chooseLogo} loading={logoBusy}>

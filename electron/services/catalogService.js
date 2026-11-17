@@ -118,6 +118,14 @@ function mapVariant(row) {
 }
 
 export function createCatalogService({ db, auth }) {
+  function requireCatalogue() {
+    const user = auth.requireSession();
+    if (!user.permissions.includes('products.view') && !user.permissions.includes('inventory.view')) {
+      fail('You do not have permission to view the product catalogue.', 'FORBIDDEN');
+    }
+    return user;
+  }
+
   function mapProduct(row, variants = null) {
     return {
       id: row.id,
@@ -245,7 +253,7 @@ export function createCatalogService({ db, auth }) {
   }
 
   function listProducts({ query = '', categoryId = null, status = null, lowStock = false, limit = 500 } = {}) {
-    auth.requireSession();
+    requireCatalogue();
     const where = ['1 = 1'];
     const params = [];
     if (query) {
@@ -291,7 +299,7 @@ export function createCatalogService({ db, auth }) {
   }
 
   function getProduct(id) {
-    auth.requireSession();
+    requireCatalogue();
     const productId = requireInt(id, 'Product', { min: 1 });
     const row = productRow(db, productId);
     if (!row) fail('Product not found.');
@@ -441,6 +449,78 @@ export function createCatalogService({ db, auth }) {
         details: { name, status, category: category.name },
       });
       return getProduct(productId);
+    });
+  }
+
+  function setProductStatus(id, status, action) {
+    const user = auth.requirePermission('products.manage');
+    const productId = requireInt(id, 'Product', { min: 1 });
+    return transaction(db, () => {
+      const product = db.prepare('SELECT id, name, status FROM products WHERE id = ?').get(productId);
+      if (!product) fail('Product not found.');
+      if (product.status === status) return getProduct(productId);
+      db.prepare('UPDATE products SET status = ?, updated_at = ?, updated_by = ? WHERE id = ?').run(
+        status,
+        nowIso(),
+        user.user.id,
+        productId
+      );
+      writeAudit(db, {
+        userId: user.user.id,
+        userName: user.user.name,
+        action,
+        entityType: 'product',
+        entityId: productId,
+        details: { name: product.name, from: product.status, to: status },
+      });
+      return getProduct(productId);
+    });
+  }
+
+  function archiveProduct(id) {
+    return setProductStatus(id, 'inactive', 'product.archived');
+  }
+
+  function restoreProduct(id) {
+    return setProductStatus(id, 'active', 'product.restored');
+  }
+
+  function deleteProduct(id) {
+    const user = auth.requirePermission('products.manage');
+    const productId = requireInt(id, 'Product', { min: 1 });
+    return transaction(db, () => {
+      const product = db.prepare('SELECT id, name, status FROM products WHERE id = ?').get(productId);
+      if (!product) fail('Product not found.');
+      const variantIds = db
+        .prepare('SELECT id FROM product_variants WHERE product_id = ?')
+        .all(productId)
+        .map((row) => row.id);
+      const placeholders = variantIds.length ? variantIds.map(() => '?').join(',') : 'NULL';
+      const history = db
+        .prepare(
+          `SELECT (SELECT COUNT(*) FROM sale_items WHERE variant_id IN (${placeholders})) AS sales,
+                  (SELECT COUNT(*) FROM purchase_items WHERE variant_id IN (${placeholders})) AS purchases,
+                  (SELECT COUNT(*) FROM stock_movements WHERE product_id = ?) AS movements`
+        )
+        .get(...variantIds, ...variantIds, productId);
+      if (history.sales || history.purchases || history.movements) {
+        fail(
+          'This product has sales, purchase or stock history, so it cannot be deleted. Archive it instead — historical invoices and reports stay intact.',
+          'HAS_HISTORY'
+        );
+      }
+      db.prepare(`DELETE FROM inventory_balances WHERE variant_id IN (${placeholders})`).run(...variantIds);
+      db.prepare('DELETE FROM product_variants WHERE product_id = ?').run(productId);
+      db.prepare('DELETE FROM products WHERE id = ?').run(productId);
+      writeAudit(db, {
+        userId: user.user.id,
+        userName: user.user.name,
+        action: 'product.deleted',
+        entityType: 'product',
+        entityId: productId,
+        details: { name: product.name, variants: variantIds.length },
+      });
+      return { deleted: true, id: productId };
     });
   }
 
@@ -714,6 +794,9 @@ export function createCatalogService({ db, auth }) {
     getProduct,
     createProduct,
     updateProduct,
+    archiveProduct,
+    restoreProduct,
+    deleteProduct,
     addVariant,
     updateVariant,
     assignBarcode,

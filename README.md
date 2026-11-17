@@ -10,6 +10,11 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 
 - Owner/cashier setup with local password hashing, three fixed roles and service-level permissions
 - Dashboard with date-scoped sales, profit, stock and activity
+- Unified Inventory with Products, Stock, Stock history, Categories and Archived tabs
+- Product archive, restore and history-safe deletion; archived products stay on old invoices but leave new sales
+- Stock updates as Add, Correct to actual count, or Remove, each written to the immutable ledger
+- One central business-branding source for the sidebar, login, dashboard, reports, invoices and print documents
+- Multi-resolution MF application icon for the installer, shortcut, Start Menu, taskbar and window
 - Barcode-driven POS with cart, offers/manual discounts, tax-inclusive support, split payment status, change, receipt preview and reprint
 - Transactional checkout: one invoice, one stock deduction, idempotency protection and no negative stock
 - Products with colour/size variants, unique SKU/barcode, opening stock and Code 128 labels
@@ -96,7 +101,7 @@ MSI is not configured. NSIS is preferred for one POS workstation because it avoi
 
 The installed app reads the public repository `shaikaakif/ModernFashion-Software` through `electron-updater`. Owners see **Releases** in the navigation, can check the latest release, download it, and restart to install. An update creates a verified database backup first and replaces program files only; the database, backups, exports, documents and settings are not touched.
 
-Release **v1.1.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0` with the installer, blockmap and `latest.yml`. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
+Release **v1.1.0** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.1.0` with the installer, blockmap and `latest.yml`. Version **1.2.0** is built locally and has not been published; v1.1.0 remains the known-good public release until 1.2.0 passes workstation acceptance and the owner approves publication. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`. Do not publish a release without the owner's approval.
 
 ## Where data lives
 
@@ -147,10 +152,10 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 22 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore, barcode formatting, logo reading, print settings and receipt layout).
+- `npm test`: 26 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product archive/restore/delete, stock add/correct/remove, Product Sales report and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
-- Packaged EXE: **built, published and startup-verified.** `release/ModernFashionPOS-Setup-1.1.0.exe` was built and uploaded to GitHub Release `v1.1.0`. The unpacked packaged app was launched with an isolated data folder; it started on version 1.1.0, created its database and read the published update feed without error. Login, billing and printing inside the installed build still need a workstation acceptance pass; physical printing and scanner behaviour remain unverified.
+- Packaged EXE: **v1.1.0 published; v1.2.0 built and startup-verified locally.** `release-final/ModernFashionPOS-Setup-1.2.0.exe` is 122.3 MB, carries the MF monogram, and starts with an isolated `MF_DATA_DIR` on version 1.2.0. The packaged 1.2.0 build still needs a workstation acceptance pass before publication.
 - Updates: `v1.1.0` is published with the EXE, blockmap and `latest.yml`. The public download URLs return HTTP 200 and the packaged app reads the feed. The download → backup → install → reopen path still needs a test-PC acceptance pass.
 - Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.
 

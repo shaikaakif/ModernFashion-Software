@@ -18,6 +18,7 @@ import {
 } from 'antd';
 import {
   BarcodeOutlined,
+  DeleteOutlined,
   EditOutlined,
   PlusOutlined,
   PrinterOutlined,
@@ -46,9 +47,10 @@ function splitList(value) {
     .filter(Boolean);
 }
 
-export default function ProductsPage() {
+export default function ProductsPage({ embedded = false, initialTab = 'products' }) {
   const { can } = useSession();
   const { message } = AntApp.useApp();
+  const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState(null);
   const [status, setStatus] = useState(null);
@@ -322,32 +324,107 @@ export default function ProductsPage() {
   const canLinkSupplier = can('purchases.view');
   const rows = products.data || [];
   const productCount = rows.length;
+  const archivedRows = rows.filter((row) => row.status === 'inactive');
+
+  async function refreshAfterStatus() {
+    products.reload();
+    if (detail) {
+      try {
+        setDetail(await api('catalog.get', { id: detail.id }));
+      } catch {
+        setDetail(null);
+      }
+    }
+  }
+
+  function confirmArchive(record) {
+    Modal.confirm({
+      title: `Archive ${record.name}?`,
+      content:
+        'Archived products are hidden from new sales and stock entry, but stay visible on historical invoices and reports. You can restore this product later.',
+      okText: 'Archive product',
+      onOk: async () => {
+        try {
+          await api('catalog.archive', { id: record.id });
+          message.success(`${record.name} archived.`);
+          await refreshAfterStatus();
+        } catch (error) {
+          message.error(errorMessage(error));
+        }
+      },
+    });
+  }
+
+  function confirmRestore(record) {
+    Modal.confirm({
+      title: `Restore ${record.name}?`,
+      content: 'The product will be selectable in new sales again.',
+      okText: 'Restore product',
+      onOk: async () => {
+        try {
+          await api('catalog.restore', { id: record.id });
+          message.success(`${record.name} restored.`);
+          await refreshAfterStatus();
+        } catch (error) {
+          message.error(errorMessage(error));
+        }
+      },
+    });
+  }
+
+  function confirmDelete(record) {
+    Modal.confirm({
+      title: `Delete ${record.name} permanently?`,
+      content:
+        'Products with any sales, purchase or stock history cannot be deleted — archive them instead. Deletion cannot be undone.',
+      okText: 'Delete permanently',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          await api('catalog.delete', { id: record.id });
+          message.success(`${record.name} deleted.`);
+          if (detail?.id === record.id) {
+            setDetailOpen(false);
+            setDetail(null);
+          }
+          products.reload();
+        } catch (error) {
+          message.error(errorMessage(error));
+        }
+      },
+    });
+  }
 
   return (
     <div>
-      <PageHeader
-        eyebrow="Catalogue"
-        title="Products & variants"
-        subtitle="Prices, SKUs and barcodes are stored locally. Every variant is unique and can be printed as a Code 128 label."
-        extra={
-          <Space wrap>
-            {canManage ? (
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => setProductModal({ open: true, record: null })}
-              >
-                New product
+      {!embedded ? (
+        <PageHeader
+          eyebrow="Catalogue"
+          title="Products & variants"
+          subtitle="Prices, SKUs and barcodes are stored locally. Every variant is unique and can be printed as a Code 128 label."
+          extra={
+            <Space wrap>
+              {canManage ? (
+                <Button
+                  type="primary"
+                  icon={<PlusOutlined />}
+                  onClick={() => setProductModal({ open: true, record: null })}
+                >
+                  New product
+                </Button>
+              ) : null}
+              <Button icon={<ReloadOutlined />} onClick={() => { products.reload(); categories.reload(); brands.reload(); }}>
+                Refresh
               </Button>
-            ) : null}
-            <Button icon={<ReloadOutlined />} onClick={() => { products.reload(); categories.reload(); brands.reload(); }}>
-              Refresh
-            </Button>
-          </Space>
-        }
-      />
+            </Space>
+          }
+        />
+      ) : null}
 
       <Tabs
+        activeKey={tab}
+        onChange={setTab}
+        tabBarStyle={embedded ? { display: 'none' } : undefined}
         items={[
           {
             key: 'products',
@@ -378,7 +455,7 @@ export default function ProductsPage() {
                     onChange={setStatus}
                     options={[
                       { value: 'active', label: 'Active' },
-                      { value: 'inactive', label: 'Inactive' },
+                      { value: 'inactive', label: 'Archived (inactive)' },
                     ]}
                     style={{ width: 160 }}
                   />
@@ -388,6 +465,15 @@ export default function ProductsPage() {
                   <div className="filter-summary">
                     <span>{productCount} products</span>
                   </div>
+                  {embedded && canManage ? (
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      onClick={() => setProductModal({ open: true, record: null })}
+                    >
+                      New product
+                    </Button>
+                  ) : null}
                 </div>
 
                 {products.loading && !products.data ? (
@@ -567,6 +653,67 @@ export default function ProductsPage() {
               </div>
             ),
           },
+          {
+            key: 'archived',
+            label: `Archived${archivedRows.length ? ` (${archivedRows.length})` : ''}`,
+            children: (
+              <SectionCard
+                title="Archived products"
+                subtitle="Hidden from new sales and stock entry. Historical invoices, stock movements and reports are unchanged."
+                bodyClassName="panel-body flush"
+              >
+                {archivedRows.length === 0 ? (
+                  <EmptyPanel
+                    title="No archived products"
+                    description="Archiving keeps a product and its history safe while removing it from the active catalogue."
+                  />
+                ) : (
+                  <Table
+                    rowKey="id"
+                    size="small"
+                    dataSource={archivedRows}
+                    pagination={{ pageSize: 20 }}
+                    columns={[
+                      {
+                        title: 'Product',
+                        dataIndex: 'name',
+                        render: (value, row) => (
+                          <div>
+                            <strong>{value}</strong>
+                            <div className="muted small">{row.categoryName}</div>
+                          </div>
+                        ),
+                      },
+                      { title: 'Variants', dataIndex: 'variantCount', width: 90, align: 'right' },
+                      { title: 'Stock', dataIndex: 'stock', width: 90, align: 'right' },
+                      { title: 'Updated', dataIndex: 'updatedAt', width: 130, render: formatDate },
+                      {
+                        title: '',
+                        width: 230,
+                        render: (_, row) => (
+                          <Space size={4} wrap>
+                            <Button size="small" onClick={() => openProduct(row.id)}>
+                              View
+                            </Button>
+                            {canManage ? (
+                              <Button size="small" onClick={() => confirmRestore(row)}>
+                                Restore
+                              </Button>
+                            ) : null}
+                            {canManage ? (
+                              <Button size="small" danger icon={<DeleteOutlined />} onClick={() => confirmDelete(row)}>
+                                Delete
+                              </Button>
+                            ) : null}
+                          </Space>
+                        ),
+                      },
+                    ]}
+                  />
+                )}
+              </SectionCard>
+            ),
+          },
         ]}
       />
 
@@ -600,6 +747,16 @@ export default function ProductsPage() {
                   >
                     Print all labels
                   </Button>
+                  {detail.status === 'active' ? (
+                    <Button onClick={() => confirmArchive(detail)}>Archive</Button>
+                  ) : (
+                    <>
+                      <Button onClick={() => confirmRestore(detail)}>Restore</Button>
+                      <Button danger icon={<DeleteOutlined />} onClick={() => confirmDelete(detail)}>
+                        Delete
+                      </Button>
+                    </>
+                  )}
                 </>
               ) : null}
             </Space>
@@ -782,7 +939,7 @@ export default function ProductsPage() {
               <Select
                 options={[
                   { value: 'active', label: 'Active' },
-                  { value: 'inactive', label: 'Inactive' },
+                  { value: 'inactive', label: 'Archived (inactive)' },
                 ]}
               />
             </Form.Item>

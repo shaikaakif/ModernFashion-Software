@@ -15,6 +15,7 @@ import { createReportService } from '../electron/services/reportService.js';
 import { createUserService } from '../electron/services/userService.js';
 import { createAuditService } from '../electron/services/auditService.js';
 import { createBackupService } from '../electron/services/backupService.js';
+import { createBrandingService } from '../electron/services/brandingService.js';
 
 const silentLogger = { info() {}, warn() {}, error() {}, debug() {} };
 
@@ -28,6 +29,7 @@ export function createTestApp(t) {
   const services = {
     auth,
     settings: createSettingsService({ db, auth }),
+    branding: createBrandingService({ db }),
     catalog,
     inventory: createInventoryService({ db, auth }),
     suppliers: createSupplierService({ db, auth }),
@@ -43,6 +45,7 @@ export function createTestApp(t) {
     db,
     dbPath,
     defaultBackupDir: path.join(directory, 'backups'),
+    assetsDir: path.join(directory, 'assets'),
     auth,
     logger: silentLogger,
     onRestore: (payload) => restoreCalls.push(payload),

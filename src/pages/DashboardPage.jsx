@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/app/api';
 import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
+import BrandMark from '@/app/BrandMark';
 import { businessToday, formatDateTime, money, paymentLabel } from '@/app/format';
 import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard, StatusTag } from '@/app/components';
 
@@ -40,6 +41,7 @@ export default function DashboardPage() {
         }
         extra={
           <div className="toolbar">
+            <BrandMark size={40} />
             <DatePicker
               allowClear={false}
               value={dayjs(date)}

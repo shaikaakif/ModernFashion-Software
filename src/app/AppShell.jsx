@@ -3,7 +3,6 @@ import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-
 import { App as AntApp, Avatar, Button, Dropdown, Form, Input, InputNumber, Layout, Menu, Modal, Tag, Tooltip } from 'antd';
 import {
   AuditOutlined,
-  BarcodeOutlined,
   BarChartOutlined,
   CloudDownloadOutlined,
   DashboardOutlined,
@@ -23,6 +22,7 @@ import {
   WalletOutlined,
 } from '@ant-design/icons';
 import { useSession } from '@/app/SessionContext';
+import BrandMark from '@/app/BrandMark';
 import { api, errorMessage } from '@/app/api';
 import { businessToday, formatDate, money, roleLabel } from '@/app/format';
 import { AccessDenied } from '@/app/components';
@@ -30,7 +30,6 @@ import { toPaise } from '@shared/money.js';
 import DashboardPage from '@/pages/DashboardPage';
 import PosPage from '@/pages/PosPage';
 import SalesPage from '@/pages/SalesPage';
-import ProductsPage from '@/pages/ProductsPage';
 import InventoryPage from '@/pages/InventoryPage';
 import PurchasesPage from '@/pages/PurchasesPage';
 import SuppliersPage from '@/pages/SuppliersPage';
@@ -48,8 +47,7 @@ const NAV = [
   { key: '/dashboard', label: 'Dashboard', icon: <DashboardOutlined />, any: ['dashboard.view'] },
   { key: '/pos', label: 'New Sale', icon: <ShoppingCartOutlined />, any: ['pos.use'] },
   { key: '/sales', label: 'Invoices', icon: <FileTextOutlined />, any: ['sales.view.all', 'sales.view.own'] },
-  { key: '/products', label: 'Products', icon: <BarcodeOutlined />, any: ['products.view'] },
-  { key: '/inventory', label: 'Inventory', icon: <ShopOutlined />, any: ['inventory.view'] },
+  { key: '/inventory', label: 'Inventory', icon: <ShopOutlined />, any: ['inventory.view', 'products.view'] },
   { key: '/purchases', label: 'Purchases', icon: <WalletOutlined />, any: ['purchases.view'] },
   { key: '/suppliers', label: 'Suppliers', icon: <TeamOutlined />, any: ['purchases.view'] },
   { key: '/customers', label: 'Customers', icon: <UserOutlined />, any: ['customers.view'] },
@@ -74,7 +72,7 @@ function HomeRedirect() {
 }
 
 export default function AppShell() {
-  const { session, user, business, logout, lock } = useSession();
+  const { session, user, business, branding, logout, lock } = useSession();
   const { message, notification } = AntApp.useApp();
   const navigate = useNavigate();
   const location = useLocation();
@@ -228,10 +226,10 @@ export default function AppShell() {
         trigger={null}
       >
         <div className="brand-block">
-          <div className="brand-mark">MF</div>
+          <BrandMark size={38} />
           {!collapsed ? (
             <div className="brand-copy">
-              <strong>MODERN FASHION</strong>
+              <strong>{branding?.name || business?.name || 'MODERN FASHION'}</strong>
               <span>Retail POS</span>
             </div>
           ) : null}
@@ -307,8 +305,8 @@ export default function AppShell() {
             <Route path="/pos" element={<Protected any={['pos.use']}><PosPage /></Protected>} />
             <Route path="/sales" element={<Protected any={['sales.view.all', 'sales.view.own']}><SalesPage /></Protected>} />
             <Route path="/sales/:id" element={<Protected any={['sales.view.all', 'sales.view.own']}><SalesPage /></Protected>} />
-            <Route path="/products" element={<Protected any={['products.view']}><ProductsPage /></Protected>} />
-            <Route path="/inventory" element={<Protected any={['inventory.view']}><InventoryPage /></Protected>} />
+            <Route path="/inventory" element={<Protected any={['inventory.view', 'products.view']}><InventoryPage /></Protected>} />
+            <Route path="/products" element={<Navigate to="/inventory" replace />} />
             <Route path="/purchases" element={<Protected any={['purchases.view']}><PurchasesPage /></Protected>} />
             <Route path="/suppliers" element={<Protected any={['purchases.view']}><SuppliersPage /></Protected>} />
             <Route path="/customers" element={<Protected any={['customers.view']}><CustomersPage /></Protected>} />

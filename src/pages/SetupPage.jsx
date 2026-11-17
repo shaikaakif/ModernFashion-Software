@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Alert, Button, Form, Input } from 'antd';
 import { LockOutlined, MobileOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
 import { useSession } from '@/app/SessionContext';
+import BrandMark from '@/app/BrandMark';
 import { errorMessage } from '@/app/api';
 
 export default function SetupPage() {
@@ -25,7 +26,7 @@ export default function SetupPage() {
   return (
     <div className="auth-screen">
       <section className="auth-brand">
-        <div className="brand-mark brand-mark-large">MF</div>
+        <BrandMark size={58} />
         <div className="auth-brand-copy">
           <span className="eyebrow">First-time setup</span>
           <h1>MODERN FASHION</h1>
