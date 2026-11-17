@@ -1,13 +1,13 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
-**Implementation checkpoint:** v1.2.1 working branch — receipt, dashboard and inventory polish (unpublished)
-**Verification record:** v1.2.1 `npm run verify` passing; v1.2.0 remains the published release
-**Current public release:** 1.2.0 — central business branding, unified inventory, archive/restore, Add/Correct/Remove stock, MF application icon and packaging cleanup. Published as GitHub Release `v1.2.0`.
-**Previous public release:** 1.1.0 — remains available for rollback.
-**Next candidate:** 1.2.1 — login branding alignment, direct delete, per-variant pricing, low-stock wording, receipt redesign, dashboard quick actions and backup status.
+**Implementation checkpoint:** v1.2.1 published release, code commit `6fb138a2`
+**Verification record:** v1.2.1 GitHub Release published and publicly verified
+**Current public release:** 1.2.1 — login branding alignment, direct delete, per-variant pricing, low-stock wording, receipt redesign, dashboard quick actions and backup status. Published as GitHub Release `v1.2.1`.
+**Previous public releases:** 1.2.0 and 1.1.0 — remain available for rollback.
+**Next candidate:** none planned until workstation printing and update acceptance are reviewed.
 **Developer:** Meninges Labs
-**Working branch:** `v1.2.1` (short-lived; `v1.2.0` tag and release untouched)
+**Working branch:** `v1.2.1` (short-lived; published tag `v1.2.1` points to `6fb138a2`)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
