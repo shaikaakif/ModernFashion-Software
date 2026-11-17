@@ -9,6 +9,24 @@ const PNG_1X1 = Buffer.from(
   'base64'
 );
 
+test('product-level opening stock is applied to generated variants', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const category = app.db.prepare('SELECT id FROM categories ORDER BY id LIMIT 1').get();
+  const product = app.services.catalog.createProduct({
+    name: 'Opening Stock Product',
+    categoryId: category.id,
+    costPaise: 10000,
+    pricePaise: 20000,
+    mrpPaise: 24900,
+    lowStockThreshold: 5,
+    openingStock: 8,
+    variants: [{ color: 'Black', size: 'M' }],
+  });
+  assert.equal(product.variants[0].stock, 8);
+  assert.equal(app.services.inventory.list({ query: 'Opening Stock Product' })[0].stock, 8);
+});
+
 test('product sales report joins variants and returns real sold rows', (t) => {
   const app = createTestApp(t);
   setupOwner(app);

@@ -342,6 +342,7 @@ export function createCatalogService({ db, auth }) {
         pricePaise: input.pricePaise,
         mrpPaise: input.mrpPaise,
         lowStockThreshold: input.lowStockThreshold,
+        openingStock: input.openingStock,
       };
       let variants = Array.isArray(input.variants) ? input.variants : [];
       if (!variants.length) {
