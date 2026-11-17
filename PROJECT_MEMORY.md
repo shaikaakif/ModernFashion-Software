@@ -1,6 +1,7 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-17
+**Last local checkpoint:** `0f3aa9f1` — Implement offline-first POS v1 and Windows packaging (not pushed)
 **Developer:** Meninges Labs
 **Working branch:** `master` (local only; remote is unrelated and must not be pushed to)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
@@ -32,6 +33,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 | Electron development startup | Verified in earlier session |
 | Packaged NSIS EXE | Built: `release/ModernFashionPOS-Setup-1.0.0.exe` |
 | Packaged renderer startup | Verified: loads `app.asar/dist/index.html` and renders the first-run owner setup screen |
+| Graphify | Refreshed to 952 nodes, 2,788 edges, 56 communities |
 | Installed-build workflow (login, sale, print) | Not yet exercised on the client workstation |
 | Physical printers/scanner | **NOT VERIFIED** |
 | Client logo | Not supplied; logo slot is implemented |
