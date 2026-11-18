@@ -502,7 +502,7 @@ function labelAmount(paise) {
   return `₹${text}`;
 }
 
-export function labelHtml({ label, options = {} }) {
+export function labelHtml({ label, business, options = {} }) {
   const width = Number(options.labelWidthMm || 50);
   const height = Number(options.labelHeightMm || 25);
   const showName = options.labelShowName !== false;
@@ -511,17 +511,18 @@ export function labelHtml({ label, options = {} }) {
   const showSize = options.labelShowSize !== false;
   const scale = Math.max(0.72, Math.min(1.3, height / 25));
   const fs = (size) => `${(size * scale).toFixed(1)}px`;
-  const topPadding = Math.max(1.6, Math.min(3, height * 0.09));
+  const topPadding = Math.max(1.4, Math.min(2.8, height * 0.08));
   const mrpPaise = Number(label.mrpPaise || 0);
   const pricePaise = Number(label.pricePaise || 0);
   const showMrp = showPrice && mrpPaise > 0 && mrpPaise !== pricePaise;
   const showSelling = showPrice && pricePaise > 0;
-  const barcodeHeight = Math.max(6.5, Math.min(10, height * 0.32));
+  const barcodeHeight = Math.max(6.5, Math.min(11, height * 0.38));
   const shortLabel = height < 22;
   const barcode = barcodeSvg(label.barcode, { moduleWidth: 2, height: 60, showText: false });
   const variantLine = [label.color, label.size].filter(Boolean).join(' · ');
-  const metaLine = [variantLine, showSku ? label.sku : ''].filter(Boolean).join(' · ');
+  const metaLine = height >= 30 && showSku ? [variantLine, label.sku].filter(Boolean).join(' · ') : variantLine;
   return `<div class="label${shortLabel ? ' is-short' : ''}">
+    <div class="brand">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
     ${showName ? `<div class="name">${escapeHtml(label.productName)}</div>` : ''}
     ${
       showSelling
@@ -532,34 +533,30 @@ export function labelHtml({ label, options = {} }) {
         : ''
     }
     <div class="barcode">${barcode}<div class="barcode-text">${escapeHtml(barcodeDisplayText(label.barcode))}</div></div>
-    ${
-      showSize && metaLine
-        ? `<div class="meta">${escapeHtml(metaLine)}</div>`
-        : showSku && metaLine
-          ? `<div class="meta">${escapeHtml(metaLine)}</div>`
-          : ''
-    }
+    ${showSize && metaLine ? `<div class="meta">${escapeHtml(metaLine)}</div>` : ''}
   </div>
   <style>
     @page { size: ${width}mm ${height}mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
-    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2.4mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.4mm; overflow: hidden; page-break-after: always; }
+    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2.4mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 0.4mm; overflow: hidden; page-break-after: always; }
     .label:last-child { page-break-after: auto; }
-    .name { display: -webkit-box; width: 100%; overflow: hidden; font-size: ${fs(9.5)}; font-weight: 800; line-height: 1.18; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .brand { width: 100%; overflow: hidden; color: #111; font-size: ${fs(6.5)}; font-weight: 800; letter-spacing: 0.1em; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .name { display: -webkit-box; width: 100%; overflow: hidden; font-size: ${fs(10)}; font-weight: 800; line-height: 1.18; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
     .price-row { display: flex; align-items: baseline; justify-content: center; gap: 2.5mm; line-height: 1.12; }
-    .price { font-size: ${fs(10.5)}; font-weight: 800; letter-spacing: 0.01em; }
-    .mrp { color: #333; font-size: ${fs(7)}; font-weight: 600; }
-    .barcode { display: flex; width: 100%; min-height: 0; flex-direction: column; align-items: center; justify-content: center; padding: 0.4mm 0 0.2mm; }
+    .price { font-size: ${fs(12)}; font-weight: 800; letter-spacing: 0.01em; }
+    .mrp { color: #333; font-size: ${fs(8)}; font-weight: 600; }
+    .barcode { display: flex; width: 100%; min-height: 0; flex-direction: column; align-items: center; justify-content: center; padding: 0.5mm 0 0.2mm; }
     .barcode svg { display: block; width: 100%; height: ${barcodeHeight.toFixed(1)}mm; }
-    .barcode-text { margin-top: 0.3mm; font-family: Consolas, "Courier New", monospace; font-size: ${fs(6)}; letter-spacing: 0.08em; line-height: 1; text-align: center; white-space: nowrap; }
-    .meta { width: 100%; overflow: hidden; font-size: ${fs(6.5)}; font-weight: 600; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .barcode-text { margin-top: 0.4mm; font-family: Consolas, "Courier New", monospace; font-size: ${fs(7.2)}; font-weight: 700; letter-spacing: 0.12em; line-height: 1; text-align: center; white-space: nowrap; }
+    .meta { width: 100%; overflow: hidden; font-size: ${fs(7)}; font-weight: 700; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
     .label.is-short { gap: 0.25mm; padding: 1.2mm 2.2mm 1mm; }
-    .label.is-short .name { font-size: ${fs(8.5)}; line-height: 1.15; -webkit-line-clamp: 1; }
-    .label.is-short .price { font-size: ${fs(9.5)}; }
+    .label.is-short .brand { font-size: ${fs(6)}; }
+    .label.is-short .name { font-size: ${fs(9)}; line-height: 1.15; -webkit-line-clamp: 1; }
+    .label.is-short .price { font-size: ${fs(10.5)}; }
     .label.is-short .mrp { display: none; }
     .label.is-short .meta { display: none; }
-    .label.is-short .barcode-text { font-size: ${fs(5.5)}; }
+    .label.is-short .barcode-text { font-size: ${fs(6.5)}; }
   </style>`;
 }
 

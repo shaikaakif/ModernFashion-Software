@@ -1,7 +1,7 @@
 /**
- * Code 128-B encoder producing an inline SVG. Used for internal product labels
- * printed through the Windows label printer driver. The barcode value is always
- * the stored internal barcode, never a fabricated EAN/GTIN.
+ * Code 128-B/C encoder producing an inline SVG. Long numeric runs use Code C
+ * so internal barcodes print with fewer bars and a wider module for the same
+ * label width. Code 128-B remains for letters and punctuation.
  */
 
 const PATTERNS = [
@@ -18,24 +18,69 @@ const PATTERNS = [
   '114131', '311141', '411131', '211412', '211214', '211232', '2331112',
 ];
 
-const START_B = 104;
 const STOP = 106;
 
 function encodeCode128B(value) {
   const text = String(value || '');
   if (!text) throw new Error('Barcode value is empty.');
-  const codes = [START_B];
-  let checksum = START_B;
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    if (code < 32 || code > 126) throw new Error('Code 128-B supports printable ASCII only.');
-    const symbol = code - 32;
-    codes.push(symbol);
-    checksum += symbol * (i + 1);
+  const symbols = [];
+  let checksum = 0;
+  let mode = 'B';
+  let index = 0;
+
+  const startB = 104;
+  const startC = 105;
+  const codeB = 100;
+  const codeC = 99;
+
+  const leadingDigits = text.match(/^\d+/)?.[0]?.length || 0;
+  if (leadingDigits >= 4 && leadingDigits % 2 === 0) {
+    symbols.push(startC);
+    checksum = startC;
+    mode = 'C';
+  } else {
+    symbols.push(startB);
+    checksum = startB;
   }
-  codes.push(checksum % 103);
-  codes.push(STOP);
-  return codes;
+
+  const add = (symbol) => {
+    symbols.push(symbol);
+    checksum += symbol * (symbols.length - 1);
+  };
+
+  while (index < text.length) {
+    const character = text[index];
+    const code = character.charCodeAt(0);
+    if (code < 32 || code > 126) throw new Error('Code 128-B supports printable ASCII only.');
+    if (mode === 'C') {
+      if (/\d/.test(character) && /\d/.test(text[index + 1] || '')) {
+        add(Number(`${character}${text[index + 1]}`));
+        index += 2;
+        continue;
+      }
+      add(codeB);
+      mode = 'B';
+      continue;
+    }
+
+    const run = text.slice(index).match(/^\d+/)?.[0]?.length || 0;
+    if (run >= 4) {
+      if (run % 2 === 1) {
+        add(code - 32);
+        index += 1;
+        continue;
+      }
+      add(codeC);
+      mode = 'C';
+      continue;
+    }
+    add(code - 32);
+    index += 1;
+  }
+
+  symbols.push(checksum % 103);
+  symbols.push(STOP);
+  return symbols;
 }
 
 export function code128Svg(value, { moduleWidth = 2, height = 46, quietZone = 10, showText = true } = {}) {

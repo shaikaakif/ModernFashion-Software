@@ -66,15 +66,15 @@
     "semantic_hash": ""
   },
   "electron/hardware/code128.js": {
-    "mtime": 1794998052.7904618,
-    "seen": 1795000034.2732875,
-    "ast_hash": "9e63514248b67a21019ca4671c35ac0b",
+    "mtime": 1795009292.8373127,
+    "seen": 1795009451.8027363,
+    "ast_hash": "b8cac7219990195b3b1bb932ed582353",
     "semantic_hash": ""
   },
   "electron/hardware/documents.js": {
-    "mtime": 1795000589.3848825,
-    "seen": 1795000705.0475392,
-    "ast_hash": "8780da85e8067f907120b89ffb2aa965",
+    "mtime": 1795009393.2378905,
+    "seen": 1795009451.8027387,
+    "ast_hash": "aa54843f3bcb2c987914fe7ab5b4b192",
     "semantic_hash": ""
   },
   "electron/hardware/printService.js": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1794998052.8739655,
-    "seen": 1795000034.27334,
-    "ast_hash": "7c46c2141ac00beafb6ae8062943f1aa",
+    "mtime": 1795005399.476424,
+    "seen": 1795009451.8027837,
+    "ast_hash": "b474a71068f75eea581ee5c2fb331952",
     "semantic_hash": ""
   },
   "scripts/dev.mjs": {
@@ -318,9 +318,9 @@
     "semantic_hash": ""
   },
   "src/pages/PosPage.jsx": {
-    "mtime": 1794999534.9389,
-    "seen": 1795000034.2733817,
-    "ast_hash": "9967002a451690fa49c695a7246676ce",
+    "mtime": 1795009360.5081499,
+    "seen": 1795009451.8028274,
+    "ast_hash": "89d9acbfbcd955c8325dba35ceea78dd",
     "semantic_hash": ""
   },
   "src/pages/ProductsPage.jsx": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1795000058.3486888,
-    "seen": 1795000705.0476956,
-    "ast_hash": "78e2477b8bdb4872ad838bac9466c84a",
+    "mtime": 1795005419.075912,
+    "seen": 1795009451.8028853,
+    "ast_hash": "1eeec33cae54bb027b446687069c2518",
     "semantic_hash": ""
   },
   "index.html": {
@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "PROJECT_MEMORY.md": {
-    "mtime": 1795000662.0570302,
-    "seen": 1795000705.047694,
-    "ast_hash": "0d88fe20c9226254cf52845cc4ccd65b",
+    "mtime": 1795009432.8741012,
+    "seen": 1795009451.802884,
+    "ast_hash": "cab72f0a2f8e3031e1b4f0599960d876",
     "semantic_hash": ""
   },
   "electron/core/logo.js": {
@@ -492,15 +492,15 @@
     "semantic_hash": ""
   },
   "tests/print.test.js": {
-    "mtime": 1795000645.117137,
-    "seen": 1795000705.0476704,
-    "ast_hash": "2c698b085e1cc447f3958ac689c11841",
+    "mtime": 1795009321.7800393,
+    "seen": 1795009451.8028607,
+    "ast_hash": "2996e77297ae903b36bd178357a30796",
     "semantic_hash": ""
   },
   "Docs/RELEASES.md": {
-    "mtime": 1794998052.7799063,
-    "seen": 1795000034.27343,
-    "ast_hash": "4bff8b49552bdf56e771c426aa5bb2d0",
+    "mtime": 1795005407.547813,
+    "seen": 1795009451.8028793,
+    "ast_hash": "d45c969da40b0a8a26776a69dd78cff7",
     "semantic_hash": ""
   },
   "electron/services/brandingService.js": {
@@ -612,9 +612,9 @@
     "semantic_hash": ""
   },
   "package-lock.json": {
-    "mtime": 1794998052.867342,
-    "seen": 1795000034.2734392,
-    "ast_hash": "01364e92a5311bf7cec0a105244a56e3",
+    "mtime": 1795005399.4858322,
+    "seen": 1795009451.8028884,
+    "ast_hash": "c268ce62703d74c18fda187c92b483ca",
     "semantic_hash": ""
   }
 }

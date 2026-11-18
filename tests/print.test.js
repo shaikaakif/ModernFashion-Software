@@ -344,8 +344,8 @@ test('EAN-13 labels render the compact retail symbology with quiet zones', () =>
   });
   assert.match(html, /aria-label="Barcode 4006381333931"/);
   assert.match(html, /4 006381 333931/);
-  assert.match(html, /height: 8\.0mm/);
-  assert.doesNotMatch(html, /brand/);
+  assert.match(html, /height: 9\.5mm/);
+  assert.match(html, /MODERN FASHION/);
 });
 
 test('a completed sale renders real product and payment data on the receipt', (t) => {
@@ -381,7 +381,7 @@ test('label typography clamps long names and adapts to short stock', () => {
   });
   assert.match(tall, /-webkit-line-clamp: 2/);
   assert.doesNotMatch(tall, /class="label is-short"/);
-  assert.match(tall, /height: 9\.6mm/);
+  assert.match(tall, /height: 11\.0mm/);
 
   const short = labelHtml({
     label: { ...base, productName: 'Short Tee' },

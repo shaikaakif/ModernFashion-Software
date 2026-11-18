@@ -173,7 +173,9 @@ export default function PosPage() {
   );
 
   async function handleScan(rawValue) {
-    const code = String(rawValue ?? scan).trim();
+    const code = String(rawValue ?? scan)
+      .replace(/[\u200B-\u200D\uFEFF]/g, '')
+      .trim();
     if (!code) return;
     setSearching(true);
     try {
@@ -459,7 +461,7 @@ export default function PosPage() {
             placeholder="Scan barcode / SKU, or type a product name and press Enter"
             value={scan}
             onChange={(event) => setScan(event.target.value)}
-            onPressEnter={() => handleScan()}
+            onPressEnter={(event) => handleScan(event.currentTarget.value)}
             suffix={
               <Button type="text" size="small" icon={<SearchOutlined />} loading={searching} onClick={runSearch}>
                 Search
