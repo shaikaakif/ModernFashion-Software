@@ -9,8 +9,13 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 ## What is included
 
 - Owner/cashier setup with local password hashing, three fixed roles and service-level permissions
-- Dashboard with date-scoped sales, profit, stock and activity
+- Dashboard with date-scoped sales, profit, stock and activity, plus quick actions, backup status and month-to-date sales
 - Unified Inventory with Products, Stock, Stock history, Categories and Removed tabs
+- Professional New Sale with customer name/mobile/GSTIN, required mobile, table bill and immediate barcode add
+- Inline invoice workspace with 80 mm / 58 mm / A4 preview, print, PDF and WhatsApp actions — no preview popup
+- GST monthly report with B2B/B2C split, tax rate and HSN summary, invoice register and CA CSV export
+- Guided Configure Your Software wizard (first run and owner-only Settings re-entry)
+- Editable WhatsApp caption, map link, return policy, thank-you and footer messages
 - Product delete removes the item from active inventory immediately; history-safe removal keeps old invoices readable
 - Per-variant purchase price, selling price, MRP and low-stock threshold editing
 - Stock updates as Add, Correct to actual count, or Remove, each written to the immutable ledger
@@ -155,7 +160,7 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 30 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product delete/history removal, stock add/correct/remove, Product Sales report, dashboard, receipt redesign and print settings).
+- `npm test`: 33 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product delete/history removal, stock add/correct/remove, Product Sales report, dashboard, receipt redesign, GST monthly report and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
 - v1.2.2: published and verified. GitHub Release `v1.2.2` includes the opening-stock fix, EXE, blockmap and `latest.yml`.
