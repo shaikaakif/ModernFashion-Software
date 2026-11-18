@@ -214,27 +214,86 @@ export function createPrintService({ auth, saleService, catalogService, settings
     return result;
   }
 
-  async function printLabels(variantIds) {
+  function labelSelection(input = {}) {
+    const source = Array.isArray(input.items)
+      ? input.items
+      : (Array.isArray(input.variantIds) ? input.variantIds : []).map((variantId) => ({ variantId, copies: 1 }));
+    const merged = new Map();
+    for (const item of source) {
+      const variantId = requireInt(item.variantId ?? item, 'Variant', { min: 1 });
+      const copies = Math.min(100, Math.max(1, Number(item.copies || 1)));
+      merged.set(variantId, Math.min(100, (merged.get(variantId) || 0) + copies));
+    }
+    if (!merged.size) fail('Choose at least one variant to print.');
+    if (merged.size > 500) fail('Choose at most 500 variants at a time.');
+    return [...merged].map(([variantId, copies]) => ({ variantId, copies }));
+  }
+
+  function labelOptions(settings, input = {}) {
+    const width = Math.min(110, Math.max(20, Number(input.labelWidthMm ?? settings.hardware.labelWidthMm ?? 50)));
+    const height = Math.min(80, Math.max(15, Number(input.labelHeightMm ?? settings.hardware.labelHeightMm ?? 25)));
+    return {
+      ...settings.hardware,
+      labelWidthMm: width,
+      labelHeightMm: height,
+      labelShowPrice: input.labelShowPrice ?? settings.hardware.labelShowPrice,
+      labelShowName: input.labelShowName ?? settings.hardware.labelShowName,
+      labelShowSku: input.labelShowSku ?? settings.hardware.labelShowSku,
+      labelShowSize: input.labelShowSize ?? settings.hardware.labelShowSize,
+    };
+  }
+
+  function buildLabels(input, settings, options, preview = false) {
+    const items = labelSelection(input);
+    const labelData = catalogService.labelData(items.map((item) => item.variantId));
+    const copies = new Map(items.map((item) => [item.variantId, item.copies]));
+    const labels = labelData.labels.flatMap((label) =>
+      Array.from({ length: copies.get(label.variantId) || 1 }, () => label)
+    );
+    if (labels.length > 500) fail('Print at most 500 labels at a time.');
+    return {
+      labels,
+      count: labels.length,
+      html: labelsHtml({ labels, business: publicBusinessFromSettings(settings), options, preview }),
+    };
+  }
+
+  async function printLabels(input = {}) {
     requirePrintPermission('products.manage');
     const settings = settingsSnapshot();
-    const labelData = catalogService.labelData(variantIds);
-    const options = settings.hardware;
-    const html = labelsHtml({
-      labels: labelData.labels.flatMap((label) => Array.from({ length: Number(options.labelCopies || 1) }, () => label)),
-      business: publicBusinessFromSettings(settings),
-      options,
-    });
+    const options = labelOptions(settings, input);
+    const built = buildLabels(input, settings, options);
     const result = await printHtml({
-      html,
-      printerName: settings.hardware.labelPrinter,
-      widthMm: Number(options.labelWidthMm || 50),
-      heightMm: Number(options.labelHeightMm || 25),
+      html: built.html,
+      printerName: input.labelPrinter || settings.hardware.labelPrinter,
+      widthMm: options.labelWidthMm,
+      heightMm: options.labelHeightMm,
     });
     logger.info('Barcode labels sent to Windows print driver', {
-      count: labelData.labels.length,
-      printerName: settings.hardware.labelPrinter,
+      count: built.count,
+      printerName: input.labelPrinter || settings.hardware.labelPrinter,
+      widthMm: options.labelWidthMm,
+      heightMm: options.labelHeightMm,
     });
-    return { ...result, count: labelData.labels.length };
+    return {
+      ...result,
+      count: built.count,
+      widthMm: options.labelWidthMm,
+      heightMm: options.labelHeightMm,
+    };
+  }
+
+  function previewLabels(input = {}) {
+    requirePrintPermission('products.manage');
+    const settings = settingsSnapshot();
+    const options = labelOptions(settings, input);
+    const built = buildLabels(input, settings, options, true);
+    return {
+      html: built.html,
+      count: built.count,
+      widthMm: options.labelWidthMm,
+      heightMm: options.labelHeightMm,
+    };
   }
 
   async function printTestReceipt() {
@@ -458,6 +517,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     printReceipt,
     printA4Invoice,
     printLabels,
+    previewLabels,
     printTestReceipt,
     printTestLabel,
     previewReceipt,

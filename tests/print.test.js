@@ -6,7 +6,7 @@ import path from 'node:path';
 import { addStaff, completeSale, createProduct, createTestApp, login, setupOwner } from './helpers.js';
 import { barcodeExample, formatBarcode, normalizeBarcodeConfig } from '../shared/barcode.js';
 import { readLogoDataUrl } from '../electron/core/logo.js';
-import { receiptHtml } from '../electron/hardware/documents.js';
+import { receiptHtml, labelHtml } from '../electron/hardware/documents.js';
 
 function sampleSale() {
   return {
@@ -264,7 +264,31 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.doesNotMatch(html, /Round off/);
 });
 
-test('a completed sale renders real product and payment data on the receipt', (t) => {  const app = createTestApp(t);
+test('barcode label shows MRP, selling price, barcode and adaptive page size', () => {
+  const html = labelHtml({
+    label: {
+      productName: 'T-Shirt',
+      sku: 'TSH-0001-BLU-M',
+      barcode: 'MF0000000042',
+      color: 'Blue',
+      size: 'M',
+      pricePaise: 69900,
+      mrpPaise: 79900,
+    },
+    business: { name: 'MODERN FASHION' },
+    options: { labelWidthMm: 50, labelHeightMm: 25 },
+  });
+  assert.match(html, /@page \{ size: 50mm 25mm/);
+  assert.match(html, /MRP: ₹799/);
+  assert.match(html, /Price: ₹699/);
+  assert.match(html, /COLOR: Blue/);
+  assert.match(html, /SIZE: M/);
+  assert.match(html, /page-break-after: auto/);
+  assert.match(html, /<svg/);
+});
+
+test('a completed sale renders real product and payment data on the receipt', (t) => {
+  const app = createTestApp(t);
   setupOwner(app);
   const product = createProduct(app, { openingStock: 2 });
   completeSale(app, product.variants[0].id, { quantity: 1 });

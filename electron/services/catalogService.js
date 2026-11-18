@@ -769,7 +769,7 @@ export function createCatalogService({ db, auth }) {
     auth.requirePermission('products.manage');
     const ids = (Array.isArray(variantIds) ? variantIds : [variantIds]).map((id) => requireInt(id, 'Variant', { min: 1 }));
     if (!ids.length) fail('Choose at least one variant to print.');
-    if (ids.length > 100) fail('Print at most 100 labels at a time.');
+    if (ids.length > 500) fail('Print at most 500 labels at a time.');
     const placeholders = ids.map(() => '?').join(',');
     const rows = db
       .prepare(

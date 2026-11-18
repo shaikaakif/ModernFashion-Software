@@ -2648,3 +2648,41 @@ a {
   max-height: calc(100vh - 60px);
   overflow: auto;
 }
+
+/* Barcode studio ---------------------------------------------------- */
+.barcode-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 460px;
+  gap: 16px;
+  align-items: start;
+}
+
+.barcode-preview {
+  display: flex;
+  min-height: 420px;
+  align-items: flex-start;
+  justify-content: center;
+  overflow: auto;
+  padding: 12px;
+  border-radius: 6px;
+  background: #e9e6df;
+}
+
+.barcode-preview-frame {
+  height: 560px;
+  border: 0;
+  background: transparent;
+}
+
+.barcode-link {
+  height: auto !important;
+  padding: 0 !important;
+  font-family: Consolas, "Courier New", monospace;
+  font-size: 11px;
+}
+
+@media (max-width: 1100px) {
+  .barcode-workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

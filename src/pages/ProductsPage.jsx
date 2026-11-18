@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   App as AntApp,
@@ -50,6 +51,7 @@ function splitList(value) {
 export default function ProductsPage({ embedded = false, initialTab = 'products', initialAction = null }) {
   const { can } = useSession();
   const { message } = AntApp.useApp();
+  const navigate = useNavigate();
   const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
   const [categoryId, setCategoryId] = useState(null);
@@ -63,7 +65,6 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
   const [categoryModal, setCategoryModal] = useState({ open: false, record: null });
   const [brandModal, setBrandModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [labelBusy, setLabelBusy] = useState(false);
   const debouncedQuery = useDebouncedValue(query, 300);
 
   const categories = useAsync(() => api('catalog.categories', { includeInactive: true }), []);
@@ -330,22 +331,12 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
     }
   }
 
-  async function printLabels(variantIds) {
+  function openLabelPreview(variantIds) {
     if (!variantIds.length) {
       message.info('Choose at least one variant.');
       return;
     }
-    setLabelBusy(true);
-    try {
-      const result = await api('print.labels', { variantIds });
-      message.success(
-        `${result.count} label(s) sent to the Windows label printer. Check the physical label before applying it.`
-      );
-    } catch (error) {
-      message.error(errorMessage(error));
-    } finally {
-      setLabelBusy(false);
-    }
+    navigate(`/barcodes?variant=${variantIds.join(',')}`);
   }
 
   const canManage = can('products.manage');
@@ -782,8 +773,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                   </Button>
                   <Button
                     icon={<PrinterOutlined />}
-                    loading={labelBusy}
-                    onClick={() => printLabels((detail.variants || []).map((variant) => variant.id))}
+                    onClick={() => openLabelPreview((detail.variants || []).map((variant) => variant.id))}
                   >
                     Print all labels
                   </Button>
@@ -865,7 +855,16 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                     title: 'Barcode',
                     dataIndex: 'barcode',
                     width: 150,
-                    render: (value) => <span className="mono small">{value}</span>,
+                    render: (value, row) => (
+                      <Button
+                        type="link"
+                        size="small"
+                        className="barcode-link mono small"
+                        onClick={() => openLabelPreview([row.id])}
+                      >
+                        {value}
+                      </Button>
+                    ),
                   },
                   {
                     title: 'Stock',
@@ -904,9 +903,8 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                           type="text"
                           size="small"
                           icon={<BarcodeOutlined />}
-                          aria-label={`Print label for ${row.sku}`}
-                          loading={labelBusy}
-                          onClick={() => printLabels([row.id])}
+                          aria-label={`Preview label for ${row.sku}`}
+                          onClick={() => openLabelPreview([row.id])}
                         />
                         {canManage ? (
                           <Button

@@ -495,33 +495,59 @@ export function labelHtml({ label, business, options = {} }) {
   const showSku = options.labelShowSku !== false;
   const showPrice = options.labelShowPrice !== false;
   const showSize = options.labelShowSize !== false;
-  const barcode = code128Svg(label.barcode, { moduleWidth: 2, height: 30, showText: true });
+  const scale = Math.max(0.72, Math.min(1.35, height / 25));
+  const fs = (size) => `${(size * scale).toFixed(1)}px`;
+  const mrpPaise = Number(label.mrpPaise || 0);
+  const pricePaise = Number(label.pricePaise || 0);
+  const showMrp = showPrice && mrpPaise > 0;
+  const showSelling = showPrice && pricePaise > 0 && pricePaise !== mrpPaise;
+  const barcode = code128Svg(label.barcode, { moduleWidth: 2, height: 34, showText: true });
   return `<div class="label">
     <div class="brand">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
     ${showName ? `<div class="name">${escapeHtml(label.productName)}</div>` : ''}
-    ${showSize ? `<div class="size">${escapeHtml(label.color)} / ${escapeHtml(label.size)}</div>` : ''}
+    ${
+      showMrp || showSelling
+        ? `<div class="price-row">
+            ${showMrp ? `<span>MRP: ${money(mrpPaise, { symbol: '₹', space: '' })}</span>` : ''}
+            ${showSelling ? `<span>Price: ${money(pricePaise, { symbol: '₹', space: '' })}</span>` : ''}
+          </div>`
+        : ''
+    }
     <div class="barcode">${barcode}</div>
-    ${showPrice ? `<div class="price">Rs. ${((label.pricePaise || 0) / 100).toFixed(2)}</div>` : ''}
+    ${
+      showSize
+        ? `<div class="meta"><span>COLOR: ${escapeHtml(label.color)}</span><span>SIZE: ${escapeHtml(
+            label.size
+          )}</span></div>`
+        : ''
+    }
     ${showSku ? `<div class="sku">${escapeHtml(label.sku)}</div>` : ''}
   </div>
   <style>
     @page { size: ${width}mm ${height}mm; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: Arial, Helvetica, sans-serif; }
-    .label { width: ${width}mm; height: ${height}mm; padding: 1.4mm 2mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; page-break-after: always; }
-    .brand { font-size: 6.5px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #222; }
-    .name { max-width: 100%; font-size: 8px; font-weight: 700; line-height: 1.15; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .size { font-size: 6.5px; color: #333; }
-    .barcode { width: 100%; display: flex; justify-content: center; }
-    .barcode svg { width: 100%; height: auto; max-height: 9.5mm; }
-    .price { font-size: 9px; font-weight: 800; line-height: 1; }
-    .sku { font-size: 5.8px; font-family: Consolas, monospace; color: #333; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
+    .label { width: ${width}mm; height: ${height}mm; padding: ${(1.2 * scale).toFixed(1)}mm 2mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; page-break-after: always; }
+    .label:last-child { page-break-after: auto; }
+    .brand { width: 100%; overflow: hidden; color: #222; font-size: ${fs(6)}; font-weight: 700; letter-spacing: 0.08em; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .name { display: -webkit-box; max-width: 100%; overflow: hidden; font-size: ${fs(10)}; font-weight: 800; line-height: 1.1; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .price-row { display: flex; width: 100%; flex-wrap: wrap; justify-content: center; gap: 2.5mm; font-size: ${fs(8)}; font-weight: 700; line-height: 1.2; }
+    .barcode { display: flex; width: 100%; flex: 1; align-items: center; justify-content: center; padding: 0.6mm 0; }
+    .barcode svg { width: 100%; height: auto; max-height: ${Math.max(7, height * 0.38).toFixed(1)}mm; }
+    .meta { display: flex; width: 100%; justify-content: space-between; gap: 2mm; font-size: ${fs(7)}; font-weight: 600; line-height: 1.2; }
+    .sku { width: 100%; overflow: hidden; color: #333; font-family: Consolas, monospace; font-size: ${fs(5.6)}; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
   </style>`;
 }
 
-export function labelsHtml({ labels, business, options = {} }) {
+export function labelsHtml({ labels, business, options = {}, preview = false }) {
   const pages = labels.map((label) => labelHtml({ label, business, options })).join('');
-  return `<!doctype html><html><head><meta charset="utf-8" /><title>Barcode labels</title></head><body>${pages}</body></html>`;
+  const previewCss = preview
+    ? `<style>
+        html, body { margin: 0; padding: 10px; background: #e9e6df; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+        .label { flex: 0 0 auto; background: #fff; box-shadow: 0 1px 6px rgb(0 0 0 / 18%); }
+      </style>`
+    : '';
+  return `<!doctype html><html><head><meta charset="utf-8" /><title>Barcode labels</title>${previewCss}</head><body>${pages}</body></html>`;
 }
 
 export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 80 }) {
