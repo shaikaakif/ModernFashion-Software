@@ -17,6 +17,7 @@ import { createUserService } from '../electron/services/userService.js';
 import { createAuditService } from '../electron/services/auditService.js';
 import { createBackupService } from '../electron/services/backupService.js';
 import { createBrandingService } from '../electron/services/brandingService.js';
+import { createVyaparService } from '../electron/services/vyaparService.js';
 
 const silentLogger = { info() {}, warn() {}, error() {}, debug() {} };
 
@@ -51,6 +52,12 @@ export function createTestApp(t) {
     auth,
     logger: silentLogger,
     onRestore: (payload) => restoreCalls.push(payload),
+  });
+  services.vyapar = createVyaparService({
+    db,
+    auth,
+    backupService: services.backup,
+    logger: silentLogger,
   });
 
   t.after(() => {

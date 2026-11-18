@@ -100,12 +100,28 @@ test('update stock supports add, correct and remove with audited movements', (t)
   assert.equal(removed.balanceAfter, 1);
   assert.equal(stockMovementCount(app, 'damage'), 1);
 
+  const oversold = app.services.inventory.adjust({
+    variantId,
+    mode: 'remove',
+    quantity: 5,
+    reason: 'Stock missing after count',
+  });
+  assert.equal(oversold.balanceAfter, -4);
+  assert.equal(oversold.quantityChange, -5);
+  assert.equal(app.services.inventory.list({ status: 'negative' }).some((row) => row.variantId === variantId), true);
+  assert.equal(app.services.inventory.summary().negativeStock, 1);
+
+  const correctedFromNegative = app.services.inventory.adjust({
+    variantId,
+    mode: 'correct',
+    actualQuantity: 8,
+    reason: 'Physical count after negative stock',
+  });
+  assert.equal(correctedFromNegative.quantityChange, 12);
+  assert.equal(correctedFromNegative.balanceAfter, 8);
+
   assert.throws(
-    () => app.services.inventory.adjust({ variantId, mode: 'remove', quantity: 5, reason: 'Too many' }),
-    { code: 'INSUFFICIENT_STOCK' }
-  );
-  assert.throws(
-    () => app.services.inventory.adjust({ variantId, mode: 'correct', actualQuantity: 1, reason: 'Same count' }),
+    () => app.services.inventory.adjust({ variantId, mode: 'correct', actualQuantity: 8, reason: 'Same count' }),
     /already matches/
   );
 });

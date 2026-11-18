@@ -18,9 +18,9 @@
     "semantic_hash": ""
   },
   "electron/core/database.js": {
-    "mtime": 1794995987.6438055,
-    "seen": 1794996808.7860937,
-    "ast_hash": "c8480be239544c6dc8e8c36a75f5761b",
+    "mtime": 1794998583.8402038,
+    "seen": 1795000034.2732697,
+    "ast_hash": "09973492f99904779e9f818a6bb62642",
     "semantic_hash": ""
   },
   "electron/core/errors.js": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "electron/core/inventory.js": {
-    "mtime": 1794846193.9208126,
-    "seen": 1794850089.955783,
-    "ast_hash": "a26f47120863ee4fbf46128123348d8a",
+    "mtime": 1794998118.7190673,
+    "seen": 1795000034.2732747,
+    "ast_hash": "d05c3ce4e3d8e7720633277ca685dc56",
     "semantic_hash": ""
   },
   "electron/core/logger.js": {
@@ -66,33 +66,33 @@
     "semantic_hash": ""
   },
   "electron/hardware/code128.js": {
-    "mtime": 1794995951.3141024,
-    "seen": 1794996808.786255,
-    "ast_hash": "cd9c3a2bee06d09ab3221b81182d1f8f",
+    "mtime": 1794998052.7904618,
+    "seen": 1795000034.2732875,
+    "ast_hash": "9e63514248b67a21019ca4671c35ac0b",
     "semantic_hash": ""
   },
   "electron/hardware/documents.js": {
-    "mtime": 1794996514.5991123,
-    "seen": 1794996808.7862597,
-    "ast_hash": "ccca30450976d4d9ebba83f84e1b4139",
+    "mtime": 1794998052.7926724,
+    "seen": 1795000034.2732892,
+    "ast_hash": "b84c2cd9c192d4ef2a03c454c9d41278",
     "semantic_hash": ""
   },
   "electron/hardware/printService.js": {
-    "mtime": 1794980530.448037,
-    "seen": 1794982463.6248906,
-    "ast_hash": "e765103d7bfb1b0a9edb274f03f3c9a5",
+    "mtime": 1794998052.7970483,
+    "seen": 1795000034.2732925,
+    "ast_hash": "906d728faa1d6d9a22046abf1f8f0bb4",
     "semantic_hash": ""
   },
   "electron/ipc/registerIpc.js": {
-    "mtime": 1794981990.1538968,
-    "seen": 1794982463.6248906,
-    "ast_hash": "137de240432c54a97fc79026bb4f9c0d",
+    "mtime": 1794998604.6641777,
+    "seen": 1795000034.273294,
+    "ast_hash": "756768ce837a336cc7afc69759e026a3",
     "semantic_hash": ""
   },
   "electron/main.js": {
-    "mtime": 1794981978.9664736,
-    "seen": 1794982463.6248906,
-    "ast_hash": "b5ed139fc48d64627bb5f65d9e4ad225",
+    "mtime": 1794998595.252535,
+    "seen": 1795000034.2732956,
+    "ast_hash": "b8bf49567721aafe6f340632bf192c51",
     "semantic_hash": ""
   },
   "electron/preload.cjs": {
@@ -120,9 +120,9 @@
     "semantic_hash": ""
   },
   "electron/services/catalogService.js": {
-    "mtime": 1794995994.0984287,
-    "seen": 1794996808.7862957,
-    "ast_hash": "04dcee6f9fb9dde05a14340e818a471d",
+    "mtime": 1794998052.8050976,
+    "seen": 1795000034.2733061,
+    "ast_hash": "6a416cd7107df600abe3a72461fbdd99",
     "semantic_hash": ""
   },
   "electron/services/customerService.js": {
@@ -138,15 +138,15 @@
     "semantic_hash": ""
   },
   "electron/services/exportService.js": {
-    "mtime": 1794972814.461951,
-    "seen": 1794979776.1336977,
-    "ast_hash": "2f37b2e9e2ed7dc09c8603621f00f450",
+    "mtime": 1794998052.8081017,
+    "seen": 1795000034.273313,
+    "ast_hash": "5b0307f699de1f1d15429f4526625513",
     "semantic_hash": ""
   },
   "electron/services/inventoryService.js": {
-    "mtime": 1794928869.263895,
-    "seen": 1794929290.4117937,
-    "ast_hash": "f1ec1a341e39bd433905d27d78a5995e",
+    "mtime": 1794998139.3463416,
+    "seen": 1795000034.273318,
+    "ast_hash": "749444842d5aa2f3819467d08c8f93c3",
     "semantic_hash": ""
   },
   "electron/services/purchaseService.js": {
@@ -156,21 +156,21 @@
     "semantic_hash": ""
   },
   "electron/services/reportService.js": {
-    "mtime": 1794972814.461951,
-    "seen": 1794979776.1336977,
-    "ast_hash": "ec930555b71bdb6d815ff976dd8a560e",
+    "mtime": 1794999710.084519,
+    "seen": 1795000034.273324,
+    "ast_hash": "ae824c5ed8bd32c947a7a7494fd28e4e",
     "semantic_hash": ""
   },
   "electron/services/saleService.js": {
-    "mtime": 1794974207.7508185,
-    "seen": 1794979776.1336977,
-    "ast_hash": "bc7aff16f1d56e1631ae658d3430aa86",
+    "mtime": 1794999100.9814544,
+    "seen": 1795000034.273326,
+    "ast_hash": "510ff20133bb74ab3dc684bcd3dbaff6",
     "semantic_hash": ""
   },
   "electron/services/settingsService.js": {
-    "mtime": 1794996000.7878056,
-    "seen": 1794996808.7863219,
-    "ast_hash": "0b8ed04876fd6b9c635c062136ac4379",
+    "mtime": 1794998052.818808,
+    "seen": 1795000034.2733274,
+    "ast_hash": "acd9fbe22eea8ac28d170d585c2a6e5b",
     "semantic_hash": ""
   },
   "electron/services/supplierService.js": {
@@ -180,9 +180,9 @@
     "semantic_hash": ""
   },
   "electron/services/userService.js": {
-    "mtime": 1794849777.6848464,
-    "seen": 1794850089.955783,
-    "ast_hash": "106da1ab632247993f23ca0a119a72eb",
+    "mtime": 1794998336.2740476,
+    "seen": 1795000034.273332,
+    "ast_hash": "5e048ac5b2860229059309f0813034eb",
     "semantic_hash": ""
   },
   "jsconfig.json": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1794982954.0250745,
-    "seen": 1794996808.7863371,
-    "ast_hash": "312c1a0839dfbb804376873d8cfab78b",
+    "mtime": 1794998052.8739655,
+    "seen": 1795000034.27334,
+    "ast_hash": "7c46c2141ac00beafb6ae8062943f1aa",
     "semantic_hash": ""
   },
   "scripts/dev.mjs": {
@@ -228,21 +228,21 @@
     "semantic_hash": ""
   },
   "src/app/AppShell.jsx": {
-    "mtime": 1794982140.7859704,
-    "seen": 1794982463.6248906,
-    "ast_hash": "3e1f0dcbe43d573f262e2b029d3bc2b1",
+    "mtime": 1794998899.871299,
+    "seen": 1795000034.2733512,
+    "ast_hash": "f3ba7c2adb1edff1b53d5adcde5351d1",
     "semantic_hash": ""
   },
   "src/app/SessionContext.jsx": {
-    "mtime": 1794973129.233486,
-    "seen": 1794979776.1336977,
-    "ast_hash": "44915aae74ab6691aacd2a6d713220cb",
+    "mtime": 1794998052.8840215,
+    "seen": 1795000034.2733545,
+    "ast_hash": "e8dd82fc903875ab923ec00aa68a7d3f",
     "semantic_hash": ""
   },
   "src/app/SessionGate.jsx": {
-    "mtime": 1794981426.0081527,
-    "seen": 1794982463.6248906,
-    "ast_hash": "a77d7768ef2ee728350535166dc08e4b",
+    "mtime": 1794998052.8860247,
+    "seen": 1795000034.2733557,
+    "ast_hash": "7d609a0299206ba54579f351bc28383b",
     "semantic_hash": ""
   },
   "src/app/api.js": {
@@ -258,9 +258,9 @@
     "semantic_hash": ""
   },
   "src/app/format.js": {
-    "mtime": 1794847797.6897733,
-    "seen": 1794850089.955783,
-    "ast_hash": "ab5ea509781533cee544f463cd086e8d",
+    "mtime": 1794998145.0180202,
+    "seen": 1795000034.2733612,
+    "ast_hash": "77cc198b4aae9746ea2d9c37d4a8dea7",
     "semantic_hash": ""
   },
   "src/app/hooks.js": {
@@ -282,51 +282,51 @@
     "semantic_hash": ""
   },
   "src/pages/AuditPage.jsx": {
-    "mtime": 1794981518.1116445,
-    "seen": 1794982463.6248906,
-    "ast_hash": "635e4e317437e9df9eece5e1c682afd3",
+    "mtime": 1794998052.891033,
+    "seen": 1795000034.273368,
+    "ast_hash": "91f92aed69e929f89006f865d24ffb4f",
     "semantic_hash": ""
   },
   "src/pages/CustomersPage.jsx": {
-    "mtime": 1794981428.4356594,
-    "seen": 1794982463.6248906,
-    "ast_hash": "11a04e0dc7fcc6dabffb1a9375dfd330",
+    "mtime": 1794998052.8953125,
+    "seen": 1795000034.273371,
+    "ast_hash": "42b959ba548dc85e02a0f7e983218851",
     "semantic_hash": ""
   },
   "src/pages/DashboardPage.jsx": {
-    "mtime": 1794981487.7695432,
-    "seen": 1794982463.6248906,
-    "ast_hash": "77000025722049033688aa7d635534e8",
+    "mtime": 1794999701.370171,
+    "seen": 1795000034.2733724,
+    "ast_hash": "0a13411db289966d58e259845772ba4b",
     "semantic_hash": ""
   },
   "src/pages/ExpensesPage.jsx": {
-    "mtime": 1794981515.6877096,
-    "seen": 1794982463.6248906,
-    "ast_hash": "f48158f6899a00d4c216a5d9168ec10d",
+    "mtime": 1794998052.9031503,
+    "seen": 1795000034.2733738,
+    "ast_hash": "730642bdcbaad214e1abce8ab9d1e5af",
     "semantic_hash": ""
   },
   "src/pages/InventoryPage.jsx": {
-    "mtime": 1794982152.4027562,
-    "seen": 1794982463.6248906,
-    "ast_hash": "7f0aadf7b490316b804895aee5770e58",
+    "mtime": 1794998170.5798006,
+    "seen": 1795000034.273377,
+    "ast_hash": "b8e453e56a8db03702782e5dd730ec4b",
     "semantic_hash": ""
   },
   "src/pages/LoginPage.jsx": {
-    "mtime": 1794981268.88351,
-    "seen": 1794982463.6248906,
-    "ast_hash": "3932fec347806b403bb1c24d14bfa5e6",
+    "mtime": 1794998052.9119265,
+    "seen": 1795000034.27338,
+    "ast_hash": "805ae64b0319d17c53e187c4a86b910e",
     "semantic_hash": ""
   },
   "src/pages/PosPage.jsx": {
-    "mtime": 1794981503.5928173,
-    "seen": 1794982463.6248906,
-    "ast_hash": "a8bd976ac43cdf1609c2e87dfc3820b3",
+    "mtime": 1794999534.9389,
+    "seen": 1795000034.2733817,
+    "ast_hash": "9967002a451690fa49c695a7246676ce",
     "semantic_hash": ""
   },
   "src/pages/ProductsPage.jsx": {
-    "mtime": 1794981513.554254,
-    "seen": 1794982463.6248906,
-    "ast_hash": "af16c7c2a2ad818937d305e80c5becad",
+    "mtime": 1794998193.2742221,
+    "seen": 1795000034.2733831,
+    "ast_hash": "8cb9ad34645d2423a0e84d07e015a98e",
     "semantic_hash": ""
   },
   "src/pages/PurchasesPage.jsx": {
@@ -336,27 +336,27 @@
     "semantic_hash": ""
   },
   "src/pages/ReportsPage.jsx": {
-    "mtime": 1794981448.556568,
-    "seen": 1794982463.6248906,
-    "ast_hash": "6f12830999276b584e969155df06212a",
+    "mtime": 1794998052.9237888,
+    "seen": 1795000034.2733877,
+    "ast_hash": "3daa7d136f05ffbdd2ef8b8ce01b717e",
     "semantic_hash": ""
   },
   "src/pages/SalesPage.jsx": {
-    "mtime": 1794981463.5429747,
-    "seen": 1794982463.6248906,
-    "ast_hash": "a52307745942e187e8e6d11260b64442",
+    "mtime": 1794998052.9252934,
+    "seen": 1795000034.2733893,
+    "ast_hash": "39f99d50f8d1dabe896e45a755acab06",
     "semantic_hash": ""
   },
   "src/pages/SettingsPage.jsx": {
-    "mtime": 1794996020.3484385,
-    "seen": 1794996808.786447,
-    "ast_hash": "6e9a6f9bdca56efca87d9acf65d2a399",
+    "mtime": 1794998733.1766162,
+    "seen": 1795000034.2733905,
+    "ast_hash": "4d4103dc2d67f4765e19ebf194f456bf",
     "semantic_hash": ""
   },
   "src/pages/SetupPage.jsx": {
-    "mtime": 1794981272.5116265,
-    "seen": 1794982463.6248906,
-    "ast_hash": "d1dbf020897929ac04c51ae187e971de",
+    "mtime": 1794998052.9314618,
+    "seen": 1795000034.2733922,
+    "ast_hash": "42eb229fd152f7b4a73367833d30ec27",
     "semantic_hash": ""
   },
   "src/pages/SuppliersPage.jsx": {
@@ -366,9 +366,9 @@
     "semantic_hash": ""
   },
   "src/pages/UsersPage.jsx": {
-    "mtime": 1794981529.8765285,
-    "seen": 1794982463.6248906,
-    "ast_hash": "3d74bb20df5f9cbe62589d83e6cc6bb0",
+    "mtime": 1794998332.337126,
+    "seen": 1795000034.2733965,
+    "ast_hash": "91a64e3b66eba6d39450e274a9b9dcc0",
     "semantic_hash": ""
   },
   "tests/backup.test.js": {
@@ -378,9 +378,9 @@
     "semantic_hash": ""
   },
   "tests/helpers.js": {
-    "mtime": 1794981995.0010657,
-    "seen": 1794982463.6248906,
-    "ast_hash": "8ca91847a368b4e3c3b3f6b540e7b25f",
+    "mtime": 1794998655.5288534,
+    "seen": 1795000034.2734063,
+    "ast_hash": "a0c2de078782bf819500286ce8bc7bc7",
     "semantic_hash": ""
   },
   "tests/money.test.js": {
@@ -396,9 +396,9 @@
     "semantic_hash": ""
   },
   "tests/sales.test.js": {
-    "mtime": 1794849996.0369017,
-    "seen": 1794850089.955783,
-    "ast_hash": "7efe533b2398f02c665ff19b50658135",
+    "mtime": 1794998237.4723537,
+    "seen": 1795000034.273414,
+    "ast_hash": "4b6a98a62c84c6611744476d4e247140",
     "semantic_hash": ""
   },
   "vite.config.js": {
@@ -420,9 +420,9 @@
     "semantic_hash": ""
   },
   "Docs/BRAND_KIT.md": {
-    "mtime": 1794996257.3914058,
-    "seen": 1794996808.786564,
-    "ast_hash": "1c25513b73a1e1d30c65eed414d916a0",
+    "mtime": 1794998052.7679646,
+    "seen": 1795000034.2734237,
+    "ast_hash": "458bb6ac287258a751bcc6a022b1f518",
     "semantic_hash": ""
   },
   "Docs/MASTER_AI_ENGINEERING_SOP.md": {
@@ -432,9 +432,9 @@
     "semantic_hash": ""
   },
   "Docs/PROJECT_CONTEXT.md": {
-    "mtime": 1794996250.8043983,
-    "seen": 1794996808.7865784,
-    "ast_hash": "261361d461139a7e9318f60b47938c15",
+    "mtime": 1794999930.9680417,
+    "seen": 1795000034.2734284,
+    "ast_hash": "7b5a5f59eeb02bc34832dbefc0089e7d",
     "semantic_hash": ""
   },
   "Docs/master-ui-skill.md": {
@@ -444,9 +444,9 @@
     "semantic_hash": ""
   },
   "README.md": {
-    "mtime": 1794996235.7355883,
-    "seen": 1794996808.7866015,
-    "ast_hash": "553bb969325050c5651e4bc063f71489",
+    "mtime": 1794999927.1050665,
+    "seen": 1795000034.273436,
+    "ast_hash": "2e031d0c36cc5a8d506985262ca3e71e",
     "semantic_hash": ""
   },
   "index.html": {
@@ -456,15 +456,15 @@
     "semantic_hash": ""
   },
   "Docs/HARDWARE_VALIDATION.md": {
-    "mtime": 1794996244.523759,
-    "seen": 1794996808.7865694,
-    "ast_hash": "ec26496a0d54120211f07118b3682106",
+    "mtime": 1794999825.3214893,
+    "seen": 1795000034.2734253,
+    "ast_hash": "66d2ddf5e23a050f1306119bf0555e00",
     "semantic_hash": ""
   },
   "PROJECT_MEMORY.md": {
-    "mtime": 1794996334.0840719,
-    "seen": 1794996808.786597,
-    "ast_hash": "2bf2ef40727d2c88d8c5616daba812b6",
+    "mtime": 1794999977.2380323,
+    "seen": 1795000034.2734346,
+    "ast_hash": "b027b16002f0e49954ebb92aac1a9efa",
     "semantic_hash": ""
   },
   "electron/core/logo.js": {
@@ -480,27 +480,27 @@
     "semantic_hash": ""
   },
   "shared/barcode.js": {
-    "mtime": 1794995908.491327,
-    "seen": 1794996808.7863443,
-    "ast_hash": "8b1bfac37fa6752d166fefbfd16285ef",
+    "mtime": 1794998052.8770227,
+    "seen": 1795000034.273343,
+    "ast_hash": "9fe60debbb4e9408b8a65da70fde1d8f",
     "semantic_hash": ""
   },
   "src/pages/ReleasesPage.jsx": {
-    "mtime": 1794981377.825535,
-    "seen": 1794982463.6248906,
-    "ast_hash": "b6b653d33a31e469f34465ba8054263e",
+    "mtime": 1794998052.921777,
+    "seen": 1795000034.2733865,
+    "ast_hash": "d8d7064a5fdf59453eab930ecf5edc6f",
     "semantic_hash": ""
   },
   "tests/print.test.js": {
-    "mtime": 1794996314.835742,
-    "seen": 1794996808.7865248,
-    "ast_hash": "8fe4378e8fb966a3491c3a97db254a6c",
+    "mtime": 1794998052.959939,
+    "seen": 1795000034.2734127,
+    "ast_hash": "01943f3796aed3b2109b2211800c2c26",
     "semantic_hash": ""
   },
   "Docs/RELEASES.md": {
-    "mtime": 1794983333.3523567,
-    "seen": 1794996808.7865827,
-    "ast_hash": "98df427eeae3352e18778dc44a60c9ad",
+    "mtime": 1794998052.7799063,
+    "seen": 1795000034.27343,
+    "ast_hash": "4bff8b49552bdf56e771c426aa5bb2d0",
     "semantic_hash": ""
   },
   "electron/services/brandingService.js": {
@@ -516,9 +516,9 @@
     "semantic_hash": ""
   },
   "tests/catalog.test.js": {
-    "mtime": 1794932536.1951623,
-    "seen": 1794979776.1336977,
-    "ast_hash": "f576eef94af3506a680748796cf4e0f4",
+    "mtime": 1794999637.994205,
+    "seen": 1795000034.2734013,
+    "ast_hash": "02c504f0c96ee2a29f027b83b705c169",
     "semantic_hash": ""
   },
   "tests/dashboard.test.js": {
@@ -528,63 +528,93 @@
     "semantic_hash": ""
   },
   "src/pages/InvoiceWorkspace.jsx": {
-    "mtime": 1794973045.1266909,
-    "seen": 1794979776.1336977,
-    "ast_hash": "80a73263dbe1fa496d44a714d2dc5839",
+    "mtime": 1794998052.90949,
+    "seen": 1795000034.2733786,
+    "ast_hash": "0e2a4bba80dc78a347d138b7f483d7ae",
     "semantic_hash": ""
   },
   "src/pages/SetupWizard.jsx": {
-    "mtime": 1794981468.2812612,
-    "seen": 1794982463.6248906,
-    "ast_hash": "4aa259f2309e829bccc387372462083d",
+    "mtime": 1794998052.936462,
+    "seen": 1795000034.2733934,
+    "ast_hash": "b40ed3672e111928684a4f0cd8f6ae83",
     "semantic_hash": ""
   },
   "tests/gst.test.js": {
-    "mtime": 1794974176.7188442,
-    "seen": 1794979776.1336977,
-    "ast_hash": "399e6f4de2e1b3640a769f746955d3f0",
+    "mtime": 1794998052.9464624,
+    "seen": 1795000034.2734048,
+    "ast_hash": "fd637f56c74385283c0bc6132af0d74f",
     "semantic_hash": ""
   },
   "electron/services/importService.js": {
-    "mtime": 1794996089.2003188,
-    "seen": 1794996808.786307,
-    "ast_hash": "bebd5d6827c84ebc5df8838e6306dcff",
+    "mtime": 1794999629.6353831,
+    "seen": 1795000034.2733157,
+    "ast_hash": "d50ac7b2b1dbacbdf9e32a12bb9ef0f3",
     "semantic_hash": ""
   },
   "src/pages/BarcodesPage.jsx": {
-    "mtime": 1794996145.8408196,
-    "seen": 1794996808.7863903,
-    "ast_hash": "db83937e67bbc75e9043686e8556c802",
+    "mtime": 1794998052.893031,
+    "seen": 1795000034.2733696,
+    "ast_hash": "fb179b9ebbea611de7c900c2f90d5d12",
     "semantic_hash": ""
   },
   "src/pages/ImportPage.jsx": {
-    "mtime": 1794996096.7196622,
-    "seen": 1794996808.7864034,
-    "ast_hash": "9ffdd368764b8ce1a5143e9a54248fbe",
+    "mtime": 1794998742.314408,
+    "seen": 1795000034.2733755,
+    "ast_hash": "a6412ca091c868f4a93d298ad683dfe2",
     "semantic_hash": ""
   },
   "tests/import.test.js": {
-    "mtime": 1794996155.910617,
-    "seen": 1794996808.7865026,
-    "ast_hash": "191253213404598097524d754542a90b",
+    "mtime": 1794999642.6565104,
+    "seen": 1795000034.2734077,
+    "ast_hash": "aad3a83ca3aca85f7a17cf607ed88f98",
     "semantic_hash": ""
   },
   "electron/hardware/ean.js": {
-    "mtime": 1794996715.6674352,
-    "seen": 1794996808.7862644,
-    "ast_hash": "a3478b704cce756400acc07020940311",
+    "mtime": 1794998052.7947285,
+    "seen": 1795000034.273291,
+    "ast_hash": "2242437edcc7cb9854a3bbfbca417e2e",
     "semantic_hash": ""
   },
   "Docs/VYAPAR_IMPORT.md": {
-    "mtime": 1794996330.623891,
-    "seen": 1794996808.7865875,
-    "ast_hash": "36c11863b2c4c05afeeacaf46193d60b",
+    "mtime": 1794999773.0830731,
+    "seen": 1795000034.2734313,
+    "ast_hash": "7cba651a63cb93231b3f80eb051f55af",
+    "semantic_hash": ""
+  },
+  "electron/services/vyaparService.js": {
+    "mtime": 1794999963.8318696,
+    "seen": 1795000034.2733343,
+    "ast_hash": "ec4ade53e33187db89762c7ac6cdf2d3",
+    "semantic_hash": ""
+  },
+  "electron/services/zipReader.js": {
+    "mtime": 1794999861.6759875,
+    "seen": 1795000034.2733364,
+    "ast_hash": "3313717d7511054809bded74df518a31",
+    "semantic_hash": ""
+  },
+  "src/pages/VyaparImportPage.jsx": {
+    "mtime": 1794999968.4759688,
+    "seen": 1795000034.273398,
+    "ast_hash": "fd5d01f99ab3d3887d1ae0da6b776fc6",
+    "semantic_hash": ""
+  },
+  "tests/users.test.js": {
+    "mtime": 1794999178.8374317,
+    "seen": 1795000034.2734153,
+    "ast_hash": "ae132611f154c5bdbff4df2a5bae665f",
+    "semantic_hash": ""
+  },
+  "tests/vyapar.test.js": {
+    "mtime": 1794999235.610829,
+    "seen": 1795000034.273417,
+    "ast_hash": "d40a2bdf118d88b45e180fbe5558ea0d",
     "semantic_hash": ""
   },
   "package-lock.json": {
-    "mtime": 1794982954.0343182,
-    "seen": 1794996808.7866116,
-    "ast_hash": "ef5a395e3d550ccae04a0857b52120e4",
+    "mtime": 1794998052.867342,
+    "seen": 1795000034.2734392,
+    "ast_hash": "01364e92a5311bf7cec0a105244a56e3",
     "semantic_hash": ""
   }
 }

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { App as AntApp, Avatar, Button, Dropdown, Form, Input, InputNumber, Layout, Menu, Modal, Tag, Tooltip } from 'antd';
 import {
@@ -35,6 +35,7 @@ import SalesPage from '@/pages/SalesPage';
 import InventoryPage from '@/pages/InventoryPage';
 import BarcodesPage from '@/pages/BarcodesPage';
 import ImportPage from '@/pages/ImportPage';
+import VyaparImportPage from '@/pages/VyaparImportPage';
 import PurchasesPage from '@/pages/PurchasesPage';
 import SuppliersPage from '@/pages/SuppliersPage';
 import CustomersPage from '@/pages/CustomersPage';
@@ -82,7 +83,15 @@ export default function AppShell() {
   const { message, notification } = AntApp.useApp();
   const navigate = useNavigate();
   const location = useLocation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem('mf.sidebar.collapsed') === '1';
+    } catch {
+      return false;
+    }
+  });
+  const collapsedBeforePos = useRef(false);
+  const inPosRoute = useRef(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -95,6 +104,34 @@ export default function AppShell() {
     () => NAV.filter((item) => item.any.some((permission) => session?.permissions?.includes(permission))),
     [session]
   );
+
+  useLayoutEffect(() => {
+    const isPos = location.pathname === '/pos';
+    if (isPos && !inPosRoute.current) {
+      collapsedBeforePos.current = collapsed;
+      inPosRoute.current = true;
+      setCollapsed(true);
+    } else if (!isPos && inPosRoute.current) {
+      inPosRoute.current = false;
+      setCollapsed(collapsedBeforePos.current);
+    }
+    // collapsed is intentionally read only when entering/leaving POS.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [location.pathname]);
+
+  function toggleSidebar() {
+    setCollapsed((value) => {
+      const next = !value;
+      if (!inPosRoute.current) {
+        try {
+          window.localStorage.setItem('mf.sidebar.collapsed', next ? '1' : '0');
+        } catch {
+          // Private storage failures only affect preference persistence.
+        }
+      }
+      return next;
+    });
+  }
 
   useEffect(() => {
     if (!session?.permissions?.includes('settings.manage')) return undefined;
@@ -253,7 +290,7 @@ export default function AppShell() {
             type="text"
             aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed((value) => !value)}
+            onClick={toggleSidebar}
           />
         </div>
       </Sider>
@@ -314,6 +351,7 @@ export default function AppShell() {
             <Route path="/inventory" element={<Protected any={['inventory.view', 'products.view']}><InventoryPage /></Protected>} />
             <Route path="/barcodes" element={<Protected any={['products.manage']}><BarcodesPage /></Protected>} />
             <Route path="/import" element={<Protected any={['products.manage']}><ImportPage /></Protected>} />
+            <Route path="/vyapar-import" element={<Protected any={['products.manage']}><VyaparImportPage /></Protected>} />
             <Route path="/products" element={<Navigate to="/inventory" replace />} />
             <Route path="/purchases" element={<Protected any={['purchases.view']}><PurchasesPage /></Protected>} />
             <Route path="/suppliers" element={<Protected any={['purchases.view']}><SuppliersPage /></Protected>} />

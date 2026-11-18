@@ -27,8 +27,12 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 - Transactional checkout: one invoice, one stock deduction, idempotency protection and no negative stock
 - Products with colour/size variants, unique SKU/barcode, opening stock and EAN-13/UPC-A labels
 - Barcode studio with label preview, per-variant counts, MRP/selling price and adaptive 20–110 mm label stock
+- Genuine **negative stock** with signed display, negative-stock filter, ledger-safe corrections and overselling support
 - CSV/XLSX product and stock import with column mapping, row preview and duplicate-safe matching
-- Imported-data workspace; Vyapar item exports are supported, while proprietary `.VYB` backups are rejected with a documented Excel/CSV route
+- Full **Vyapar migration** from `.vyp` or `.vyb.zip`: products, stock, customers, suppliers, sales, payments, purchases and expenses, with preview, warnings, backup-first transaction and restart
+- Imported-data workspace; Vyapar item exports are also supported
+- Owner-controlled employee lifecycle: remove a cashier/manager without deleting history, inspect **Removed Users**, restore access with a fresh login
+- Dedicated full-width billing terminal with auto-collapsed sidebar, customer/invoice header, scanner-first item table and fixed totals/actions
 - Inventory balances, immutable movement ledger, adjustments and reconciliation
 - Purchases, suppliers, landed cost and weighted-average costing
 - Customers, operating expenses, users, shifts, audit log and settings
@@ -112,7 +116,7 @@ MSI is not configured. NSIS is preferred for one POS workstation because it avoi
 
 The installed app reads the public repository `shaikaakif/ModernFashion-Software` through `electron-updater`. Owners see **Releases** in the navigation, can check the latest release, download it, and restart to install. An update creates a verified database backup first and replaces program files only; the database, backups, exports, documents and settings are not touched.
 
-Release **v1.2.3** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.2.3` with the installer, blockmap and `latest.yml`. v1.2.2, v1.2.1, v1.2.0 and v1.1.0 remain available as previous known-good releases. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`.
+Release **v1.2.4** is published at `https://github.com/shaikaakif/ModernFashion-Software/releases/tag/v1.2.4` with the installer, blockmap and `latest.yml`. v1.2.3, v1.2.2, v1.2.1, v1.2.0 and v1.1.0 remain available as previous known-good releases. The installer is not code-signed, so Windows SmartScreen may warn on first install. The full build, publish, rollback and acceptance procedure is in `Docs/RELEASES.md`.
 
 ## Where data lives
 
@@ -163,12 +167,12 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 33 tests passing (money, checkout idempotency, stock exactly once, oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backup/restore with assets, barcode formatting, logo reading, branding, product delete/history removal, stock add/correct/remove, Product Sales report, dashboard, receipt redesign, GST monthly report and print settings).
+- `npm test`: 49 tests passing (money, checkout idempotency, negative-stock oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backups, barcodes, branding, stock add/correct/remove from negative, Vyapar .vyp/.vyb.zip import, user removal/restore, dashboard, GST, receipt and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
-- v1.2.3: published and verified. GitHub Release `v1.2.3` includes the invoice workspace, GST monthly report, guided setup and receipt typography, plus EXE, blockmap and `latest.yml`.
-- Packaged EXE: **v1.2.2 published.** `ModernFashionPOS-Setup-1.2.2.exe` is 122.3 MB and carries the MF monogram. Physical receipt/printer acceptance is still recommended.
-- Updates: `v1.2.2` is the latest published release. Public asset URLs return HTTP 200, the published `latest.yml` checksum matches the EXE, and `/releases/latest` redirects to `v1.2.2`. v1.2.1, v1.2.0 and v1.1.0 remain available for rollback.
+- v1.2.4: published and verified. GitHub Release `v1.2.4` includes the barcode studio, CSV/Excel import and owner-facing cleanup, plus EXE, blockmap and `latest.yml`.
+- Packaged EXE: **v1.2.4 published.** `ModernFashionPOS-Setup-1.2.4.exe` is 123.8 MB and carries the MF monogram. Physical receipt/printer acceptance is still recommended.
+- Updates: `v1.2.4` is the latest published release. Public asset URLs return HTTP 200, the published `latest.yml` checksum matches the EXE, and `/releases/latest` redirects to `v1.2.4`. v1.2.3, v1.2.2, v1.2.1, v1.2.0 and v1.1.0 remain available for rollback.
 - Logo: no client logo asset is present yet. Add it in **Settings → Business**; the saved image is previewed immediately and used by the print engine after a restart.
 
 ## Client inputs still required

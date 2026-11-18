@@ -30,7 +30,7 @@ import {
 import { api, errorMessage } from '@/app/api';
 import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
-import { formatDate, money } from '@/app/format';
+import { formatDate, formatStock, money } from '@/app/format';
 import {
   ErrorPanel,
   EmptyPanel,
@@ -537,7 +537,10 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                         align: 'right',
                         render: (value, row) => (
                           <Space direction="vertical" size={2} style={{ alignItems: 'flex-end' }}>
-                            <strong>{value}</strong>
+                            <strong className={value < 0 ? 'text-danger' : value === 0 ? 'text-danger' : ''}>
+                              {formatStock(value)}
+                            </strong>
+                            {value < 0 ? <Tag color="red">Negative</Tag> : null}
                             {row.lowStockCount > 0 ? (
                               <Tag color="gold">
                                 {row.lowStockCount} variant{row.lowStockCount === 1 ? '' : 's'} low
@@ -716,7 +719,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                         ),
                       },
                       { title: 'Variants', dataIndex: 'variantCount', width: 90, align: 'right' },
-                      { title: 'Stock', dataIndex: 'stock', width: 90, align: 'right' },
+                      { title: 'Stock', dataIndex: 'stock', width: 110, align: 'right', render: formatStock },
                       { title: 'Updated', dataIndex: 'updatedAt', width: 130, render: formatDate },
                       {
                         title: '',
@@ -812,7 +815,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
               </div>
               <div className="hero-metric">
                 <span>Total stock</span>
-                <strong>{detail.stock || 0}</strong>
+                <strong>{formatStock(detail.stock || 0)}</strong>
                 <small>{detail.variants?.length || 0} variants</small>
               </div>
             </div>
@@ -872,7 +875,9 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                     width: 80,
                     align: 'right',
                     render: (value, row) => (
-                      <span className={value <= row.lowStockThreshold ? 'text-warning' : ''}>{value}</span>
+                      <span className={value < 0 ? 'text-danger' : value <= row.lowStockThreshold ? 'text-warning' : ''}>
+                        {formatStock(value)}
+                      </span>
                     ),
                   },
                   ...(canSeeCost

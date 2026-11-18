@@ -191,8 +191,9 @@ Include:
 
 Never silently overwrite quantity. Every stock change must create an
 immutable movement record linked to its source transaction or
-adjustment. Prevent negative stock by default; any exception must be a
-deliberate owner-controlled policy.
+adjustment. Negative stock is a legitimate state: preserve and display it,
+allow correction by physical count, and show it distinctly in filters and
+reports. Do not clamp negative quantities to zero.
 
 ### 4.4 Barcode-driven billing / POS
 

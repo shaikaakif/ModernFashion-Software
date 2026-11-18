@@ -18,7 +18,7 @@ import { api, errorMessage } from '@/app/api';
 import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import BrandMark from '@/app/BrandMark';
-import { businessToday, formatDateTime, money, paymentLabel } from '@/app/format';
+import { businessToday, formatDateTime, formatStock, money, paymentLabel } from '@/app/format';
 import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard, StatusTag } from '@/app/components';
 
 const kpiGrid = 'dashboard-kpis';
@@ -252,6 +252,9 @@ export default function DashboardPage() {
           extra={
             <Space>
               <Tag color="red">{Number(stockCounts.out || 0)} out</Tag>
+              {Number(stockCounts.negative || 0) > 0 ? (
+                <Tag color="volcano">{Number(stockCounts.negative)} negative</Tag>
+              ) : null}
               <WarningOutlined className="panel-icon warning" />
             </Space>
           }
@@ -271,7 +274,7 @@ export default function DashboardPage() {
                       {item.color} / {item.size} · {item.sku}
                     </span>
                   </div>
-                  <Tag color={item.stock === 0 ? 'red' : 'gold'}>{item.stock} left</Tag>
+                  <Tag color={item.stock <= 0 ? 'red' : 'gold'}>{formatStock(item.stock)}</Tag>
                 </button>
               ))}
             </div>

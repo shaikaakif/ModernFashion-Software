@@ -5,9 +5,9 @@
 **Verification record:** v1.2.4 GitHub Release `449602732` published and publicly verified
 **Current public release:** 1.2.4 - barcode studio, CSV/Excel product import, owner-facing text cleanup, dashboard backup card.
 **Previous public releases:** 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** EAN-13/UPC-A barcode generation, redesigned labels, left-aligned thermal receipt, Vyapar `.VYB` investigation and import guidance. No installer built or published.
+**Unreleased branch work:** v1.2.1 development branch (based on v1.2.4) with Vyapar `.vyp`/`.vyb.zip` import, genuine negative stock, user soft-removal/restore and a full-width billing terminal. No installer built or published.
 **Developer:** Meninges Labs
-**Working branch:** `whatsapp-automation` (published tag `v1.2.4`)
+**Working branch:** `v1.2.1` development branch (package version remains 1.2.4; no release published)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
@@ -20,12 +20,16 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 - Local SQLite through the built-in `node:sqlite` `DatabaseSync`; no server, cloud database, API account or internet dependency.
 - Business data is local; no demo users, products, customers, sales, purchases or expenses are seeded.
 - All money is integer paise. Tax rates are basis points. Business dates are `YYYY-MM-DD` in Asia/Kolkata.
-- Sale completion is transactional. Idempotency keys prevent duplicate invoices. Stock is deducted exactly once. Negative stock is rejected.
+- Sale completion is transactional. Idempotency keys prevent duplicate invoices. Stock is deducted exactly once. Negative stock is legitimate and displayed; overselling is allowed and writes a negative balance to the immutable ledger.
 - Weighted-average costing is used. Purchase landed cost updates stock cost. Purchases are not operating expenses.
 - Permissions are enforced in main-process services, not only by navigation.
 - Backups use `VACUUM INTO`, SQLite integrity check, SHA-256 and a guarded restore with an automatic pre-restore backup.
 - Printing uses hidden Electron windows through the installed Windows driver; raw ESC/POS is not assumed.
 - Barcodes are generated internally as EAN-13 by default (in-store prefix 20–29), with UPC-A and legacy Code 128 available. The check digit is calculated, existing barcode values are never rewritten, and generated numbers are not GS1-registered retail identifiers. Labels detect the symbology per stored value.
+- **Vyapar import** (`/vyapar-import`, owner/manager) reads `.vyp` or `.vyb.zip` read-only, checks SQLite integrity, previews counts/warnings, creates a verified backup, and imports products, categories, customers, suppliers, sales, payments, purchases and expenses in one transaction. The source hash blocks duplicate imports. Negative stock, zero prices, invoice numbers, dates, discounts and balances are preserved. Services, estimates, payment-outs, opening balances and zero-amount expenses are reported as skipped.
+- **Negative stock** is stored as a real inventory state with a migration that removes the non-negative table constraints. `inventory_balances` and `stock_movements` allow negative balances; sales, corrections, filters, dashboard counts and valuation show the signed value. A correction records previous quantity, new quantity, difference, user, reason and timestamp.
+- **User lifecycle** supports owner-only removal and restoration. Removed users are disabled, cannot sign in or start shifts, and remain in **Users & shifts → Removed Users** with role, removal date/actor, invoice count and shift history. Historical invoices keep their cashier. Vyapar legacy cashiers become disabled legacy users, not the importing owner.
+- **Sales terminal** (`/pos`) auto-collapses the sidebar, restores the previous preference on exit, uses a full-width customer/invoice header, a spacious scanner-first item table and a fixed summary/action footer. Cash/Credit, customer search, discounts, payment, thermal/A4/PDF save actions and F2/F8 keyboard shortcuts are retained.
 - The print layout is owner-editable: logo visibility/size, header fields, receipt sections, notes, terms, paper width and font scale, with a live sample preview that records nothing.
 - GitHub Releases and `electron-updater` are wired for the installed build. A successful update starts from **Releases**, creates a verified SQLite backup first, and replaces program files only.
 - Graphify graph and Ponytail skills are installed in the project. Knowledge graph output is under `graphify-out/`.
@@ -34,7 +38,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **43/43 passing** on the `whatsapp-automation` branch (adds EAN-13/UPC-A, receipt-alignment, barcode-studio, CSV/Excel import and `.VYB` rejection coverage) |
+| `npm test` | **49/49 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
@@ -73,7 +77,7 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 
 - Products and Inventory are one navigation destination. `/products` redirects to `/inventory`; the Inventory tabs are Products, Stock, Stock history, Categories, Archived, Valuation and Reconciliation.
 - Archive means `products.status = 'inactive'`. Archived products leave active stock lists and POS search but remain on historical invoices, movements and reports.
-- **Import data** (`/import`, owner/manager only) reads CSV/XLSX/XLS product lists, auto-maps common headers (including Vyapar item exports), previews every row with new/update/skip/error status, creates missing categories/brands, and commits in one transaction. Rows match by barcode, SKU, or product + colour + size. Stock becomes an `opening` movement for new variants and an `adjustment_in`/`adjustment_out` movement for existing ones, under one `IMP/<FY>/<seq>` reference. Re-import is idempotent when stock is set to the same count. Vyapar `.VYB` backups are rejected as proprietary; the documented route is a Vyapar Items → Excel/CSV export (`Docs/VYAPAR_IMPORT.md`).
+- **Import data** (`/import`, owner/manager only) reads CSV/XLSX/XLS product lists, auto-maps common headers (including Vyapar item exports), previews every row with new/update/skip/error status, creates missing categories/brands, and commits in one transaction. Rows match by barcode, SKU, or product + colour + size. Stock becomes an `opening` movement for new variants and an `adjustment_in`/`adjustment_out` movement for existing ones, under one `IMP/<FY>/<seq>` reference. Re-import is idempotent when stock is set to the same count. Full Vyapar backups are handled by the dedicated `/vyapar-import` workflow.
 - Delete is allowed only when the product has no sale, purchase or stock-movement history. Products with history must be archived.
 - Stock updates are `add`, `correct` (set the actual counted quantity) and `remove`; every operation writes an immutable `stock_movements` row and an audit entry.
 
@@ -127,6 +131,9 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 | `electron/core/inventory.js` | Stock availability and immutable movement ledger |
 | `electron/services/saleService.js` | POS bootstrap, totals, idempotent checkout, void, receipt data |
 | `electron/services/importService.js` | CSV/XLSX parsing, column mapping, row validation, duplicate matching and transactional product/stock import |
+| `electron/services/vyaparService.js` | Read-only Vyapar `.vyp`/`.vyb.zip` inspection, mapping, preview, backup-first transactional import and source-hash duplicate blocking |
+| `electron/services/zipReader.js` | Minimal read-only ZIP extractor for Vyapar `.vyb.zip` archives |
+| `src/pages/VyaparImportPage.jsx` | Guided Vyapar preview, warnings, import confirmation and restart |
 | `src/pages/ImportPage.jsx` | Import workspace: file, mapping, rules, preview and commit |
 | `electron/services/reportService.js` | Dashboard, sales/profit/product/tax/purchase/expense/inventory reports |
 | `electron/services/settingsService.js` | Settings, offers, logo data, print normalization/preview, trusted print snapshot |
@@ -192,9 +199,9 @@ assets/
 
 ## 8. Immediate next steps
 
-1. Review the `v1.2.1` diff; run `npm run verify`.
-2. Exercise the candidate on the workstation: login layout, product delete, per-variant pricing, Add/Correct/Remove stock, receipt at 58 mm and 80 mm, A4 invoice, dashboard quick actions and backup status.
-3. Build the v1.2.1 installer only after review; do not publish without explicit owner approval. v1.2.0 remains the public release.
+1. Review the `v1.2.1` development branch diff; run `npm run verify`.
+2. Exercise the candidate on the workstation: Vyapar import preview and restart, negative-stock display/correction, removed-user restore, and the full-width New Sale screen at 1920/1440/1366/1280 widths.
+3. Build the next installer only after review; do not publish without explicit owner approval. v1.2.4 remains the public release.
 4. Deferred master-prompt work: full structured invoice designer and the complete single-folder backup export.
 
 ## 9. Session continuation protocol

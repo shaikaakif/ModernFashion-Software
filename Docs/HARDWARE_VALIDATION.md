@@ -51,8 +51,19 @@ Do not assume ESC/POS compatibility for either printer. The app currently prints
 - [ ] WhatsApp handoff copies the PDF path, opens the folder and opens WhatsApp; the user attaches the PDF manually.
 - [ ] No message claims the invoice was sent automatically.
 
-## 4. Barcode labels
+## 4. Negative stock and billing workspace
 
+- [ ] Import a product with negative stock; inventory shows `-5 Pcs`, not zero.
+- [ ] Filter **Negative stock**; only negative variants appear.
+- [ ] Correct a negative item to a positive physical count; movement records old, new and difference.
+- [ ] Sell more than available stock; sale succeeds, stock becomes negative, invoice and ledger remain correct.
+- [ ] Dashboard and valuation show negative values without clamping.
+- [ ] Entering **New Sale** collapses the sidebar; leaving restores the previous preference.
+- [ ] Expanding the sidebar manually inside New Sale does not overwrite the saved preference.
+- [ ] Barcode scanner, F2, Enter and F8 work with the full-width table.
+- [ ] 1920×1080, 1440×900, 1366×768 and 1280×800 show no page-level horizontal overflow and keep Save/Print visible.
+
+## 5. Barcode labels
 - [ ] **Settings → Print & barcodes** shows a valid EAN-13 preview for the chosen in-store prefix.
 - [ ] A newly created product uses the configured symbology and in-store prefix; the check digit is valid.
 - [ ] Existing product barcodes are unchanged after the format is edited; legacy Code 128 labels still print.
@@ -64,7 +75,7 @@ Do not assume ESC/POS compatibility for either printer. The app currently prints
 - [ ] Printing 1, 5 and 20 labels produces the right count without drift.
 - [ ] The label barcode matches the variant's stored barcode exactly; do not claim GS1 registration for generated numbers.
 
-## 5. Scanner
+## 6. Scanner
 
 - [ ] Scan a known internal barcode into a new sale; the exact variant is added.
 - [ ] Scan the same barcode again; quantity increments instead of adding a duplicate line.
@@ -74,7 +85,7 @@ Do not assume ESC/POS compatibility for either printer. The app currently prints
 - [ ] Rapid repeated scans do not double-submit a sale.
 - [ ] Test all variants of one style; each colour/size has its own barcode.
 
-## 6. Failure and recovery
+## 7. Failure and recovery
 
 - [ ] Print with the printer powered off; the UI reports a driver failure.
 - [ ] Reconnect and reprint the same invoice; stock and sales totals are unchanged.

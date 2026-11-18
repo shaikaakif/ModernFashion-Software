@@ -24,6 +24,7 @@ import { createExportService } from './services/exportService.js';
 import { createPrintService } from './hardware/printService.js';
 import { createUpdateService } from './services/updateService.js';
 import { createBrandingService } from './services/brandingService.js';
+import { createVyaparService } from './services/vyaparService.js';
 import { registerIpc } from './ipc/registerIpc.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -178,6 +179,7 @@ async function bootstrap() {
     logger,
     onRestore: scheduleRestore,
   });
+  const vyapar = createVyaparService({ db, auth, backupService: backup, logger });
   services = {
     app,
     auth,
@@ -186,6 +188,7 @@ async function bootstrap() {
     catalog,
     inventory,
     importer,
+    vyapar,
     suppliers,
     purchases,
     sales,

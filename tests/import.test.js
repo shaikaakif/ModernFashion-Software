@@ -243,3 +243,22 @@ test('Vyapar .VYB backups are rejected instead of pretending to restore them', (
     /proprietary backup container/i
   );
 });
+
+test('CSV import preserves a negative stock value', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const file = writeFile(
+    app.directory,
+    'negative.csv',
+    ['Product,Category,Sale Price,Stock,SKU', 'Negative Tee,T-shirts,499,-3,TSH-NEG'].join('\n')
+  );
+  const preview = app.services.importer.preview({ filePath: file });
+  assert.equal(preview.summary.errors, 0);
+  app.services.importer.commit({ filePath: file, mapping: preview.mapping });
+  const variant = app.db.prepare("SELECT id FROM product_variants WHERE sku = 'TSH-NEG'").get();
+  assert.equal(app.db.prepare('SELECT quantity FROM inventory_balances WHERE variant_id = ?').get(variant.id).quantity, -3);
+  assert.equal(
+    app.db.prepare("SELECT quantity_change FROM stock_movements WHERE variant_id = ? AND movement_type = 'opening'").get(variant.id).quantity_change,
+    -3
+  );
+});

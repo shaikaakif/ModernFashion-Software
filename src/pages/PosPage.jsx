@@ -5,11 +5,13 @@ import {
   Alert,
   Button,
   Divider,
+  Dropdown,
   Empty,
   Form,
   Input,
   InputNumber,
   Modal,
+  Segmented,
   Select,
   Table,
   Tag,
@@ -20,19 +22,18 @@ import {
   CheckCircleOutlined,
   CloseOutlined,
   DeleteOutlined,
+  DownOutlined,
   PrinterOutlined,
   SearchOutlined,
   UserAddOutlined,
-  UserOutlined,
-  WhatsAppOutlined,
 } from '@ant-design/icons';
-import { addToCart, cartGrossPaise, cartQuantity, cartToPayload, removeLine, setQuantity } from '@shared/cart.js';
+import { addToCart, cartGrossPaise, cartToPayload, removeLine, setQuantity } from '@shared/cart.js';
 import { computeCartTotals, pickBestOffer, toPaise } from '@shared/money.js';
 import { api, errorMessage } from '@/app/api';
 import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
-import { formatDateTime, money, moneyPlain, paymentLabel, statusColor } from '@/app/format';
-import { LoadingPanel, PageHeader } from '@/app/components';
+import { formatDateTime, formatStock, money, moneyPlain } from '@/app/format';
+import { LoadingPanel } from '@/app/components';
 
 const PAYMENT_OPTIONS = [
   { value: 'cash', label: 'Cash' },
@@ -56,15 +57,16 @@ export default function PosPage() {
   const [customerPhone, setCustomerPhone] = useState('');
   const [customerGstin, setCustomerGstin] = useState('');
   const [customerOpen, setCustomerOpen] = useState(false);
+  const [customerQuery, setCustomerQuery] = useState('');
+  const [customerResults, setCustomerResults] = useState([]);
+  const debouncedCustomerQuery = useDebouncedValue(customerQuery, 250);
   const [billDiscount, setBillDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [amountReceived, setAmountReceived] = useState('');
   const [amountTouched, setAmountTouched] = useState(false);
   const [notes, setNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [lastSale, setLastSale] = useState(null);
   const [receiptBusy, setReceiptBusy] = useState(false);
-  const [lastPrinted, setLastPrinted] = useState(false);
   const scanRef = useRef(null);
   const idempotencyRef = useRef(newIdempotencyKey());
 
@@ -77,6 +79,7 @@ export default function PosPage() {
   }, [bootstrap, subtotalPaise]);
   const manualDiscountPaise = toPaise(billDiscount || 0);
   const appliedDiscountPaise = Math.max(manualDiscountPaise, autoOffer?.discountPaise || 0);
+  const saleType = paymentMethod === 'credit' ? 'credit' : 'cash';
   const totals = useMemo(
     () =>
       computeCartTotals(
@@ -103,8 +106,35 @@ export default function PosPage() {
   }, [bootstrap?.settings?.pos?.defaultPaymentMethod]);
 
   useEffect(() => {
-    if (!lastSale) scanRef.current?.focus();
-  }, [lastSale]);
+    scanRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const query = debouncedCustomerQuery.trim();
+    if (query.length < 2) {
+      setCustomerResults([]);
+      return undefined;
+    }
+    api('customers.search', { query })
+      .then((rows) => {
+        if (active) setCustomerResults(rows || []);
+      })
+      .catch(() => {
+        if (active) setCustomerResults([]);
+      });
+    return () => {
+      active = false;
+    };
+  }, [debouncedCustomerQuery]);
+
+  function chooseCustomer(row) {
+    setCustomer(row);
+    setCustomerName(row.name || '');
+    setCustomerPhone(row.phone || '');
+    setCustomerQuery('');
+    setCustomerResults([]);
+  }
 
   useEffect(() => {
     const onKey = (event) => {
@@ -112,14 +142,14 @@ export default function PosPage() {
         event.preventDefault();
         scanRef.current?.focus();
       }
-      if (event.key === 'F8' && !submitting && !lastSale) {
+      if (event.key === 'F8' && !submitting) {
         event.preventDefault();
         document.getElementById('pos-complete')?.click();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [submitting, lastSale]);
+  }, [submitting]);
 
   const focusScan = useCallback(() => {
     requestAnimationFrame(() => scanRef.current?.focus());
@@ -127,7 +157,7 @@ export default function PosPage() {
 
   const addItem = useCallback(
     (item) => {
-      const result = addToCart(cart, item);
+      const result = addToCart(cart, item, { allowExceedStock: true });
       if (!result.added) {
         message.warning(result.reason);
         focusScan();
@@ -192,7 +222,7 @@ export default function PosPage() {
   }
 
   function updateQuantity(line, quantity) {
-    setCart(setQuantity(cart, line.variantId, quantity));
+    setCart(setQuantity(cart, line.variantId, quantity, { allowExceedStock: true }));
   }
 
   function clearCart() {
@@ -205,7 +235,6 @@ export default function PosPage() {
       setCustomerGstin('');
       setNotes('');
       setAmountTouched(false);
-      setLastSale(null);
       idempotencyRef.current = newIdempotencyKey();
       focusScan();
     };
@@ -229,7 +258,8 @@ export default function PosPage() {
     else setAmountReceived(moneyPlain(totals.totalPaise));
   }
 
-  async function completeSale() {
+  async function completeSale(printMode = 'auto') {
+    const mode = typeof printMode === 'string' ? printMode : 'auto';
     if (!cart.length) {
       message.warning('Add at least one product to the bill.');
       focusScan();
@@ -279,14 +309,15 @@ export default function PosPage() {
       idempotencyRef.current = newIdempotencyKey();
       reload();
 
-      if (bootstrap?.settings?.hardware?.autoPrintReceipt) {
+      const autoPrint = Boolean(bootstrap?.settings?.hardware?.autoPrintReceipt);
+      const shouldPrintReceipt = mode === 'receipt' || (mode === 'auto' && autoPrint);
+      if (shouldPrintReceipt) {
         if (!bootstrap?.settings?.hardware?.receiptPrinter) {
           message.info('Sale saved. No receipt printer is assigned in Settings, so nothing was printed.');
         } else {
           setReceiptBusy(true);
           try {
             await api('print.receipt', { saleId: result.sale.id, duplicate: false });
-            setLastPrinted(true);
             message.success('Sale saved and sent to the receipt printer.');
           } catch (printError) {
             message.warning(
@@ -295,6 +326,20 @@ export default function PosPage() {
           } finally {
             setReceiptBusy(false);
           }
+        }
+      } else if (mode === 'a4') {
+        try {
+          await api('print.a4', { saleId: result.sale.id });
+          message.success('Sale saved and A4 invoice sent to the printer.');
+        } catch (printError) {
+          message.warning(`Sale saved, but the A4 invoice did not print: ${errorMessage(printError)}`);
+        }
+      } else if (mode === 'pdf') {
+        try {
+          const pdf = await api('print.savePdf', { saleId: result.sale.id });
+          message.success(`Sale saved. PDF: ${pdf.path}`);
+        } catch (pdfError) {
+          message.warning(`Sale saved, but the PDF could not be saved: ${errorMessage(pdfError)}`);
         }
       } else {
         message.success(`Sale ${result.sale.invoiceNo} saved.`);
@@ -307,68 +352,6 @@ export default function PosPage() {
     }
   }
 
-  async function printLastSale() {
-    if (!lastSale) return;
-    setReceiptBusy(true);
-    try {
-      await api('print.receipt', { saleId: lastSale.id, duplicate: lastPrinted || lastSale.printCount > 0 });
-      setLastPrinted(true);
-      message.success('Receipt sent to the printer. Check the printed copy.');
-    } catch (printError) {
-      message.error(errorMessage(printError));
-    } finally {
-      setReceiptBusy(false);
-    }
-  }
-
-  async function savePdf() {
-    if (!lastSale) return;
-    try {
-      const result = await api('print.savePdf', { saleId: lastSale.id });
-      message.success(`PDF saved: ${result.path}`);
-    } catch (pdfError) {
-      message.error(errorMessage(pdfError));
-    }
-  }
-
-  function whatsapp() {
-    if (!lastSale) return;
-    const customer = lastSale.customerName || 'Walk-in customer';
-    const phone = lastSale.customerPhone || 'No saved mobile';
-    modal.confirm({
-      title: 'Open WhatsApp Desktop?',
-      content: (
-        <div>
-          <p>
-            Recipient: <strong>{customer}</strong> · {phone}
-          </p>
-          <p>
-            The invoice PDF will be generated and the message pre-filled in WhatsApp Desktop. Nothing is sent until
-            you verify the recipient and press Send.
-          </p>
-        </div>
-      ),
-      okText: 'Open WhatsApp',
-      onOk: async () => {
-        try {
-          const result = await api('print.whatsapp', { saleId: lastSale.id });
-          modal.info({
-            title: result.whatsappOpened ? 'WhatsApp Desktop is ready' : 'Attach the PDF manually',
-            content: (
-              <div>
-                <p>{result.instructions}</p>
-                <p className="mono small break-all">{result.path}</p>
-              </div>
-            ),
-            okText: 'Got it',
-          });
-        } catch (shareError) {
-          message.error(errorMessage(shareError));
-        }
-      },
-    });
-  }
-
   if (loading && !bootstrap) return <LoadingPanel label="Preparing the billing counter…" />;
   if (error && !bootstrap) return <Alert type="error" showIcon message={errorMessage(error)} />;
   if (!bootstrap) return null;
@@ -379,253 +362,289 @@ export default function PosPage() {
   const balancePaise = Math.max(0, totals.totalPaise - toPaise(amountReceived || 0));
 
   return (
-    <div className="pos-page">
-      <PageHeader
-        eyebrow={`${bootstrap.businessDate} · ${bootstrap.cashier.roleCode === 'owner' ? 'Owner counter' : 'Cash shift'}`}
-        title="New sale"
-        subtitle="Scan a barcode and press Enter. Scanning the same product again increases its quantity."
-        extra={
-          <div className="pos-head-meta">
-            <Tag color="green">Scanner ready</Tag>
-            <span className="muted small">F2 scan field · F8 complete</span>
-          </div>
-        }
-      />
+    <div className="pos-terminal">
+      <div className="pos-terminal-top">
+        <div className="pos-sale-type">
+          <Segmented
+            block
+            value={saleType}
+            onChange={(value) => choosePayment(value === 'credit' ? 'credit' : 'cash')}
+            options={[
+              { value: 'cash', label: 'Cash' },
+              { value: 'credit', label: 'Credit' },
+            ]}
+          />
+        </div>
 
-      <div className="pos-shell">
-        <div className="pos-main">
-          <div className="scan-bar">
+        <div className="pos-customer-area">
+          <div className="pos-customer-search">
             <Input
-              ref={scanRef}
-              size="large"
-              prefix={<BarcodeOutlined />}
-              placeholder="Scan barcode / SKU, or type a product name and press Enter"
-              value={scan}
-              onChange={(event) => setScan(event.target.value)}
-              onPressEnter={() => handleScan()}
-              suffix={
-                <Button type="text" size="small" icon={<SearchOutlined />} loading={searching} onClick={runSearch}>
-                  Search
-                </Button>
-              }
-              autoFocus
-              spellCheck={false}
-              aria-label="Scan barcode or search products"
+              prefix={<SearchOutlined />}
+              placeholder="Search name or phone"
+              value={customerQuery}
+              onChange={(event) => setCustomerQuery(event.target.value)}
+              allowClear
             />
-            <div className="scan-hint">
-              Next invoice <strong>{bootstrap.nextInvoiceNumber}</strong> · Prices come from Inventory.
-            </div>
-          </div>
-
-          {searchResults.length ? (
-            <div className="search-results">
-              <div className="search-results-head">
-                <strong>{searchResults.length} matches</strong>
-                <Button type="text" size="small" icon={<CloseOutlined />} onClick={() => setSearchResults([])}>
-                  Close
-                </Button>
-              </div>
-              <div className="search-result-list">
-                {searchResults.map((item) => (
-                  <button
-                    type="button"
-                    key={item.variantId}
-                    className="search-result"
-                    onClick={() => addItem(item)}
-                  >
-                    <div>
-                      <strong>{item.productName}</strong>
-                      <span>
-                        {item.color} / {item.size} · {item.sku}
-                      </span>
-                    </div>
-                    <div className="search-result-side">
-                      <strong>{money(item.pricePaise)}</strong>
-                      <Tag color={item.stock > 0 ? 'default' : 'red'}>{item.stock} in stock</Tag>
-                    </div>
+            {customerResults.length ? (
+              <div className="pos-customer-results">
+                {customerResults.map((row) => (
+                  <button type="button" key={row.id} onClick={() => chooseCustomer(row)}>
+                    <strong>{row.name}</strong>
+                    <span>{row.phone}</span>
                   </button>
                 ))}
               </div>
-            </div>
-          ) : null}
-
-          <div className="cart-panel">
-            <div className="cart-panel-head">
-              <div>
-                <h2>Current bill</h2>
-                <span className="muted">
-                  {cartQuantity(cart)} unit{cartQuantity(cart) === 1 ? '' : 's'} · {cart.length} line
-                  {cart.length === 1 ? '' : 's'}
-                </span>
-              </div>
-              <Button danger type="text" disabled={!cart.length} onClick={clearCart}>
-                Clear bill
-              </Button>
-            </div>
-            <Table
-              className="pos-cart-table"
-              rowKey="variantId"
-              dataSource={cart}
-              pagination={false}
-              size="middle"
-              locale={{
-                emptyText: (
-                  <Empty
-                    image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description="Scan a barcode to start the bill. Manual search is available above."
-                  />
-                ),
-              }}
-              columns={[
-                {
-                  title: 'Product',
-                  dataIndex: 'productName',
-                  render: (value, row) => (
-                    <div className="cart-product">
-                      <strong>{value}</strong>
-                      <span>
-                        {row.color} / {row.size} · {row.sku}
-                      </span>
-                      <small>
-                        {row.availableStock} in stock
-                        {row.availableStock <= row.lowStockThreshold ? <Tag color="gold">Low stock</Tag> : null}
-                      </small>
-                    </div>
-                  ),
-                },
-                {
-                  title: 'Qty',
-                  width: 110,
-                  align: 'center',
-                  render: (_, row) => (
-                    <InputNumber
-                      min={1}
-                      max={Math.max(1, row.availableStock)}
-                      value={row.quantity}
-                      onChange={(value) => updateQuantity(row, value)}
-                      onPressEnter={focusScan}
-                      style={{ width: 78 }}
-                      aria-label={`Quantity for ${row.productName}`}
-                    />
-                  ),
-                },
-                {
-                  title: 'Unit price',
-                  dataIndex: 'unitPricePaise',
-                  align: 'right',
-                  width: 130,
-                  render: money,
-                },
-                {
-                  title: 'Amount',
-                  align: 'right',
-                  width: 130,
-                  render: (_, row) => <strong>{money(row.unitPricePaise * row.quantity)}</strong>,
-                },
-                {
-                  title: '',
-                  width: 52,
-                  align: 'center',
-                  render: (_, row) => (
-                    <Tooltip title="Remove line">
-                      <Button
-                        type="text"
-                        danger
-                        icon={<DeleteOutlined />}
-                        onClick={() => setCart(removeLine(cart, row.variantId))}
-                        aria-label={`Remove ${row.productName}`}
-                      />
-                    </Tooltip>
-                  ),
-                },
-              ]}
-            />
+            ) : null}
           </div>
+          <Input
+            placeholder="Billing name"
+            value={customerName}
+            onChange={(event) => setCustomerName(event.target.value)}
+            maxLength={120}
+          />
+          <Input
+            placeholder="Phone (required)"
+            inputMode="tel"
+            maxLength={10}
+            value={customerPhone}
+            onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, ''))}
+          />
+          <Input
+            placeholder="GSTIN"
+            maxLength={15}
+            value={customerGstin}
+            onChange={(event) => setCustomerGstin(event.target.value.toUpperCase())}
+          />
+          {customer ? (
+            <Tag
+              closable
+              color="green"
+              onClose={() => {
+                setCustomer(null);
+                setCustomerName('');
+                setCustomerPhone('');
+                setCustomerGstin('');
+              }}
+            >
+              {customer.name} · {customer.phone}
+            </Tag>
+          ) : null}
         </div>
 
-        <aside className="pos-side">
-          <div className="pos-total-card">
-            <div className="pos-total-head">
-              <span className="eyebrow">Payment</span>
-              <strong>Bill summary</strong>
-            </div>
+        <div className="pos-invoice-info">
+          <div>
+            <span>Invoice</span>
+            <strong>{bootstrap.nextInvoiceNumber}</strong>
+          </div>
+          <div>
+            <span>Date / time</span>
+            <strong>{formatDateTime(new Date().toISOString())}</strong>
+          </div>
+          <div>
+            <span>State of supply</span>
+            <strong>{bootstrap.settings.tax?.placeOfSupply || bootstrap.business?.stateName || 'Telangana'}</strong>
+          </div>
+          <Button type="link" size="small" icon={<UserAddOutlined />} onClick={() => setCustomerOpen(true)}>
+            Customer list
+          </Button>
+        </div>
+      </div>
 
-            <div className="pos-customer-block">
-              <div className="pos-section-head">
-                <span className="eyebrow">Customer</span>
-                <Button type="link" size="small" icon={<UserOutlined />} onClick={() => setCustomerOpen(true)}>
-                  {customer ? 'Change' : 'Find saved'}
-                </Button>
-              </div>
-              {customer ? (
-                <div className="pos-selected-customer">
-                  <strong>{customer.name}</strong>
-                  <span>{customer.phone}</span>
-                </div>
-              ) : (
-                <div className="pos-customer-fields">
-                  <Input
-                    placeholder="Customer name (optional)"
-                    value={customerName}
-                    onChange={(event) => setCustomerName(event.target.value)}
-                    maxLength={120}
+      <div className="pos-terminal-main">
+        <div className="pos-entry-bar">
+          <Input
+            ref={scanRef}
+            size="large"
+            prefix={<BarcodeOutlined />}
+            placeholder="Scan barcode / SKU, or type a product name and press Enter"
+            value={scan}
+            onChange={(event) => setScan(event.target.value)}
+            onPressEnter={() => handleScan()}
+            suffix={
+              <Button type="text" size="small" icon={<SearchOutlined />} loading={searching} onClick={runSearch}>
+                Search
+              </Button>
+            }
+            autoFocus
+            spellCheck={false}
+            aria-label="Scan barcode or search products"
+          />
+          <Button onClick={focusScan}>Add row</Button>
+          <Button danger disabled={!cart.length} onClick={clearCart}>
+            Clear bill
+          </Button>
+          <span className="muted small">F2 scan · F8 save</span>
+        </div>
+
+        {searchResults.length ? (
+          <div className="search-results pos-search-results">
+            <div className="search-results-head">
+              <strong>{searchResults.length} matches</strong>
+              <Button type="text" size="small" icon={<CloseOutlined />} onClick={() => setSearchResults([])}>
+                Close
+              </Button>
+            </div>
+            <div className="search-result-list">
+              {searchResults.map((item) => (
+                <button type="button" key={item.variantId} className="search-result" onClick={() => addItem(item)}>
+                  <div>
+                    <strong>{item.productName}</strong>
+                    <span>
+                      {item.color} / {item.size} · {item.sku}
+                    </span>
+                  </div>
+                  <div className="search-result-side">
+                    <strong>{money(item.pricePaise)}</strong>
+                    <Tag color={item.stock > 0 ? 'default' : item.stock < 0 ? 'red' : 'gold'}>
+                      {formatStock(item.stock)}
+                    </Tag>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        <div className="pos-table-wrap">
+          <Table
+            className="pos-entry-table"
+            rowKey="variantId"
+            dataSource={cart}
+            pagination={false}
+            size="middle"
+            locale={{
+              emptyText: (
+                <Empty
+                  image={Empty.PRESENTED_IMAGE_SIMPLE}
+                  description="Scan a barcode or search a product to start the bill."
+                />
+              ),
+            }}
+            columns={[
+              {
+                title: 'Barcode',
+                dataIndex: 'barcode',
+                width: 170,
+                render: (value) => <span className="mono small">{value}</span>,
+              },
+              {
+                title: 'Item',
+                dataIndex: 'productName',
+                render: (value, row) => (
+                  <div className="cart-product">
+                    <strong>{value}</strong>
+                    <span>
+                      {row.color} / {row.size} · {row.sku}
+                    </span>
+                    <small>
+                      {formatStock(row.availableStock)}
+                      {row.availableStock < 0 ? <Tag color="red">Negative</Tag> : null}
+                      {row.availableStock >= 0 && row.availableStock <= row.lowStockThreshold ? (
+                        <Tag color="gold">Low stock</Tag>
+                      ) : null}
+                    </small>
+                  </div>
+                ),
+              },
+              {
+                title: 'Qty',
+                width: 100,
+                align: 'center',
+                render: (_, row) => (
+                  <InputNumber
+                    min={1}
+                    max={999999}
+                    value={row.quantity}
+                    onChange={(value) => updateQuantity(row, value)}
+                    onPressEnter={focusScan}
+                    style={{ width: 72 }}
+                    aria-label={`Quantity for ${row.productName}`}
                   />
-                  <Input
-                    placeholder="Mobile number (required)"
-                    inputMode="tel"
-                    maxLength={10}
-                    value={customerPhone}
-                    onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, ''))}
-                  />
-                </div>
-              )}
-              <Input
-                placeholder="Customer GSTIN (optional, for B2B)"
-                maxLength={15}
-                value={customerGstin}
-                onChange={(event) => setCustomerGstin(event.target.value.toUpperCase())}
-              />
-            </div>
+                ),
+              },
+              { title: 'Unit', width: 70, render: () => 'Pcs' },
+              {
+                title: 'Price',
+                dataIndex: 'unitPricePaise',
+                align: 'right',
+                width: 120,
+                render: money,
+              },
+              {
+                title: 'Discount',
+                key: 'discount',
+                align: 'right',
+                width: 110,
+                render: (_, row, index) => {
+                  const line = totals.lines[index];
+                  return line?.discountPaise ? money(line.discountPaise) : '—';
+                },
+              },
+              {
+                title: taxEnabled ? 'Tax' : 'Tax (off)',
+                key: 'tax',
+                align: 'right',
+                width: 100,
+                render: (_, row, index) => {
+                  const line = totals.lines[index];
+                  return taxEnabled && line?.taxPaise ? money(line.taxPaise) : '—';
+                },
+              },
+              {
+                title: 'Final amount',
+                key: 'total',
+                align: 'right',
+                width: 140,
+                render: (_, row, index) => {
+                  const line = totals.lines[index];
+                  return <strong>{money(line?.totalPaise || row.unitPricePaise * row.quantity)}</strong>;
+                },
+              },
+              {
+                title: '',
+                width: 50,
+                align: 'center',
+                render: (_, row) => (
+                  <Tooltip title="Remove line">
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => setCart(removeLine(cart, row.variantId))}
+                      aria-label={`Remove ${row.productName}`}
+                    />
+                  </Tooltip>
+                ),
+              },
+            ]}
+          />
+        </div>
+      </div>
 
-            <div className="total-rows">
-              <div>
-                <span>Subtotal</span>
-                <strong>{money(totals.subtotalPaise)}</strong>
-              </div>
-              {autoOffer && manualDiscountPaise <= autoOffer.discountPaise ? (
-                <div className="offer-row">
-                  <span>{autoOffer.reason}</span>
-                  <strong>- {money(autoOffer.discountPaise)}</strong>
-                </div>
-              ) : null}
-              {manualDiscountPaise > 0 ? (
-                <div>
-                  <span>Manual discount</span>
-                  <strong>- {money(manualDiscountPaise)}</strong>
-                </div>
-              ) : null}
-              {taxEnabled ? (
-                <div>
-                  <span>Tax {inclusiveTax ? '(included)' : ''}</span>
-                  <strong>{money(totals.taxPaise)}</strong>
-                </div>
-              ) : null}
-              {totals.roundOffPaise !== 0 ? (
-                <div>
-                  <span>Round off</span>
-                  <strong>{money(totals.roundOffPaise)}</strong>
-                </div>
-              ) : null}
-            </div>
+      <div className="pos-terminal-bottom">
+        <div className="pos-bottom-left">
+          <span className="eyebrow">Terms &amp; conditions</span>
+          <div className="pos-terms">{bootstrap.settings.invoice?.terms || 'Set invoice terms in Settings.'}</div>
+          <label className="field-label" htmlFor="pos-notes">
+            Invoice description
+          </label>
+          <Input.TextArea
+            id="pos-notes"
+            rows={2}
+            maxLength={500}
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder="Optional note for this invoice"
+          />
+        </div>
 
-            <div className="grand-total">
-              <span>Total payable</span>
-              <strong>{money(totals.totalPaise)}</strong>
-            </div>
-
+        <div className="pos-bottom-mid">
+          <div className="pos-bottom-row">
             {canDiscount ? (
-              <div className="discount-box">
-                <label htmlFor="pos-discount">Manual bill discount (₹)</label>
+              <div className="pos-bottom-field">
+                <label className="field-label" htmlFor="pos-discount">
+                  Overall discount (₹)
+                </label>
                 <InputNumber
                   id="pos-discount"
                   min={0}
@@ -635,188 +654,136 @@ export default function PosPage() {
                   style={{ width: '100%' }}
                   placeholder="0.00"
                 />
-                <small>
-                  Limit {maxDiscountPercent}% of subtotal. Automatic offers are applied only when better.
+                <small className="muted small">
+                  Limit {maxDiscountPercent}% of subtotal. Automatic offers apply only when better.
                 </small>
               </div>
             ) : null}
-
-            <Divider className="pos-divider" />
-
-            <label className="field-label" htmlFor="pos-payment">
-              Payment method
-            </label>
-            <Select
-              id="pos-payment"
-              value={paymentMethod}
-              onChange={choosePayment}
-              options={PAYMENT_OPTIONS}
-              style={{ width: '100%' }}
-            />
-
-            <label className="field-label" htmlFor="pos-received">
-              Amount received (₹)
-            </label>
-            <InputNumber
-              id="pos-received"
-              min={0}
-              precision={2}
-              value={amountReceived === '' ? null : Number(amountReceived)}
-              onChange={(value) => {
-                setAmountTouched(true);
-                setAmountReceived(value === null || value === undefined ? '' : String(value));
-              }}
-              onPressEnter={completeSale}
-              style={{ width: '100%' }}
-              placeholder={moneyPlain(totals.totalPaise)}
-            />
-
-            <div className="change-row">
+            <div className="pos-bottom-field">
+              <label className="field-label" htmlFor="pos-payment">
+                Payment method
+              </label>
+              <Select
+                id="pos-payment"
+                value={paymentMethod}
+                onChange={choosePayment}
+                options={PAYMENT_OPTIONS}
+                style={{ width: '100%' }}
+              />
+            </div>
+          </div>
+          <div className="pos-bottom-row">
+            <div className="pos-bottom-field">
+              <label className="field-label" htmlFor="pos-received">
+                Amount received (₹)
+              </label>
+              <InputNumber
+                id="pos-received"
+                min={0}
+                precision={2}
+                value={amountReceived === '' ? null : Number(amountReceived)}
+                onChange={(value) => {
+                  setAmountTouched(true);
+                  setAmountReceived(value === null || value === undefined ? '' : String(value));
+                }}
+                onPressEnter={() => completeSale('receipt')}
+                style={{ width: '100%' }}
+                placeholder={moneyPlain(totals.totalPaise)}
+              />
+            </div>
+            <div className="pos-bottom-field pos-change">
               <span>{balancePaise > 0 ? 'Balance due' : 'Change'}</span>
               <strong className={balancePaise > 0 ? 'text-danger' : 'text-success'}>
                 {money(balancePaise > 0 ? balancePaise : changePaise)}
               </strong>
             </div>
+          </div>
+        </div>
 
-            <label className="field-label" htmlFor="pos-notes">
-              Bill note (optional)
-            </label>
-            <Input.TextArea
-              id="pos-notes"
-              rows={2}
-              maxLength={500}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              placeholder="Visible in the invoice record and activity log"
-            />
+        <div className="pos-bottom-right">
+          <div className="pos-total-lines">
+            <div>
+              <span>Subtotal</span>
+              <strong>{money(totals.subtotalPaise)}</strong>
+            </div>
+            {totals.lineDiscountPaise > 0 ? (
+              <div>
+                <span>Line discounts</span>
+                <strong>- {money(totals.lineDiscountPaise)}</strong>
+              </div>
+            ) : null}
+            {totals.billDiscountPaise > 0 ? (
+              <div>
+                <span>Bill discount</span>
+                <strong>- {money(totals.billDiscountPaise)}</strong>
+              </div>
+            ) : null}
+            {taxEnabled ? (
+              <div>
+                <span>Tax {inclusiveTax ? '(included)' : ''}</span>
+                <strong>{money(totals.taxPaise)}</strong>
+              </div>
+            ) : null}
+            {totals.roundOffPaise !== 0 ? (
+              <div>
+                <span>Round off</span>
+                <strong>{money(totals.roundOffPaise)}</strong>
+              </div>
+            ) : null}
+          </div>
 
+          <div className="pos-grand-total">
+            <span>Total payable</span>
+            <strong>{money(totals.totalPaise)}</strong>
+          </div>
+
+          <div className="pos-action-bar">
             <Button
               id="pos-complete"
               type="primary"
               size="large"
-              block
-              className="complete-button"
               icon={<CheckCircleOutlined />}
               loading={submitting}
               disabled={!cart.length || receiptBusy}
-              onClick={completeSale}
+              onClick={() => completeSale('none')}
             >
-              Complete sale · {money(totals.totalPaise)}
+              Save
             </Button>
-            <div className="pos-safe-note">
-              The sale, payment and stock movement are saved together. A printing failure never creates a second
-              sale.
-            </div>
+            <Button
+              size="large"
+              icon={<PrinterOutlined />}
+              loading={receiptBusy}
+              disabled={!cart.length || submitting}
+              onClick={() => completeSale('receipt')}
+            >
+              Save &amp; print
+            </Button>
+            <Dropdown
+              menu={{
+                items: [
+                  { key: 'a4', label: 'Save & print A4 invoice' },
+                  { key: 'pdf', label: 'Save & save PDF' },
+                ],
+                onClick: ({ key }) => completeSale(key),
+              }}
+              disabled={!cart.length || submitting}
+            >
+              <Button size="large" icon={<DownOutlined />} aria-label="More save and print options" />
+            </Dropdown>
           </div>
-
-          <div className="pos-cashier-note">
-            <strong>{bootstrap.cashier.name}</strong>
-            <span>Every invoice records this signed-in cashier.</span>
-          </div>
-        </aside>
+          <span className="muted small">Sale, payment and stock ledger are saved together.</span>
+        </div>
       </div>
 
       <CustomerModal
         open={customerOpen}
         onClose={() => setCustomerOpen(false)}
         onSelect={(value) => {
-          setCustomer(value);
-          setCustomerName(value.name || '');
-          setCustomerPhone(value.phone || '');
+          chooseCustomer(value);
           setCustomerOpen(false);
         }}
         canManage={can('customers.manage')}
       />
-
-      <Modal
-        open={Boolean(lastSale)}
-        title={lastSale ? `Sale saved · ${lastSale.invoiceNo}` : ''}
-        onCancel={() => {
-          setLastSale(null);
-          focusScan();
-        }}
-        footer={null}
-        width={520}
-        className="sale-success-modal"
-      >
-        {lastSale ? (
-          <div>
-            <div className="success-hero">
-              <CheckCircleOutlined />
-              <div>
-                <strong>{money(lastSale.totalPaise)}</strong>
-                <span>
-                  {lastSale.paymentStatus === 'paid'
-                    ? `Paid by ${paymentLabel(lastSale.paymentMethod)}`
-                    : `Balance ${money(lastSale.balancePaise)}`}
-                  {lastSale.changePaise > 0 ? ` · Change ${money(lastSale.changePaise)}` : ''}
-                </span>
-              </div>
-            </div>
-            <div className="sale-meta-grid">
-              <div>
-                <span>Invoice</span>
-                <strong>{lastSale.invoiceNo}</strong>
-              </div>
-              <div>
-                <span>Time</span>
-                <strong>{formatDateTime(lastSale.completedAt)}</strong>
-              </div>
-              <div>
-                <span>Status</span>
-                <Tag color={statusColor(lastSale.status)}>{lastSale.status}</Tag>
-              </div>
-            </div>
-            {lastSale.items?.length ? (
-              <Table
-                size="small"
-                rowKey="id"
-                pagination={false}
-                dataSource={lastSale.items}
-                columns={[
-                  { title: 'Item', dataIndex: 'productName', render: (value, row) => `${value} · ${row.variantLabel}` },
-                  { title: 'Qty', dataIndex: 'quantity', align: 'right', width: 60 },
-                  { title: 'Amount', dataIndex: 'lineTotalPaise', align: 'right', render: money, width: 100 },
-                ]}
-              />
-            ) : null}
-            <div className="success-actions">
-              <Button
-                type="primary"
-                icon={<PrinterOutlined />}
-                loading={receiptBusy}
-                onClick={printLastSale}
-              >
-                {lastPrinted ? 'Print duplicate' : 'Print receipt'}
-              </Button>
-              <Button onClick={savePdf}>Save PDF</Button>
-              <Button icon={<WhatsAppOutlined />} onClick={whatsapp}>
-                WhatsApp
-              </Button>
-              <Button
-                onClick={() => {
-                  const id = lastSale.id;
-                  setLastSale(null);
-                  navigate(`/sales?invoice=${id}`);
-                }}
-              >
-                Open invoice
-              </Button>
-              <Button
-                onClick={() => {
-                  setLastSale(null);
-                  focusScan();
-                }}
-              >
-                New sale
-              </Button>
-            </div>
-            <p className="muted small">
-              Check the printed receipt for paper, cut and print quality.
-            </p>
-          </div>
-        ) : null}
-      </Modal>
     </div>
   );
 }

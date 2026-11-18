@@ -99,6 +99,11 @@ export function movementLabel(type) {
   );
 }
 
+export function formatStock(quantity) {
+  const value = Math.trunc(Number(quantity) || 0);
+  return `${value > 0 ? '+' : ''}${value.toLocaleString('en-IN')} Pcs`;
+}
+
 export function frequencyLabel(hours) {
   if (hours < 24) return `every ${hours} hour${hours === 1 ? '' : 's'}`;
   const days = Math.round(hours / 24);

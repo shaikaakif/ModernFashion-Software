@@ -589,7 +589,6 @@ function buildPlan(db, { filePath, mapping: requestedMapping, options: rawOption
     if (mrpPaise !== null && Number.isNaN(mrpPaise)) errors.push('MRP is not a valid amount.');
     if (costPaise !== null && Number.isNaN(costPaise)) errors.push('Purchase cost is not a valid amount.');
     if (stock !== null && Number.isNaN(stock)) errors.push('Stock must be a whole number.');
-    if (stock !== null && stock < 0) errors.push('Stock cannot be negative.');
     if (taxRateBp !== null && Number.isNaN(taxRateBp)) errors.push('GST rate must be between 0 and 28.');
     if (lowStock !== null && (Number.isNaN(lowStock) || lowStock < 0)) errors.push('Low-stock level must be zero or more.');
     if (mrpPaise && pricePaise && mrpPaise > 0 && mrpPaise < pricePaise) errors.push('MRP is lower than the selling price.');
@@ -920,7 +919,7 @@ export function createImportService({ db, auth, logger }) {
           );
           createdVariantCount += 1;
           const opening = options.stockMode === 'ignore' ? 0 : row.stock ?? 0;
-          if (opening > 0) {
+          if (opening !== 0) {
             recordStockMovement(db, {
               variantId,
               productId,

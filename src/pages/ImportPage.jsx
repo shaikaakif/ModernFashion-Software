@@ -570,19 +570,24 @@ export default function ImportPage() {
 
         <SectionCard
           title="Coming from Vyapar?"
-          subtitle="Import the item export, not the .VYB backup."
+          subtitle="Use the full Vyapar backup for products, customers, sales and more."
         >
           <ol className="vyapar-steps">
-            <li>In Vyapar, open <strong>Items</strong> and use <strong>Export to Excel</strong> (or CSV).</li>
-            <li>Save the file and choose it above. The column names are matched automatically.</li>
-            <li>Review the preview, then import products and current stock.</li>
+            <li>Open <strong>Import from Vyapar backup</strong> and choose the `.vyp` or `.vyb.zip` file.</li>
+            <li>Review the counts and warnings, then import. A verified backup is created first.</li>
+            <li>For an item-only migration, export Items to Excel/CSV and use the importer above.</li>
           </ol>
+          <Space wrap className="section-gap-sm">
+            <Button type="primary" icon={<CloudUploadOutlined />} onClick={() => navigate('/vyapar-import')}>
+              Open Vyapar import
+            </Button>
+          </Space>
           <Alert
             type="info"
             showIcon
             className="section-gap-sm"
-            message="Vyapar .VYB backups are not supported."
-            description="A .VYB file is Vyapar's own backup container, not a standard database or spreadsheet. This app does not claim to restore it. The item export is the safe, documented route. Customers, suppliers and old sales still need to be exported separately from Vyapar."
+            message="Both Vyapar backup formats are supported."
+            description="The .vyp database and .vyb.zip archive are read-only copies. Negative stock, zero prices, invoice numbers and balances are preserved. Services, estimates and standalone payment-outs are reported as skipped."
           />
         </SectionCard>
       </div>

@@ -39,9 +39,6 @@ export function recordStockMovement(
   if (!Number.isInteger(change) || change === 0) fail('Stock movement quantity must be a non-zero whole number.');
   const current = getStock(db, variantId);
   const next = current + change;
-  if (next < 0) {
-    fail(`This operation would make stock negative (available ${current}).`, 'INSUFFICIENT_STOCK');
-  }
   const now = nowIso();
   db.prepare('UPDATE inventory_balances SET quantity = ?, updated_at = ? WHERE variant_id = ?').run(next, now, variantId);
   db.prepare(

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   Alert,
   App as AntApp,
@@ -21,6 +22,7 @@ import {
 } from 'antd';
 import {
   BarcodeOutlined,
+  CloudUploadOutlined,
   DeleteOutlined,
   DownloadOutlined,
   EditOutlined,
@@ -60,6 +62,7 @@ function filesize(bytes) {
 export default function SettingsPage() {
   const { can, refresh, refreshBranding } = useSession();
   const { message, modal } = AntApp.useApp();
+  const navigate = useNavigate();
   const [tab, setTab] = useState('business');
   const [saving, setSaving] = useState('');
   const [printers, setPrinters] = useState([]);
@@ -1224,6 +1227,11 @@ export default function SettingsPage() {
       <SectionCard
         title="Storage"
         subtitle="Your shop data is stored on this computer and is included in every backup."
+        extra={
+          <Button icon={<CloudUploadOutlined />} onClick={() => navigate('/vyapar-import')}>
+            Import from Vyapar
+          </Button>
+        }
       >
         {diagnostics.data ? (
           <Descriptions bordered size="small" column={2}>

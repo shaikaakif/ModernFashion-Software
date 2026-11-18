@@ -26,7 +26,7 @@ import {
 import { api, errorMessage } from '@/app/api';
 import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
-import { formatDateTime, money, movementLabel } from '@/app/format';
+import { formatDateTime, formatStock, money, movementLabel } from '@/app/format';
 import { EmptyPanel, ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard } from '@/app/components';
 import ProductsPage from '@/pages/ProductsPage';
 
@@ -187,8 +187,16 @@ export default function InventoryPage() {
         <Kpi
           label="Reorder attention"
           value={`${Number(stats.lowStock || 0)} low`}
-          hint={`${Number(stats.outOfStock || 0)} out of stock`}
-          tone={Number(stats.outOfStock || 0) > 0 ? 'danger' : Number(stats.lowStock || 0) > 0 ? 'warning' : 'success'}
+          hint={`${Number(stats.outOfStock || 0)} out of stock · ${Number(stats.negativeStock || 0)} negative`}
+          tone={
+            Number(stats.negativeStock || 0) > 0
+              ? 'danger'
+              : Number(stats.outOfStock || 0) > 0
+                ? 'danger'
+                : Number(stats.lowStock || 0) > 0
+                  ? 'warning'
+                  : 'success'
+          }
         />
       </div>
 
@@ -217,9 +225,10 @@ export default function InventoryPage() {
               style={{ width: 170 }}
               options={[
                 { value: 'all', label: 'All active stock' },
-                { value: 'in', label: 'In stock' },
+                { value: 'in', label: 'Positive stock' },
                 { value: 'low', label: 'Low stock' },
                 { value: 'out', label: 'Out of stock' },
+                { value: 'negative', label: 'Negative stock' },
                 { value: 'archived', label: 'Removed products' },
               ]}
             />
@@ -266,10 +275,22 @@ export default function InventoryPage() {
                 align: 'right',
                 render: (value, row) => (
                   <Space direction="vertical" size={2} style={{ alignItems: 'flex-end' }}>
-                    <strong className={value === 0 ? 'text-danger' : value <= row.threshold ? 'text-warning' : ''}>
-                      {value}
+                    <strong
+                      className={
+                        value < 0
+                          ? 'text-danger'
+                          : value === 0
+                            ? 'text-danger'
+                            : value <= row.threshold
+                              ? 'text-warning'
+                              : 'text-success'
+                      }
+                    >
+                      {formatStock(value)}
                     </strong>
-                    {value === 0 ? (
+                    {value < 0 ? (
+                      <Tag color="red">Negative — needs count</Tag>
+                    ) : value === 0 ? (
                       <Tag color="red">Out</Tag>
                     ) : value <= row.threshold ? (
                       <Tag color="gold">Low</Tag>
@@ -387,7 +408,7 @@ export default function InventoryPage() {
                 </strong>
               ),
             },
-            { title: 'Balance', dataIndex: 'balanceAfter', width: 90, align: 'right' },
+            { title: 'Balance', dataIndex: 'balanceAfter', width: 110, align: 'right', render: formatStock },
             ...(canSeeCost
               ? [{ title: 'Unit cost', dataIndex: 'unitCostPaise', width: 110, align: 'right', render: money }]
               : []),
@@ -582,7 +603,7 @@ export default function InventoryPage() {
               showIcon
               className="detail-alert"
               message={`${adjustRow.productName} · ${adjustRow.color} / ${adjustRow.size}`}
-              description={`Current recorded stock: ${adjustRow.stock}. Every change is written to the stock ledger and cannot be deleted.`}
+              description={`Current recorded stock: ${formatStock(adjustRow.stock)}. Every change is written to the stock ledger and cannot be deleted. Negative stock is allowed and must be corrected by a physical count.`}
             />
             <Form form={adjustForm} layout="vertical" onFinish={submitAdjust} requiredMark={false}>
               <Form.Item name="mode" label="What happened?" rules={[{ required: true }]}>
@@ -612,8 +633,8 @@ export default function InventoryPage() {
                 </Form.Item>
               )}
               <div className={`panel-note${previewBalance < 0 ? ' text-danger' : ''}`}>
-                New balance after this movement: <strong>{previewBalance}</strong>
-                {previewBalance < 0 ? ' — stock cannot go below zero.' : ''}
+                New balance after this movement: <strong>{formatStock(previewBalance)}</strong>
+                {previewBalance < 0 ? ' — negative stock is allowed; plan a physical count.' : ''}
               </div>
               {adjustMode === 'remove' ? (
                 <Form.Item name="movementType" label="Reason type">

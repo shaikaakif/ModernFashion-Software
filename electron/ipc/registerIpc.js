@@ -11,6 +11,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     catalog,
     inventory,
     importer,
+    vyapar,
     suppliers,
     purchases,
     sales,
@@ -99,6 +100,24 @@ export function createIpcHandlers({ services, paths, printService, exportService
     const stat = fs.statSync(file);
     if (!stat.isFile() || stat.size > 20 * 1024 * 1024) {
       fail('Choose a CSV or Excel file smaller than 20 MB.');
+    }
+    return { path: file, fileName: path.basename(file), sizeBytes: stat.size };
+  }
+
+  function chooseVyaparFile() {
+    auth.requirePermission('products.manage');
+    const file = dialog.showOpenDialogSync({
+      title: 'Choose a Vyapar backup',
+      filters: [
+        { name: 'Vyapar backup', extensions: ['vyp', 'zip'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    })?.[0];
+    if (!file) return null;
+    const stat = fs.statSync(file);
+    if (!stat.isFile() || stat.size > 500 * 1024 * 1024) {
+      fail('Choose a .vyp or .vyb.zip backup smaller than 500 MB.');
     }
     return { path: file, fileName: path.basename(file), sizeBytes: stat.size };
   }
@@ -226,6 +245,10 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'import.preview': (payload) => importer.preview(payload),
     'import.commit': (payload) => importer.commit(payload),
 
+    'vyapar.chooseFile': chooseVyaparFile,
+    'vyapar.inspect': (payload) => vyapar.inspect(payload?.path, payload?.options),
+    'vyapar.commit': (payload) => vyapar.commit(payload?.token, payload?.options),
+
     'inventory.list': (payload) => inventory.list(payload),
     'inventory.summary': () => inventory.summary(),
     'inventory.valuation': () => inventory.valuationByCategory(),
@@ -277,8 +300,11 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'reports.accountingPack': (payload) => reports.accountingPack(payload?.month),
 
     'users.list': () => users.list(),
+    'users.removed': () => users.listRemoved(),
     'users.create': (payload) => users.create(payload),
     'users.update': (payload) => users.update(payload?.id, payload),
+    'users.remove': (payload) => users.remove(payload?.id, payload),
+    'users.restore': (payload) => users.restore(payload?.id),
     'users.resetPassword': (payload) => users.resetPassword(payload?.id, payload),
     'users.shifts': (payload) => users.shifts(payload),
     'users.cashierActivity': (payload) => users.cashierActivity(payload),

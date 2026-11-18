@@ -12,7 +12,7 @@ import {
   nowIso,
 } from '../core/validation.js';
 import { writeAudit } from '../core/audit.js';
-import { assertStockAvailable, recordStockMovement } from '../core/inventory.js';
+import { recordStockMovement } from '../core/inventory.js';
 import { transaction } from '../core/database.js';
 import { allocateSequence, formatInvoiceNumber, peekSequence } from '../core/sequences.js';
 import { getSetting, publicBusiness } from '../core/settings.js';
@@ -68,6 +68,7 @@ export function createSaleService({ db, auth }) {
         pos,
         tax: getSetting(db, 'tax'),
         receipt: getSetting(db, 'receipt'),
+        invoice: getSetting(db, 'invoice'),
         hardware: getSetting(db, 'hardware'),
       },
       offers: activeOffers(dateKey),
@@ -103,8 +104,6 @@ export function createSaleService({ db, auth }) {
       if (variant.product_status !== 'active' || variant.status !== 'active') {
         fail(`${variant.product_name} is inactive and cannot be sold.`);
       }
-      if (variant.price_paise <= 0) fail(`${variant.product_name} does not have a valid selling price.`);
-      assertStockAvailable(db, variantId, quantity, variant.product_name);
       return { variant, quantity };
     });
   }

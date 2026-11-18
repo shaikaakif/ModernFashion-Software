@@ -100,6 +100,9 @@ export const DEFAULT_SETTINGS = {
   alerts: {
     lowStockEnabled: true,
   },
+  vyaparImport: {
+    lastImport: null,
+  },
 };
 
 const CATEGORY_SEED = [
@@ -570,6 +573,74 @@ const MIGRATIONS = [
       const columns = db.prepare('PRAGMA table_info(sales)').all().map((row) => row.name);
       if (!columns.includes('customer_gstin')) {
         db.exec("ALTER TABLE sales ADD COLUMN customer_gstin TEXT NOT NULL DEFAULT ''");
+      }
+    },
+  },
+  {
+    version: 4,
+    name: 'negative_stock_support',
+    up(db) {
+      // Rebuild both stock tables without the non-negative checks so imported
+      // Vyapar balances and legitimate overselling can be represented exactly.
+      db.exec(`
+        CREATE TABLE inventory_balances_new (
+          variant_id INTEGER PRIMARY KEY REFERENCES product_variants(id),
+          quantity INTEGER NOT NULL DEFAULT 0,
+          updated_at TEXT NOT NULL
+        );
+        INSERT INTO inventory_balances_new (variant_id, quantity, updated_at)
+          SELECT variant_id, quantity, updated_at FROM inventory_balances;
+        DROP TABLE inventory_balances;
+        ALTER TABLE inventory_balances_new RENAME TO inventory_balances;
+
+        CREATE TABLE stock_movements_new (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          variant_id INTEGER NOT NULL REFERENCES product_variants(id),
+          product_id INTEGER NOT NULL REFERENCES products(id),
+          movement_type TEXT NOT NULL CHECK (movement_type IN (
+            'opening', 'purchase', 'sale', 'sale_return', 'purchase_return',
+            'adjustment_in', 'adjustment_out', 'damage'
+          )),
+          quantity_change INTEGER NOT NULL CHECK (quantity_change <> 0),
+          balance_after INTEGER NOT NULL,
+          unit_cost_paise INTEGER NOT NULL DEFAULT 0,
+          reference_type TEXT NOT NULL DEFAULT '',
+          reference_id INTEGER,
+          reference_no TEXT NOT NULL DEFAULT '',
+          reason TEXT NOT NULL DEFAULT '',
+          note TEXT NOT NULL DEFAULT '',
+          created_by INTEGER REFERENCES users(id),
+          created_at TEXT NOT NULL
+        );
+        INSERT INTO stock_movements_new (
+          id, variant_id, product_id, movement_type, quantity_change, balance_after,
+          unit_cost_paise, reference_type, reference_id, reference_no, reason, note,
+          created_by, created_at
+        )
+          SELECT id, variant_id, product_id, movement_type, quantity_change, balance_after,
+                 unit_cost_paise, reference_type, reference_id, reference_no, reason, note,
+                 created_by, created_at
+          FROM stock_movements;
+        DROP TABLE stock_movements;
+        ALTER TABLE stock_movements_new RENAME TO stock_movements;
+        CREATE INDEX idx_movements_variant ON stock_movements(variant_id, created_at);
+        CREATE INDEX idx_movements_reference ON stock_movements(reference_type, reference_id);
+      `);
+    },
+  },
+  {
+    version: 5,
+    name: 'user_removal_metadata',
+    up(db) {
+      const columns = db.prepare('PRAGMA table_info(users)').all().map((row) => row.name);
+      if (!columns.includes('removed_at')) {
+        db.exec('ALTER TABLE users ADD COLUMN removed_at TEXT');
+      }
+      if (!columns.includes('removed_by')) {
+        db.exec('ALTER TABLE users ADD COLUMN removed_by INTEGER REFERENCES users(id)');
+      }
+      if (!columns.includes('removal_reason')) {
+        db.exec("ALTER TABLE users ADD COLUMN removal_reason TEXT NOT NULL DEFAULT ''");
       }
     },
   },

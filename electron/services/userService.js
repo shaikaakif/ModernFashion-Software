@@ -1,5 +1,5 @@
 import { fail } from '../core/errors.js';
-import { normalizePhone, requireInt, requireText, nowIso, requireDateKey, businessDate } from '../core/validation.js';
+import { normalizePhone, optionalText, requireInt, requireText, nowIso, requireDateKey, businessDate } from '../core/validation.js';
 import { writeAudit } from '../core/audit.js';
 import { hashPassword } from './authService.js';
 import { ROLE_DEFAULTS } from '../../shared/permissions.js';
@@ -21,9 +21,13 @@ export function createUserService({ db, auth }) {
     const rows = db
       .prepare(
         `SELECT u.id, u.name, u.mobile, u.role_code, u.status, u.last_login_at, u.created_at,
+                u.removed_at, u.removal_reason, r.name AS removed_by_name,
                 (SELECT COUNT(*) FROM sales s WHERE s.cashier_id = u.id AND s.status = 'completed') AS sale_count,
-                (SELECT COALESCE(SUM(s.total_paise), 0) FROM sales s WHERE s.cashier_id = u.id AND s.status = 'completed') AS sale_total_paise
-         FROM users u ORDER BY CASE u.role_code WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, u.name`
+                (SELECT COALESCE(SUM(s.total_paise), 0) FROM sales s WHERE s.cashier_id = u.id AND s.status = 'completed') AS sale_total_paise,
+                (SELECT COUNT(*) FROM cash_shifts cs WHERE cs.user_id = u.id) AS shift_count,
+                (SELECT MAX(cs.opened_at) FROM cash_shifts cs WHERE cs.user_id = u.id) AS last_shift_at
+         FROM users u LEFT JOIN users r ON r.id = u.removed_by
+         ORDER BY CASE u.role_code WHEN 'owner' THEN 0 WHEN 'manager' THEN 1 ELSE 2 END, u.name`
       )
       .all();
     return rows.map((row) => ({
@@ -35,8 +39,13 @@ export function createUserService({ db, auth }) {
       status: row.status,
       lastLoginAt: row.last_login_at,
       createdAt: row.created_at,
+      removedAt: row.removed_at,
+      removedByName: row.removed_by_name || '',
+      removalReason: row.removal_reason || '',
       saleCount: Number(row.sale_count || 0),
       saleTotalPaise: Number(row.sale_total_paise || 0),
+      shiftCount: Number(row.shift_count || 0),
+      lastShiftAt: row.last_shift_at,
       openShift: Boolean(
         db.prepare("SELECT id FROM cash_shifts WHERE user_id = ? AND status = 'open' LIMIT 1").get(row.id)
       ),
@@ -79,8 +88,7 @@ export function createUserService({ db, auth }) {
     const name = requireText(input.name ?? current.name, 'Staff name', { max: 120 });
     const roleCode = String(input.roleCode ?? current.role_code);
     if (!ROLE_DEFAULTS[roleCode]) fail('Choose a valid role.');
-    const status = String(input.status ?? current.status);
-    if (!['active', 'disabled'].includes(status)) fail('Choose a valid staff status.');
+    const status = current.status;
     if (current.role_code === 'owner' && (roleCode !== 'owner' || status !== 'active') && countOwners({ excludeId: id }) === 0) {
       fail('At least one active owner account is required.');
     }
@@ -123,6 +131,62 @@ export function createUserService({ db, auth }) {
       details: { targetName: user.name },
     });
     return { reset: true };
+  }
+
+  function remove(userId, input = {}) {
+    const owner = requireManage();
+    const id = requireInt(userId, 'Staff ID', { min: 1 });
+    const current = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    if (!current) fail('Staff account not found.');
+    if (current.id === owner.user.id) fail('You cannot remove your own account.');
+    if (current.role_code === 'owner' && countOwners({ excludeId: id }) === 0) {
+      fail('At least one active owner account is required.');
+    }
+    const openShift = db.prepare("SELECT id FROM cash_shifts WHERE user_id = ? AND status = 'open' LIMIT 1").get(id);
+    if (openShift) fail('Close the open cash shift before removing this staff account.');
+    if (current.status !== 'active' && current.removed_at) fail('This staff account is already removed.');
+    const reason = optionalText(input.reason, { max: 300 });
+    const now = nowIso();
+    db.prepare(
+      `UPDATE users SET status = 'disabled', removed_at = ?, removed_by = ?, removal_reason = ?,
+         failed_attempts = 0, locked_until = NULL, updated_at = ? WHERE id = ?`
+    ).run(now, owner.user.id, reason, now, id);
+    writeAudit(db, {
+      userId: owner.user.id,
+      userName: owner.user.name,
+      action: 'user.removed',
+      entityType: 'user',
+      entityId: id,
+      details: { name: current.name, roleCode: current.role_code, reason },
+    });
+    return { removed: true };
+  }
+
+  function restore(userId) {
+    const owner = requireManage();
+    const id = requireInt(userId, 'Staff ID', { min: 1 });
+    const current = db.prepare('SELECT * FROM users WHERE id = ?').get(id);
+    if (!current) fail('Staff account not found.');
+    if (current.status === 'active') fail('This staff account is already active.');
+    const now = nowIso();
+    db.prepare(
+      `UPDATE users SET status = 'active', removed_at = NULL, removed_by = NULL, removal_reason = '',
+         failed_attempts = 0, locked_until = NULL, updated_at = ? WHERE id = ?`
+    ).run(now, id);
+    writeAudit(db, {
+      userId: owner.user.id,
+      userName: owner.user.name,
+      action: 'user.restored',
+      entityType: 'user',
+      entityId: id,
+      details: { name: current.name, roleCode: current.role_code },
+    });
+    return { restored: true };
+  }
+
+  function listRemoved() {
+    requireManage();
+    return list().filter((row) => row.status !== 'active');
   }
 
   function shifts({ from = null, to = null, userId = null } = {}) {
@@ -235,7 +299,7 @@ export function createUserService({ db, auth }) {
     };
   }
 
-  return { list, create, update, resetPassword, shifts, cashierActivity, activity };
+  return { list, listRemoved, create, update, remove, restore, resetPassword, shifts, cashierActivity, activity };
 }
 
 function safeJson(value) {

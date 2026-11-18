@@ -38,7 +38,7 @@ test('checkout is idempotent, deducts stock once and records one completed sale'
   assert.equal(first.sale.cashierId, cashier.id);
 });
 
-test('a sale cannot exceed available stock and leaves no partial records', (t) => {
+test('a sale may exceed available stock and records a negative balance', (t) => {
   const app = createTestApp(t);
   setupOwner(app);
   addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
@@ -48,13 +48,11 @@ test('a sale cannot exceed available stock and leaves no partial records', (t) =
   logout(app);
   login(app, '9000000002');
 
-  assert.throws(
-    () => completeSale(app, variant.id, { quantity: 2, idempotencyKey: 'oversell-key-001' }),
-    { code: 'INSUFFICIENT_STOCK' }
-  );
-  assert.equal(saleCount(app), 0);
-  assert.equal(stockOf(app, variant.id), 1);
-  assert.equal(stockMovementCount(app, 'sale'), 0);
+  const result = completeSale(app, variant.id, { quantity: 2, idempotencyKey: 'oversell-key-001' });
+  assert.equal(result.sale.items[0].quantity, 2);
+  assert.equal(saleCount(app), 1);
+  assert.equal(stockOf(app, variant.id), -1);
+  assert.equal(stockMovementCount(app, 'sale'), 1);
 });
 
 test('a failed cash payment leaves the sale and stock untouched', (t) => {

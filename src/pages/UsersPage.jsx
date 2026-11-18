@@ -16,11 +16,13 @@ import {
   Tag,
 } from 'antd';
 import {
+  DeleteOutlined,
   EditOutlined,
   EyeOutlined,
   KeyOutlined,
   PlusOutlined,
   ReloadOutlined,
+  UndoOutlined,
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { api, errorMessage } from '@/app/api';
@@ -56,6 +58,7 @@ export default function UsersPage() {
   const { message } = AntApp.useApp();
   const [tab, setTab] = useState('staff');
   const [staffModal, setStaffModal] = useState({ open: false, record: null });
+  const [removeRecord, setRemoveRecord] = useState(null);
   const [passwordRecord, setPasswordRecord] = useState(null);
   const [saving, setSaving] = useState(false);
   const [shiftRange, setShiftRange] = useState([dayjs().subtract(29, 'day'), dayjs()]);
@@ -66,6 +69,7 @@ export default function UsersPage() {
   const [activityLoading, setActivityLoading] = useState(false);
   const [staffForm] = Form.useForm();
   const [passwordForm] = Form.useForm();
+  const [removeForm] = Form.useForm();
 
   const staff = useAsync(() => api('users.list'), []);
   const shifts = useAsync(
@@ -93,7 +97,6 @@ export default function UsersPage() {
       staffForm.setFieldsValue({
         name: staffModal.record.name,
         roleCode: staffModal.record.roleCode,
-        status: staffModal.record.status,
       });
     } else {
       staffForm.setFieldsValue({ roleCode: 'cashier' });
@@ -112,7 +115,6 @@ export default function UsersPage() {
           id: staffModal.record.id,
           name: values.name,
           roleCode: values.roleCode,
-          status: values.status,
         });
         message.success('Staff account updated.');
       } else {
@@ -125,6 +127,32 @@ export default function UsersPage() {
       message.error(errorMessage(error));
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function submitRemove(values) {
+    if (!removeRecord) return;
+    setSaving(true);
+    try {
+      await api('users.remove', { id: removeRecord.id, reason: values.reason });
+      message.success(`${removeRecord.name} removed. Historical invoices and shifts are preserved.`);
+      setRemoveRecord(null);
+      removeForm.resetFields();
+      staff.reload();
+    } catch (error) {
+      message.error(errorMessage(error));
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function restoreUser(record) {
+    try {
+      await api('users.restore', { id: record.id });
+      message.success(`${record.name} restored. They must sign in again.`);
+      staff.reload();
+    } catch (error) {
+      message.error(errorMessage(error));
     }
   }
 
@@ -162,6 +190,8 @@ export default function UsersPage() {
   }
 
   const staffRows = staff.data || [];
+  const activeRows = staffRows.filter((row) => row.status === 'active');
+  const removedRows = staffRows.filter((row) => row.status !== 'active');
 
   const staffPanel = staff.loading && !staff.data ? (
     <LoadingPanel label="Loading staff…" />
@@ -171,7 +201,7 @@ export default function UsersPage() {
     <SectionCard bodyClassName="panel-body flush">
       <div className="filter-bar">
         <span className="muted">
-          {staffRows.length} accounts · {staffRows.filter((row) => row.status === 'active').length} active
+          {activeRows.length} active accounts · {removedRows.length} removed
         </span>
         <div className="filter-summary">
           <Button icon={<ReloadOutlined />} onClick={staff.reload} loading={staff.loading}>
@@ -181,11 +211,11 @@ export default function UsersPage() {
       </div>
       <Table
         rowKey="id"
-        dataSource={staffRows}
+        dataSource={activeRows}
         loading={staff.loading}
         pagination={false}
         scroll={{ x: 950 }}
-        locale={{ emptyText: 'No staff accounts yet.' }}
+        locale={{ emptyText: 'No active staff accounts.' }}
         columns={[
           {
             title: 'Staff',
@@ -217,7 +247,7 @@ export default function UsersPage() {
           { title: 'Last sign-in', dataIndex: 'lastLoginAt', width: 170, render: formatDateTime },
           {
             title: '',
-            width: 130,
+            width: 160,
             render: (_, row) => (
               <Space size={2}>
                 <Button
@@ -238,6 +268,18 @@ export default function UsersPage() {
                   aria-label={`Reset password for ${row.name}`}
                   onClick={() => setPasswordRecord(row)}
                 />
+                {row.id !== currentUser?.id ? (
+                  <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    aria-label={`Remove ${row.name}`}
+                    onClick={() => {
+                      removeForm.resetFields();
+                      setRemoveRecord(row);
+                    }}
+                  />
+                ) : null}
               </Space>
             ),
           },
@@ -247,6 +289,72 @@ export default function UsersPage() {
         Roles are fixed permission sets enforced by the main process. Cashiers cannot open products, inventory,
         costs, expenses, reports, staff, settings or backups, even through a direct request.
       </div>
+    </SectionCard>
+  );
+
+  const removedPanel = (
+    <SectionCard
+      title="Removed users"
+      subtitle="Login access is revoked. Historical invoices, cash shifts and activity records remain attributed to the original person."
+      bodyClassName="panel-body flush"
+    >
+      {removedRows.length === 0 ? (
+        <EmptyPanel
+          title="No removed users"
+          description="Staff accounts removed by the owner will appear here with their history."
+        />
+      ) : (
+        <Table
+          rowKey="id"
+          dataSource={removedRows}
+          loading={staff.loading}
+          pagination={false}
+          scroll={{ x: 1100 }}
+          columns={[
+            {
+              title: 'Employee',
+              dataIndex: 'name',
+              render: (value, row) => (
+                <div>
+                  <strong>{value}</strong>
+                  <div className="muted small">{row.mobile}</div>
+                </div>
+              ),
+            },
+            { title: 'Original role', dataIndex: 'roleCode', width: 150, render: roleLabel },
+            {
+              title: 'Removed',
+              dataIndex: 'removedAt',
+              width: 170,
+              render: (value) => (value ? formatDateTime(value) : '—'),
+            },
+            { title: 'Removed by', dataIndex: 'removedByName', width: 150 },
+            { title: 'Invoices', dataIndex: 'saleCount', width: 90, align: 'right' },
+            {
+              title: 'Shifts',
+              dataIndex: 'shiftCount',
+              width: 150,
+              align: 'right',
+              render: (value, row) => (
+                <span>
+                  {value}
+                  {row.lastShiftAt ? <span className="muted small"> · last {formatDate(row.lastShiftAt)}</span> : null}
+                </span>
+              ),
+            },
+            { title: 'Reason', dataIndex: 'removalReason', ellipsis: true },
+            {
+              title: '',
+              width: 120,
+              render: (_, row) => (
+                <Button icon={<UndoOutlined />} onClick={() => restoreUser(row)}>
+                  Restore
+                </Button>
+              ),
+            },
+          ]}
+        />
+      )}
     </SectionCard>
   );
 
@@ -385,9 +493,9 @@ export default function UsersPage() {
       />
 
       <div className="kpi-grid three">
-        <Kpi label="Staff accounts" value={staffRows.length} hint={`${staffRows.filter((row) => row.status === 'active').length} active`} />
-        <Kpi label="Open shifts" value={staffRows.filter((row) => row.openShift).length} hint="Cash drawers currently open" tone={staffRows.some((row) => row.openShift) ? 'warning' : 'default'} />
-        <Kpi label="Owner accounts" value={staffRows.filter((row) => row.roleCode === 'owner').length} hint="At least one active owner is required" />
+        <Kpi label="Staff accounts" value={activeRows.length} hint={`${removedRows.length} removed`} />
+        <Kpi label="Open shifts" value={activeRows.filter((row) => row.openShift).length} hint="Cash drawers currently open" tone={activeRows.some((row) => row.openShift) ? 'warning' : 'default'} />
+        <Kpi label="Owner accounts" value={activeRows.filter((row) => row.roleCode === 'owner').length} hint="At least one active owner is required" />
       </div>
 
       <Tabs
@@ -395,6 +503,7 @@ export default function UsersPage() {
         onChange={setTab}
         items={[
           { key: 'staff', label: 'Staff', children: staffPanel },
+          { key: 'removed', label: 'Removed Users', children: removedPanel },
           { key: 'shifts', label: 'Cash shifts', children: shiftsPanel },
           { key: 'activity', label: 'Activity', children: activityPanel },
         ]}
@@ -439,16 +548,6 @@ export default function UsersPage() {
             <Form.Item name="roleCode" label="Role" rules={[{ required: true }]}>
               <Select options={ROLES} />
             </Form.Item>
-            {staffModal.record ? (
-              <Form.Item name="status" label="Status">
-                <Select
-                  options={[
-                    { value: 'active', label: 'Active' },
-                    { value: 'disabled', label: 'Disabled' },
-                  ]}
-                />
-              </Form.Item>
-            ) : null}
           </div>
           <Alert
             type="info"
@@ -456,6 +555,33 @@ export default function UsersPage() {
             message="Role access is enforced in the backend"
             description="A cashier can bill, print their own receipts and manage customers. Product edits, stock adjustments, costs, expenses, reports, staff and settings are refused by the service layer."
           />
+        </Form>
+      </Modal>
+
+      <Modal
+        title={removeRecord ? `Remove ${removeRecord.name}?` : 'Remove staff account'}
+        open={Boolean(removeRecord)}
+        onCancel={() => {
+          setRemoveRecord(null);
+          removeForm.resetFields();
+        }}
+        onOk={() => removeForm.submit()}
+        confirmLoading={saving}
+        okText="Remove access"
+        okButtonProps={{ danger: true }}
+        destroyOnClose
+      >
+        <Alert
+          type="warning"
+          showIcon
+          className="detail-alert"
+          message="The account is disabled, not deleted."
+          description="Historical invoices, shifts and activity remain attributed to this person. The account can be restored with a fresh sign-in."
+        />
+        <Form form={removeForm} layout="vertical" onFinish={submitRemove} requiredMark={false}>
+          <Form.Item name="reason" label="Reason (optional)">
+            <Input.TextArea rows={2} maxLength={300} placeholder="e.g. Left the shop" />
+          </Form.Item>
         </Form>
       </Modal>
 

@@ -1,81 +1,147 @@
-# Vyapar migration notes
+# Vyapar backup import
 
-**Status:** `.VYB` restore is **not supported**. The supported route is a Vyapar
-item export (Excel/CSV) through **Import data**.
+**Status:** supported for direct `.vyp` SQLite databases and `.vyb.zip` archives.
+Available at **Settings → Storage → Import from Vyapar** and **Import data → Open Vyapar import**.
 
-## 1. What a `.VYB` file is
+## 1. Source verification
 
-Vyapar desktop backups use the `.VYB` extension. The file is Vyapar's own backup
-container, not a spreadsheet, plain SQLite database or a ZIP that can simply be
-renamed. Public documentation does not describe the container layout, and
-community restore attempts report that it is not a stable public format. Vyapar
-itself is the supported restoration tool. Changing a file's extension does not
-create a compatible backup.
+The importer copies the chosen backup to temporary storage, computes SHA-256,
+opens the copy read-only and runs `PRAGMA integrity_check`. The original file is
+never modified. Required tables are checked before any preview is shown.
 
-No `.VYB` sample was available in this project, so the internal container could
-not be decoded or verified. Without a verified decoder, Modern Fashion POS does
-not attempt to restore the file. A restore that guesses at an encrypted or
-undocumented format risks corrupting live shop data, so it is deliberately not
-implemented.
+Verified source counts from the supplied backup:
 
-## 2. Supported migration route
+| Item | Count |
+|---|---:|
+| Products | 895 |
+| Services | 33 |
+| Sales | 5,746 (5,742 usable) |
+| Sale lines | 13,126 |
+| Customers imported | 2,542 |
+| Suppliers | 11 |
+| Purchases | 3 |
+| Expenses | 7 (6 non-zero) |
+| Opening-stock adjustments | 843 |
+| Estimates / quotations | 48 |
+| Negative-stock products | 112 |
+| Zero-price products | 13 (46 zero-price records include 33 services) |
 
-1. Open Vyapar on the shop computer.
-2. Go to **Items** and use **Export to Excel** (or CSV).
-3. Save the file. Keep the header row.
-4. In Modern Fashion POS open **Import data** (sidebar) or **Inventory → Import products**.
-5. Choose the exported file and review the automatic column matching.
-6. Check the preview, then import.
+## 2. Field mapping
 
-The importer recognises common Vyapar columns:
+### Products
 
-| Vyapar column | Modern Fashion POS field |
+| Vyapar | Modern Fashion POS |
 |---|---|
-| Item Name | Product name |
-| Category | Category |
-| Brand | Brand |
-| Item Code / SKU | SKU |
-| Barcode | Barcode |
-| Sale Price | Selling price |
-| Purchase Price | Purchase cost |
-| MRP | MRP |
-| Current Stock | Stock |
-| GST Rate | GST % |
-| HSN / SAC | HSN code |
-| Reorder Level | Low-stock level |
+| `kb_items.item_name` | Product name |
+| `kb_items.item_code` | SKU; barcode when usable |
+| `item_sale_unit_price` | Selling price |
+| `item_purchase_unit_price` | Cost |
+| `item_mrp` | MRP when valid, else 0 |
+| `item_stock_quantity` | Exact current stock (negative allowed) |
+| `item_min_stock_quantity` | Low-stock threshold |
+| `item_hsn_sac_code` | HSN |
+| `item_description` | Description |
+| Category mapping | Category; missing → Other |
+| `item_type = 2` | Skipped service |
 
-These names do not have to match exactly. Any column can be mapped manually in
-step 2 of the importer.
+One item becomes one product with one `Default / Free` variant. Short or blank
+item codes receive a generated internal EAN-13 barcode. Existing item codes are
+preserved as SKUs and barcodes where they are long enough to scan.
 
-## 3. What is not migrated
+### Parties
 
-The item export covers the catalogue and stock. It does **not** migrate:
+| Vyapar | POS |
+|---|---|
+| `kb_names.full_name` | Customer or supplier name |
+| `phone_number` | Phone; normalised to 10 digits |
+| `party_billing_name` | Billing name |
+| `address` | Address |
+| `name_gstin_number` | GSTIN when present |
+| Purchase/payment-out party | Supplier |
 
-- old sales and invoices
-- purchase bills
-- customers
-- suppliers
-- expenses
+- Names with no valid phone keep their invoice name but are not created as
+  customer records.
+- Duplicate phones are merged into one customer; alternate names are reported.
+- Customers and suppliers are separate records when a party is used for both.
 
-Those records remain in Vyapar unless a separate, verified export and importer
-is built for each record type.
+### Sales
 
-## 4. Safety rules
+| Vyapar | POS |
+|---|---|
+| `txn_ref_number_char` | Invoice number |
+| `txn_date` + `txn_time` | Sale date/time (Asia/Kolkata) |
+| `txn_name_id` | Customer |
+| `txn_cash_amount` | Amount paid |
+| `txn_balance_amount` | Balance due |
+| `txn_discount_amount` | Bill discount |
+| `txn_round_off_amount` | Round-off |
+| `txn_payment_status` 1/2/3 | unpaid / partial / paid |
+| `txn_payment_mapping` | Payment method |
+| `lineitems` | Sale items, quantities, prices, discounts, MRP |
 
-- The importer previews every row before writing anything.
-- The import runs in one database transaction; a failed commit leaves no partial
-  catalogue.
-- Existing barcodes and SKUs are matched, not regenerated.
-- Stock changes are written to the stock ledger.
-- Take a **Back up now** snapshot before a large import.
+Payment methods: Cash → cash, Paytm/IDBI/UPI → UPI, Cheque → bank transfer.
+Line and bill discounts are preserved. Stored Vyapar totals are used; any
+line-total mismatch is reported.
 
-## 5. If a `.VYB` sample becomes available
+### Stock
 
-Inspect it before promising support:
+The importer writes the **exact current stock** as a single opening movement per
+item. This is required because Vyapar permits negative stock and replaying every
+old sale would break on those negative items. Historical sales stay as invoice
+records; the stock ledger starts at the migration snapshot.
 
-1. Check the header bytes and whether it is SQLite, ZIP, encrypted or custom.
-2. Check whether Vyapar documents the container or provides a supported export
-   API.
-3. Only then build a preview-first restore workflow with a mandatory backup.
+Negative stock is not clamped. Zero prices are not changed. Zero-cost items keep
+cost ₹0.
 
-Until that happens, the item export route above is the documented alternative.
+### Historical cashier
+
+Four disabled legacy users are created from `urp_users` (`Admin`, `MOHI UDDIN`,
+`ANSAR`, `AYATH ULLAH`) with internal mobile IDs `VYP-LEGACY-*`. They cannot log
+in, but historical invoices keep their original cashier attribution. The
+original cashier name is also written into each imported sale note.
+
+## 3. Transaction types
+
+| `txn_type` | Meaning | Action |
+|---:|---|---|
+| 1 | Sale | Import |
+| 2 | Purchase | Import |
+| 4 | Payment Out | Skip; reported |
+| 5/6 | Party opening balance | Skip; reported |
+| 7 | Expense | Import non-zero |
+| 24 | Cancelled/credit-note-type record | Skip; reported |
+| 65 | Estimate / quotation | Skip; never treated as a sale |
+
+## 4. Safety
+
+1. Copy source to temporary storage.
+2. SHA-256 + read-only open + integrity check.
+3. Build a preview with counts and warnings.
+4. Create a verified Modern Fashion POS backup. If it fails, import is blocked.
+5. Import through one database transaction.
+6. Roll back on any failure.
+7. Record source hash in settings and audit the import.
+8. Refuse to import the same source hash twice unless explicitly confirmed.
+9. Remove the temporary copy after success.
+
+Existing products are matched by barcode/SKU; customers by phone; invoices by
+invoice number. Default behaviour is **skip**, never overwrite. The original
+Vyapar backup is never written to.
+
+## 5. Not imported
+
+- Services
+- Estimates / quotations
+- Standalone payment-outs
+- Party opening balances
+- Credit-note/cancelled record
+- Sales with no line items
+- Zero-amount expenses
+- Per-invoice Vyapar terms (global POS terms are used; invoice notes are kept)
+
+## 6. Negative stock
+
+The inventory schema and ledger now allow negative quantities. The UI displays
+`+25 Pcs`, `0 Pcs` and `-5 Pcs`, offers a Negative stock filter and records a
+correction movement with the previous quantity, new quantity, difference, reason,
+user and timestamp.

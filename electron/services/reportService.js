@@ -219,6 +219,7 @@ export function createReportService({ db, auth, catalog }) {
       ? db
           .prepare(
             `SELECT SUM(CASE WHEN COALESCE(ib.quantity, 0) = 0 THEN 1 ELSE 0 END) AS out_of_stock,
+                    SUM(CASE WHEN COALESCE(ib.quantity, 0) < 0 THEN 1 ELSE 0 END) AS negative_stock,
                     SUM(CASE WHEN COALESCE(ib.quantity, 0) > 0 AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold THEN 1 ELSE 0 END) AS low_stock
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
@@ -249,6 +250,7 @@ export function createReportService({ db, auth, catalog }) {
       stockCounts: {
         low: Number(stockCounts?.low_stock || 0),
         out: Number(stockCounts?.out_of_stock || 0),
+        negative: Number(stockCounts?.negative_stock || 0),
       },
       topProducts: products.map((product) => {
         if (canSeeProfit) return product;

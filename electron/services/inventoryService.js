@@ -33,6 +33,7 @@ export function createInventoryService({ db, auth }) {
     }
     if (status === 'in') where.push('COALESCE(ib.quantity, 0) > 0');
     if (status === 'out' || outOfStock) where.push('COALESCE(ib.quantity, 0) = 0');
+    if (status === 'negative') where.push('COALESCE(ib.quantity, 0) < 0');
     if (status === 'low') {
       where.push('COALESCE(ib.quantity, 0) > 0 AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold');
     } else if (lowStock) {
@@ -86,6 +87,7 @@ export function createInventoryService({ db, auth }) {
                 COALESCE(SUM(ib.quantity * v.cost_paise), 0) AS cost_value,
                 COALESCE(SUM(ib.quantity * v.price_paise), 0) AS retail_value,
                 SUM(CASE WHEN COALESCE(ib.quantity, 0) = 0 THEN 1 ELSE 0 END) AS out_of_stock,
+                SUM(CASE WHEN COALESCE(ib.quantity, 0) < 0 THEN 1 ELSE 0 END) AS negative_stock,
                 SUM(CASE WHEN COALESCE(ib.quantity, 0) > 0 AND COALESCE(ib.quantity, 0) <= v.low_stock_threshold THEN 1 ELSE 0 END) AS low_stock
          FROM product_variants v
          JOIN products p ON p.id = v.product_id
@@ -99,6 +101,7 @@ export function createInventoryService({ db, auth }) {
       costValuePaise: Number(row.cost_value || 0),
       retailValuePaise: Number(row.retail_value || 0),
       outOfStock: Number(row.out_of_stock || 0),
+      negativeStock: Number(row.negative_stock || 0),
       lowStock: Number(row.low_stock || 0),
       costingMethod: 'weighted_average',
     };

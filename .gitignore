@@ -18,6 +18,11 @@ desktop.ini
 /graphify-out/cache
 *.log
 
+# Vyapar source backups (never commit shop data)
+*.vyp
+*.vyb
+*.vyb.zip
+
 # local design source (generated build/icon.* is committed)
 Minimal MF Receipt Icon.png
 
