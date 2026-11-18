@@ -284,8 +284,8 @@ export default function BarcodesPage() {
             )}
           </div>
           <p className="muted small">
-            Default 50 × 25 mm. Adjust width/height to your TVS LP 46 NEO label stock. The Windows printer must use the
-            same paper size; the printer’s 19 mm start position and gap calibration are handled by its driver.
+            Default 50 × 25 mm. Match these measurements to your label roll. The design leaves a small top gap so the
+            first line is not clipped at the label edge.
           </p>
           {!can('products.manage') ? <Tag color="red">Barcode printing is owner/manager only.</Tag> : null}
         </SectionCard>

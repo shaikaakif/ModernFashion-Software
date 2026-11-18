@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { Button, DatePicker, Input, Select, Space, Table, Tag, Tooltip } from 'antd';
+import { Button, DatePicker, Input, Select, Space, Table, Tag } from 'antd';
 import { ReloadOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import { api } from '@/app/api';
@@ -23,14 +23,56 @@ const ENTITY_OPTIONS = [
   'settings',
   'offer',
   'backup',
-  'database',
 ];
 
-function detailsText(details) {
-  if (!details || !Object.keys(details).length) return '—';
-  return Object.entries(details)
-    .map(([key, value]) => `${key}: ${typeof value === 'object' ? JSON.stringify(value) : value}`)
-    .join(' · ');
+const ENTITY_LABELS = {
+  sale: 'Sale',
+  purchase: 'Purchase',
+  product: 'Product',
+  variant: 'Product variant',
+  inventory: 'Stock',
+  customer: 'Customer',
+  supplier: 'Supplier',
+  expense: 'Expense',
+  user: 'Staff account',
+  shift: 'Cash shift',
+  settings: 'Settings',
+  offer: 'Offer',
+  backup: 'Backup',
+  database: 'Database',
+};
+
+const ACTION_LABELS = {
+  'sale.completed': 'Sale completed',
+  'sale.voided': 'Sale voided',
+  'product.created': 'Product added',
+  'product.updated': 'Product changed',
+  'product.removed': 'Product removed',
+  'product.deleted': 'Product deleted',
+  'inventory.adjusted': 'Stock updated',
+  'backup.created': 'Backup created',
+  'backup.restore_started': 'Restore started',
+  'settings.business_updated': 'Business details changed',
+  'settings.print_updated': 'Print settings changed',
+  'settings.logo_updated': 'Logo changed',
+  'user.created': 'Staff account added',
+  'user.updated': 'Staff account changed',
+  'user.password_changed': 'Password changed',
+  'shift.opened': 'Shift opened',
+  'shift.closed': 'Shift closed',
+};
+
+function actionLabel(value) {
+  return (
+    ACTION_LABELS[value] ||
+    String(value || '')
+      .replace(/[._]/g, ' ')
+      .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  );
+}
+
+function entityLabel(value) {
+  return ENTITY_LABELS[value] || String(value || '—').replace(/\b\w/g, (letter) => letter.toUpperCase());
 }
 
 export default function AuditPage() {
@@ -69,30 +111,14 @@ export default function AuditPage() {
     {
       title: 'Action',
       dataIndex: 'action',
-      width: 220,
-      render: (value) => <Tag className="audit-action-tag">{value}</Tag>,
+      width: 240,
+      render: (value) => <Tag className="audit-action-tag">{actionLabel(value)}</Tag>,
     },
     {
       title: 'Record',
       key: 'entity',
-      width: 150,
-      render: (_, row) => (
-        <span>
-          {row.entityType || '—'}
-          {row.entityId !== null && row.entityId !== undefined ? (
-            <span className="muted"> #{row.entityId}</span>
-          ) : null}
-        </span>
-      ),
-    },
-    {
-      title: 'Details',
-      dataIndex: 'details',
-      render: (value) => (
-        <Tooltip title={<pre className="audit-tooltip">{JSON.stringify(value || {}, null, 2)}</pre>}>
-          <span className="audit-details-cell">{detailsText(value)}</span>
-        </Tooltip>
-      ),
+      width: 160,
+      render: (_, row) => <span>{entityLabel(row.entityType)}</span>,
     },
   ];
 
@@ -100,8 +126,8 @@ export default function AuditPage() {
     <div className="page-stack">
       <PageHeader
         eyebrow="Accountability"
-        title="Audit log"
-        subtitle="Append-only record of sign-ins, sales, stock movements, price changes and administrative actions. Entries cannot be edited or deleted from the app."
+        title="Activity log"
+        subtitle="A permanent record of important actions on this computer. Entries cannot be edited or deleted from the app."
         extra={
           <Button
             icon={<ReloadOutlined />}
@@ -131,7 +157,7 @@ export default function AuditPage() {
             value={action}
             onChange={(value) => setAction(value || null)}
             loading={actions.loading}
-            options={(actions.data || []).map((value) => ({ value, label: value }))}
+            options={(actions.data || []).map((value) => ({ value, label: actionLabel(value) }))}
             style={{ minWidth: 230 }}
           />
           <Select
@@ -140,7 +166,7 @@ export default function AuditPage() {
             placeholder="All record types"
             value={entityType}
             onChange={(value) => setEntityType(value || null)}
-            options={ENTITY_OPTIONS.map((value) => ({ value, label: value }))}
+            options={ENTITY_OPTIONS.map((value) => ({ value, label: entityLabel(value) }))}
             style={{ minWidth: 200 }}
           />
           <Select
@@ -156,17 +182,17 @@ export default function AuditPage() {
             readOnly
             value={audit.data ? `${audit.data.length} record${audit.data.length === 1 ? '' : 's'}` : '—'}
             style={{ width: 130 }}
-            aria-label="Audit record count"
+            aria-label="Activity record count"
           />
         </Space>
       </SectionCard>
 
       <SectionCard
         title="Activity trail"
-        subtitle="Newest entries appear first. The audit table is protected by database triggers and cannot be rewritten by services."
+        subtitle="Newest entries appear first. Entries cannot be edited or deleted."
         bodyClassName="panel-body panel-body-flush"
       >
-        {audit.loading && !audit.data ? <LoadingPanel label="Loading the audit trail." /> : null}
+        {audit.loading && !audit.data ? <LoadingPanel label="Loading the activity trail." /> : null}
         {audit.error ? <ErrorPanel error={audit.error} onRetry={audit.reload} /> : null}
         {audit.data ? (
           <Table
@@ -177,7 +203,7 @@ export default function AuditPage() {
             loading={audit.loading}
             pagination={{ pageSize: 25, showSizeChanger: true, pageSizeOptions: [25, 50, 100] }}
             scroll={{ x: 980 }}
-            locale={{ emptyText: 'No audit entries match these filters.' }}
+            locale={{ emptyText: 'No activity entries match these filters.' }}
           />
         ) : null}
       </SectionCard>

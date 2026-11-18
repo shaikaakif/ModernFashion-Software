@@ -3,7 +3,6 @@ import { Alert, App as AntApp, Button, Descriptions, Progress, Space, Tag } from
 import {
   CloudDownloadOutlined,
   DownloadOutlined,
-  GithubOutlined,
   ReloadOutlined,
   SafetyCertificateOutlined,
   SyncOutlined,
@@ -15,7 +14,7 @@ import { LoadingPanel, PageHeader, SectionCard } from '@/app/components';
 
 function stateTag(status) {
   if (!status) return <Tag>Loading</Tag>;
-  if (!status.supported) return <Tag>Installed build only</Tag>;
+  if (!status.supported) return <Tag>Installed app only</Tag>;
   if (status.downloaded) return <Tag color="green">Ready to install</Tag>;
   if (status.downloading) return <Tag color="blue">Downloading</Tag>;
   if (status.checking) return <Tag color="blue">Checking</Tag>;
@@ -29,22 +28,10 @@ export default function ReleasesPage() {
   const initial = useAsync(() => api('app.updateStatus'), []);
   const [status, setStatus] = useState(null);
   const [busy, setBusy] = useState('');
-  const [online, setOnline] = useState(() => (typeof navigator === 'undefined' ? true : navigator.onLine));
 
   useEffect(() => {
     if (initial.data) setStatus(initial.data);
   }, [initial.data]);
-
-  useEffect(() => {
-    const goOnline = () => setOnline(true);
-    const goOffline = () => setOnline(false);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOffline);
-    return () => {
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOffline);
-    };
-  }, []);
 
   useEffect(() => {
     const unsubscribe = window.mf?.onUpdateStatus?.((next) => setStatus(next));
@@ -66,7 +53,7 @@ export default function ReleasesPage() {
     setBusy('download');
     try {
       setStatus(await api('app.downloadUpdate'));
-      message.success('Update downloaded. You can now restart and install it.');
+      message.success('Update downloaded. Restart when you are ready.');
     } catch (error) {
       message.error(errorMessage(error));
     } finally {
@@ -82,23 +69,15 @@ export default function ReleasesPage() {
       cancelText: 'Cancel',
       content: (
         <div className="release-install-copy">
-          <p>
-            A verified backup of the live database is created first. If the backup fails, the update does not start.
-          </p>
-          <p>
-            The Windows installer replaces program files only. Sales, stock, customers, backups, exports, documents and
-            settings stay in the local application data folder.
-          </p>
-          <p>
-            The application closes and reopens automatically. Do not switch off the computer while the installer is
-            running.
-          </p>
+          <p>A verified backup is created first. If the backup fails, the update does not start.</p>
+          <p>Sales, stock, customers, settings, backups and documents are not changed.</p>
+          <p>The app closes and reopens automatically.</p>
         </div>
       ),
       onOk: async () => {
         try {
           const result = await api('app.installUpdate');
-          message.success(`Backup created at ${result.backupPath}. Installing version ${result.version}…`, 8);
+          message.success(`Backup created. Installing version ${result.version}.`, 8);
         } catch (error) {
           message.error(errorMessage(error));
           throw error;
@@ -107,20 +86,16 @@ export default function ReleasesPage() {
     });
   }
 
-  if (initial.loading && !status) return <LoadingPanel label="Reading update status…" />;
+  if (initial.loading && !status) return <LoadingPanel label="Checking for updates…" />;
   if (initial.error && !status) {
     return (
       <div>
-        <PageHeader
-          eyebrow="Software updates"
-          title="Releases"
-          subtitle="GitHub Releases and the installed application version."
-        />
+        <PageHeader eyebrow="Software updates" title="Updates" subtitle="Check for a newer version of this software." />
         <Alert
           type="error"
           showIcon
-          message="Update status could not be loaded"
-          description={errorMessage(initial.error)}
+          message="Updates could not be checked"
+          description="Check the internet connection and try again. Billing and reports keep working."
         />
       </div>
     );
@@ -136,15 +111,12 @@ export default function ReleasesPage() {
     <div>
       <PageHeader
         eyebrow="Software updates"
-        title="Releases"
-        subtitle="Check GitHub Releases, download the installer package and restart without touching business data."
+        title="Updates"
+        subtitle="Check for a newer version and install it safely."
         extra={
-          <Space wrap>
-            <Tag color={online ? 'green' : 'red'}>{online ? 'Internet available' : 'Offline'}</Tag>
-            <Button icon={<ReloadOutlined />} onClick={checkNow} loading={checking}>
-              Check now
-            </Button>
-          </Space>
+          <Button icon={<ReloadOutlined />} onClick={checkNow} loading={checking}>
+            Check now
+          </Button>
         }
       />
 
@@ -153,17 +125,8 @@ export default function ReleasesPage() {
           <Alert
             type="info"
             showIcon
-            message="Update checks run in the installed EXE, not in development."
-            description="Build the NSIS installer with npm run dist, publish it to GitHub Releases, then install it on the counter PC. This page will then read the public release feed."
-          />
-        ) : null}
-
-        {!online ? (
-          <Alert
-            type="warning"
-            showIcon
-            message="No internet connection."
-            description="Sales, stock, printing and reports keep working offline. Update checks and downloads resume when the connection returns."
+            message="Update checks are available in the installed application."
+            description="Open the installed Modern Fashion POS to check for updates."
           />
         ) : null}
 
@@ -171,33 +134,28 @@ export default function ReleasesPage() {
           <Alert
             type="warning"
             showIcon
-            message="The update feed could not be read"
-            description={status.error}
+            message="Updates could not be checked"
+            description="Check the internet connection and try again. Billing and reports keep working."
           />
         ) : null}
 
         <SectionCard
-          title="Installed version"
-          subtitle="The updater compares this installed build with the newest published GitHub Release."
+          title="Current version"
+          subtitle="The installed version and the newest available version."
           extra={stateTag(status)}
         >
           <Descriptions bordered size="small" column={2}>
-            <Descriptions.Item label="Current version">
+            <Descriptions.Item label="Installed version">
               <strong>{status?.currentVersion || '—'}</strong>
             </Descriptions.Item>
-            <Descriptions.Item label="Latest release">
+            <Descriptions.Item label="Latest version">
               {status?.version ? <strong>{status.version}</strong> : '—'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Release">{status?.releaseName || '—'}</Descriptions.Item>
-            <Descriptions.Item label="Published">
-              {status?.releaseDate ? formatDateTime(status.releaseDate) : '—'}
             </Descriptions.Item>
             <Descriptions.Item label="Last checked">
               {status?.lastCheckedAt ? formatDateTime(status.lastCheckedAt) : 'Not checked yet'}
             </Descriptions.Item>
-            <Descriptions.Item label="Update channel">Stable · GitHub Releases</Descriptions.Item>
+            <Descriptions.Item label="Status">{status?.message || 'Waiting for the first check.'}</Descriptions.Item>
           </Descriptions>
-          <p className="muted small release-status-line">{status?.message || 'Waiting for the first check.'}</p>
 
           {downloading ? (
             <div className="release-progress">
@@ -216,69 +174,39 @@ export default function ReleasesPage() {
             >
               {canInstall ? 'Restart & install' : 'Download update'}
             </Button>
-            <Button icon={<GithubOutlined />} onClick={() => api('app.openReleases').catch((error) => message.error(errorMessage(error)))}>
-              Open GitHub Releases
+            <Button icon={<CloudDownloadOutlined />} onClick={checkNow} loading={checking}>
+              Check again
             </Button>
           </Space>
         </SectionCard>
 
-        {status?.version || status?.releaseNotes ? (
-          <SectionCard
-            title={status?.version ? `What's new in ${status.version}` : "What's new"}
-            subtitle="Release notes come from the GitHub Release body. They are displayed as plain text."
-          >
-            <pre className="release-notes">{status?.releaseNotes || 'This release did not include notes.'}</pre>
+        {status?.version && status?.releaseNotes ? (
+          <SectionCard title={`What's new in ${status.version}`} subtitle="Changes in this update.">
+            <pre className="release-notes">{status.releaseNotes}</pre>
           </SectionCard>
         ) : null}
 
-        <SectionCard
-          title="How updates protect your data"
-          subtitle="The updater replaces code, never the database."
-        >
+        <SectionCard title="Safe update" subtitle="Your shop data is protected.">
           <div className="release-safety-grid">
             <div>
-              <h3><SafetyCertificateOutlined /> Backup first</h3>
-              <p>
-                Restart &amp; install creates a verified SQLite backup before the installer starts. If that backup fails,
-                the installation is blocked.
-              </p>
+              <h3>
+                <SafetyCertificateOutlined /> Backup first
+              </h3>
+              <p>A verified backup is created before installation. If it fails, the update does not start.</p>
             </div>
             <div>
-              <h3><CloudDownloadOutlined /> Program files only</h3>
-              <p>
-                The NSIS installer replaces the application in Program Files. Sales, stock, customers, settings,
-                backups, exports and documents remain in the local user-data folder.
-              </p>
+              <h3>
+                <CloudDownloadOutlined /> Your data stays
+              </h3>
+              <p>Sales, stock, customers, settings, backups and documents are not changed.</p>
             </div>
             <div>
-              <h3><SyncOutlined /> Clean restart</h3>
-              <p>
-                The database is closed cleanly before the installer runs. The application reopens automatically after
-                the update.
-              </p>
+              <h3>
+                <SyncOutlined /> Clean restart
+              </h3>
+              <p>The app closes and reopens on the new version automatically.</p>
             </div>
           </div>
-          <Alert
-            className="section-gap-sm"
-            type="info"
-            showIcon
-            message="Offline-first still applies."
-            description="An internet connection is needed only to check for and download releases. Billing, inventory, printing and reports never depend on GitHub or any cloud service."
-          />
-        </SectionCard>
-
-        <SectionCard title="Release procedure for the owner" subtitle="Repo, installer and metadata must be published together.">
-          <ol className="release-steps">
-            <li>Bump the version in package.json.</li>
-            <li>Run npm run verify and npm run dist.</li>
-            <li>Publish the installer, latest.yml and blockmap to a GitHub Release tagged v&lt;version&gt;.</li>
-            <li>Keep the release public. The installed app reads it without a token.</li>
-            <li>Install once on the counter PC. Later releases are offered here automatically.</li>
-          </ol>
-          <p className="muted small">
-            Repository: <span className="mono">{status?.repo || 'shaikaakif/ModernFashion-Software'}</span>. Publishing
-            requires the owner&apos;s GitHub token and is never done from the installed application.
-          </p>
         </SectionCard>
       </div>
     </div>

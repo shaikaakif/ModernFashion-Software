@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { Alert, App as AntApp, Button, DatePicker, Space, Table, Tag } from 'antd';
+import { App as AntApp, Button, DatePicker, Space, Table, Tag } from 'antd';
 import {
   BarChartOutlined,
+  CheckCircleFilled,
   CloudUploadOutlined,
   PlusOutlined,
   ReloadOutlined,
@@ -39,8 +40,8 @@ export default function DashboardPage() {
   async function backupNow() {
     setBackupBusy(true);
     try {
-      const result = await api('backup.create');
-      message.success(`Backup verified and saved: ${result.path}`);
+      await api('backup.create');
+      message.success('Backup created and verified.');
       backup.reload();
     } catch (backupError) {
       message.error(errorMessage(backupError));
@@ -119,7 +120,7 @@ export default function DashboardPage() {
         subtitle={
           data?.scope === 'own'
             ? 'Your own sales for the selected day. Store-wide costs and other cashiers are hidden for your role.'
-            : 'Live figures from the local database. No internet connection is used.'
+            : "Today's figures for your shop."
         }
         extra={
           <div className="toolbar">
@@ -187,48 +188,6 @@ export default function DashboardPage() {
           ))}
         </Space>
       </SectionCard>
-
-      {can('backup.manage') ? (
-        <SectionCard
-          title="Backup status"
-          subtitle="Verified local snapshots of the database and business assets."
-          className="dashboard-backup"
-          extra={
-            <Button icon={<CloudUploadOutlined />} onClick={backupNow} loading={backupBusy}>
-              Back up now
-            </Button>
-          }
-        >
-          {backup.loading && !backup.data ? (
-            <LoadingPanel label="Checking the last backup…" />
-          ) : backup.error ? (
-            <ErrorPanel error={backup.error} onRetry={backup.reload} />
-          ) : lastBackup ? (
-            <Space direction="vertical" size="small" style={{ width: '100%' }}>
-              <Alert
-                type={!lastBackup.exists || backupStale ? 'warning' : 'success'}
-                showIcon
-                message={
-                  !lastBackup.exists
-                    ? 'The last backup file is missing'
-                    : backupStale
-                      ? 'The last backup is older than the configured interval'
-                      : 'Last backup verified'
-                }
-                description={`${formatDateTime(lastBackup.createdAt)} · ${lastBackup.filename}`}
-              />
-              <span className="muted small">Backup folder: {backup.data.directory}</span>
-            </Space>
-          ) : (
-            <Alert
-              type="warning"
-              showIcon
-              message="No verified backup yet"
-              description="Create a backup before closing the shop. The file is verified and recorded locally."
-            />
-          )}
-        </SectionCard>
-      ) : null}
 
       <div className="dashboard-grid">
         <SectionCard
@@ -387,6 +346,67 @@ export default function DashboardPage() {
           </SectionCard>
         ) : null}
       </div>
+
+      {can('backup.manage') ? (
+        <SectionCard
+          title="Backup status"
+          className="dashboard-backup"
+          extra={
+            <Button icon={<CloudUploadOutlined />} onClick={backupNow} loading={backupBusy}>
+              Back up now
+            </Button>
+          }
+        >
+          {backup.loading && !backup.data ? (
+            <LoadingPanel label="Checking the last backup…" />
+          ) : backup.error ? (
+            <ErrorPanel error={backup.error} onRetry={backup.reload} />
+          ) : lastBackup ? (
+            <div>
+              <div className={`backup-state ${!lastBackup.exists || backupStale ? 'is-warning' : 'is-ok'}`}>
+                {!lastBackup.exists || backupStale ? <WarningOutlined /> : <CheckCircleFilled />}
+                <div className="backup-state-copy">
+                  <strong>
+                    {!lastBackup.exists
+                      ? 'The last backup file was not found'
+                      : backupStale
+                        ? 'The last backup is older than expected'
+                        : 'Last backup verified'}
+                  </strong>
+                  <span>
+                    {formatDateTime(lastBackup.createdAt)} · {lastBackup.filename}
+                  </span>
+                </div>
+                <Tag color={!lastBackup.exists || backupStale ? 'gold' : 'green'}>
+                  {!lastBackup.exists || backupStale ? 'Needs attention' : 'Verified'}
+                </Tag>
+              </div>
+              <div className="backup-state-foot">
+                <span className="muted small">Saved on this computer.</span>
+                <Button
+                  type="link"
+                  size="small"
+                  onClick={() =>
+                    api('print.showFolder', { path: backup.data.directory }).catch((error) =>
+                      message.error(errorMessage(error))
+                    )
+                  }
+                >
+                  Open backup folder
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <div className="backup-state is-warning">
+              <WarningOutlined />
+              <div className="backup-state-copy">
+                <strong>No backup yet</strong>
+                <span>Create a backup before closing the shop.</span>
+              </div>
+            </div>
+          )}
+        </SectionCard>
+      ) : null}
 
       <div className="definition-note">
         <strong>How these figures are defined</strong>

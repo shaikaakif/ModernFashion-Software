@@ -1020,7 +1020,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                   showIcon
                   className="detail-alert"
                   message="Stock corrections use the ledger"
-                  description="Opening stock is recorded when the product is created. Use Inventory → Update stock to add, correct or remove current stock; every change is audited."
+                  description="Opening stock is recorded when the product is created. Use Inventory → Update stock to add, correct or remove current stock; every change is recorded."
                 />
               </>
             ) : (

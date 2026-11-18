@@ -144,7 +144,7 @@ export default function ExpensesPage() {
     setSaving(true);
     try {
       await api('expenses.void', { id: voidRecord.id, reason: values.reason });
-      message.success('Expense voided. The record remains in the audit trail.');
+      message.success('Expense voided. The record remains in the activity log.');
       setVoidRecord(null);
       expenses.reload();
       summary.reload();
@@ -456,7 +456,7 @@ export default function ExpensesPage() {
         {voidRecord ? (
           <p className="modal-note">
             Void <strong>{voidRecord.description}</strong> for <strong>{money(voidRecord.amountPaise)}</strong>? The
-            entry stays in the database and audit log but is excluded from totals.
+            entry stays in your records and the activity log but is excluded from totals.
           </p>
         ) : null}
         <Form form={voidForm} layout="vertical" onFinish={submitVoid} requiredMark={false}>

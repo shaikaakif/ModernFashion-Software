@@ -268,7 +268,7 @@ export default function SettingsPage() {
   }
 
   function submitHardware(values) {
-    save('hardware', () => api('settings.updateHardware', values), 'Printer and label settings saved. Physical output is still unverified.');
+    save('hardware', () => api('settings.updateHardware', values), 'Printer and label settings saved. Print a test page to confirm.');
   }
 
   function submitBackup(values) {
@@ -324,9 +324,7 @@ export default function SettingsPage() {
     setPrinterBusy(true);
     try {
       await api(kind === 'receipt' ? 'print.testReceipt' : 'print.testLabel');
-      message.success(
-        `Test ${kind} sent to the Windows printer driver. Check the physical output — driver acceptance is not proof of a good print.`
-      );
+      message.success(`Test ${kind} sent to the printer. Check the printed copy.`);
     } catch (error) {
       message.error(errorMessage(error));
     } finally {
@@ -406,9 +404,8 @@ export default function SettingsPage() {
         title: 'Backup verified',
         content: (
           <div>
-            <p>The SQLite integrity check passed and the expected tables are present.</p>
-            <p className="mono small break-all">{result.path}</p>
-            <p className="muted small">SHA-256: {result.sha256}</p>
+            <p>The backup file is complete and ready to restore.</p>
+            <p className="muted small">{result.path.split(/[\\/]/).pop()}</p>
             <p className="muted small">Size: {filesize(result.sizeBytes)}</p>
           </div>
         ),
@@ -434,14 +431,14 @@ export default function SettingsPage() {
   async function submitRestore(values) {
     setSaving('restore');
     try {
-      const result = await api('backup.restore', { path: restorePath, confirm: values.confirm });
+      await api('backup.restore', { path: restorePath, confirm: values.confirm });
       setRestoreOpen(false);
       modal.success({
         title: 'Restore accepted',
         content: (
           <div>
-            <p>The database will be replaced and the application will restart.</p>
-            <p className="small break-all">Safety backup: {result.safetyBackup}</p>
+            <p>All current data will be replaced and the application will restart.</p>
+            <p className="muted small">A safety backup was saved to the backup folder.</p>
           </div>
         ),
         okText: 'Understood',
@@ -450,14 +447,6 @@ export default function SettingsPage() {
       message.error(errorMessage(error));
     } finally {
       setSaving('');
-    }
-  }
-
-  async function openDataFolder() {
-    try {
-      await api('app.openDataFolder');
-    } catch (error) {
-      message.error(errorMessage(error));
     }
   }
 
@@ -535,7 +524,7 @@ export default function SettingsPage() {
           <Form.Item
             name="mapUrl"
             label="Map link"
-            extra="Optional Google Maps or location link. Opens in the browser; no map is embedded and the app stays offline."
+            extra="Optional Google Maps or location link. Opens in the browser when the customer taps it."
           >
             <Input placeholder="https://maps.google.com/..." maxLength={500} />
           </Form.Item>
@@ -559,7 +548,7 @@ export default function SettingsPage() {
               type={data?.hasLogo ? 'success' : 'info'}
               showIcon
               message={data?.hasLogo ? 'A logo file is configured for print.' : 'No logo is configured yet.'}
-              description="Choose a PNG, JPG, WebP, GIF or BMP file up to 5 MB. The image is resized to a maximum of 1024 px, stored in the local data folder and included in backups. Aspect ratio is preserved."
+              description="Choose a PNG, JPG, WebP, GIF or BMP file up to 5 MB. The image is resized to a maximum of 1024 px, stored on this computer and included in backups. Aspect ratio is preserved."
             />
             <Space wrap className="section-gap-sm">
               <Button icon={<UploadOutlined />} onClick={chooseLogo} loading={logoBusy}>
@@ -925,12 +914,12 @@ export default function SettingsPage() {
       <Alert
         type="warning"
         showIcon
-        message="Printer output is not yet physically verified."
-        description="Reported hardware: TVS LP 46 NEO label printer, a receipt printer described as “TVS RP32 Double Zero Star”, and a wired USB HID barcode scanner. Confirm the exact Windows driver names on the counter PC and test real paper, cut, label size and scanner input before acceptance."
+        message="Test your printers before you start billing."
+        description="Print a test receipt and a test label, then check the paper, cut and label size. Test the barcode scanner at the counter as well."
       />
       <SectionCard
-        title="Windows printers"
-        subtitle="Printing uses the installed Windows driver. Raw ESC/POS commands are not assumed."
+        title="Printers"
+        subtitle="Choose the printer names installed on this computer."
         extra={
           <Button icon={<ReloadOutlined />} onClick={loadPrinters} loading={printerBusy}>
             List printers
@@ -939,17 +928,17 @@ export default function SettingsPage() {
       >
         <Form form={hardwareForm} layout="vertical" onFinish={submitHardware} requiredMark={false}>
           <div className="form-grid two">
-            <Form.Item name="receiptPrinter" label="Receipt printer (Windows name)">
+            <Form.Item name="receiptPrinter" label="Receipt printer">
               <AutoComplete
                 options={printerOptions}
-                placeholder="Click List printers and choose the exact name"
+                placeholder="Click List printers and choose your printer"
                 filterOption={(input, option) => option.value.toLowerCase().includes(input.toLowerCase())}
               />
             </Form.Item>
-            <Form.Item name="labelPrinter" label="Label printer (Windows name)">
+            <Form.Item name="labelPrinter" label="Label printer">
               <AutoComplete
                 options={printerOptions}
-                placeholder="TVS LP 46 NEO as installed in Windows"
+                placeholder="TVS LP 46 NEO"
                 filterOption={(input, option) => option.value.toLowerCase().includes(input.toLowerCase())}
               />
             </Form.Item>
@@ -1098,8 +1087,8 @@ export default function SettingsPage() {
         type="info"
         showIcon
         icon={<SafetyCertificateOutlined />}
-        message="Backups are verified SQLite copies made on this computer."
-        description="Keep at least one copy on a separate drive. Restoring replaces the live database and restarts the application. A pre-restore safety backup is always created first."
+        message="Backups are verified copies of your shop data."
+        description="Keep at least one copy on a separate drive. Restoring replaces the current data and restarts the application. A safety backup is always created first."
       />
       <SectionCard title="Automatic backups" subtitle="A verified copy is made when the application is running and the interval has elapsed.">
         <Form form={backupForm} layout="vertical" onFinish={submitBackup} requiredMark={false}>
@@ -1182,7 +1171,7 @@ export default function SettingsPage() {
               render: (value, row) => (
                 <Space direction="vertical" size={2}>
                   <Tag color={value === 'verified' ? 'green' : 'red'}>{value}</Tag>
-                  {!row.exists ? <Tag color="red">file missing</Tag> : null}
+                  {!row.exists ? <Tag color="red">file not found</Tag> : null}
                 </Space>
               ),
             },
@@ -1190,36 +1179,20 @@ export default function SettingsPage() {
         />
       </SectionCard>
 
-      <SectionCard title="Diagnostics" subtitle="Useful when reporting a problem. Contains no customer data.">
+      <SectionCard
+        title="Storage"
+        subtitle="Your shop data is stored on this computer and is included in every backup."
+      >
         {diagnostics.data ? (
-          <div>
-            <Descriptions bordered size="small" column={2}>
-              <Descriptions.Item label="Application">{diagnostics.data.version}</Descriptions.Item>
-              <Descriptions.Item label="Packaged">{diagnostics.data.packaged ? 'Yes' : 'No (development)'}</Descriptions.Item>
-              <Descriptions.Item label="Electron">{diagnostics.data.electron}</Descriptions.Item>
-              <Descriptions.Item label="Node">{diagnostics.data.node}</Descriptions.Item>
-              <Descriptions.Item label="Database size">{filesize(diagnostics.data.databaseSizeBytes)}</Descriptions.Item>
-              <Descriptions.Item label="Data folder" span={1}>
-                <span className="mono small break-all">{diagnostics.data.dataFolder}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Live database" span={2}>
-                <span className="mono small break-all">{diagnostics.data.databasePath}</span>
-              </Descriptions.Item>
-              <Descriptions.Item label="Backup folder" span={2}>
-                <span className="mono small break-all">{diagnostics.data.backupFolder}</span>
-              </Descriptions.Item>
-            </Descriptions>
-            <Space wrap className="section-gap-sm">
-              <Button icon={<FolderOpenOutlined />} onClick={openDataFolder}>
-                Open data folder
-              </Button>
-              <Button icon={<ReloadOutlined />} onClick={() => { diagnostics.reload(); backups.reload(); }}>
-                Refresh
-              </Button>
-            </Space>
-          </div>
+          <Descriptions bordered size="small" column={2}>
+            <Descriptions.Item label="Version">{diagnostics.data.version}</Descriptions.Item>
+            <Descriptions.Item label="Space used">{filesize(diagnostics.data.databaseSizeBytes)}</Descriptions.Item>
+            <Descriptions.Item label="Backup folder" span={2}>
+              <span className="mono small break-all">{diagnostics.data.backupFolder}</span>
+            </Descriptions.Item>
+          </Descriptions>
         ) : (
-          <p className="muted">Diagnostics are available to the owner account.</p>
+          <p className="muted">Storage details are available to the owner account.</p>
         )}
       </SectionCard>
     </div>
@@ -1239,19 +1212,17 @@ export default function SettingsPage() {
     key: 'about',
     label: 'About',
     children: (
-      <SectionCard title="Modern Fashion POS" subtitle="Offline-first retail point of sale and inventory.">
+      <SectionCard title="Modern Fashion POS" subtitle="Retail point of sale and inventory for your shop.">
         <Descriptions bordered size="small" column={2}>
           <Descriptions.Item label="Version">{appInfo.data?.version || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Electron">{appInfo.data?.electron || '—'}</Descriptions.Item>
-          <Descriptions.Item label="Data storage">Local SQLite on this computer</Descriptions.Item>
-          <Descriptions.Item label="Internet">Only for update checks and downloads</Descriptions.Item>
-          <Descriptions.Item label="Developed by" span={2}>
+          <Descriptions.Item label="Data storage">On this computer</Descriptions.Item>
+          <Descriptions.Item label="Support" span={2}>
             Meninges Labs
           </Descriptions.Item>
         </Descriptions>
         <p className="muted small">
-          This application does not publish data to the cloud. WhatsApp handoff opens WhatsApp and the invoice PDF
-          locally; the user chooses whether to send it. Hardware acceptance remains pending until physically tested.
+          Sales, stock, customers and documents stay on this computer. WhatsApp handoff opens WhatsApp and the invoice
+          PDF locally; you choose whether to send it.
         </p>
       </SectionCard>
     ),
@@ -1262,7 +1233,7 @@ export default function SettingsPage() {
       <PageHeader
         eyebrow="Store configuration"
         title="Settings"
-        subtitle="Changes are recorded in the audit log. Tax and receipt details must be confirmed with the client."
+        subtitle="Changes are recorded in the activity log. Check tax and receipt details with your accountant."
         extra={
           <Button icon={<ReloadOutlined />} onClick={reloadSettings} loading={settings.loading}>
             Reload
@@ -1336,7 +1307,7 @@ export default function SettingsPage() {
       </Modal>
 
       <Modal
-        title="Restore the live database"
+        title="Restore this backup"
         open={restoreOpen}
         onCancel={() => setRestoreOpen(false)}
         onOk={() => restoreForm.submit()}
@@ -1349,7 +1320,7 @@ export default function SettingsPage() {
           type="warning"
           showIcon
           message="This replaces all current data."
-          description="The chosen backup has already passed the SQLite integrity check. A verified pre-restore safety backup will be created in the backup folder. The application will close and restart after the restore."
+          description="The chosen backup is complete. A safety backup will be created in the backup folder. The application will close and restart after the restore."
         />
         <p className="mono small break-all">{restorePath}</p>
         <Form form={restoreForm} layout="vertical" onFinish={submitRestore} requiredMark={false}>

@@ -287,7 +287,7 @@ export default function PosPage() {
           try {
             await api('print.receipt', { saleId: result.sale.id, duplicate: false });
             setLastPrinted(true);
-            message.success('Sale saved and sent to the Windows receipt printer.');
+            message.success('Sale saved and sent to the receipt printer.');
           } catch (printError) {
             message.warning(
               `Sale saved successfully, but the receipt did not print: ${errorMessage(printError)} The invoice is safe; use Print receipt to retry.`
@@ -313,7 +313,7 @@ export default function PosPage() {
     try {
       await api('print.receipt', { saleId: lastSale.id, duplicate: lastPrinted || lastSale.printCount > 0 });
       setLastPrinted(true);
-      message.success('Receipt sent to the Windows printer driver. Verify the physical copy.');
+      message.success('Receipt sent to the printer. Check the printed copy.');
     } catch (printError) {
       message.error(errorMessage(printError));
     } finally {
@@ -413,7 +413,7 @@ export default function PosPage() {
               aria-label="Scan barcode or search products"
             />
             <div className="scan-hint">
-              Next invoice <strong>{bootstrap.nextInvoiceNumber}</strong> · Prices are authoritative in the local database.
+              Next invoice <strong>{bootstrap.nextInvoiceNumber}</strong> · Prices come from Inventory.
             </div>
           </div>
 
@@ -687,7 +687,7 @@ export default function PosPage() {
               maxLength={500}
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="Visible in the invoice record and audit trail"
+              placeholder="Visible in the invoice record and activity log"
             />
 
             <Button
@@ -812,8 +812,7 @@ export default function PosPage() {
               </Button>
             </div>
             <p className="muted small">
-              The print action reports whether the Windows driver accepted the job. Check the physical receipt
-              for paper, cut and print quality.
+              Check the printed receipt for paper, cut and print quality.
             </p>
           </div>
         ) : null}

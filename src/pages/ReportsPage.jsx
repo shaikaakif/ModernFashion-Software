@@ -245,7 +245,7 @@ export default function ReportsPage() {
         </SectionCard>
       ) : null}
 
-      <SectionCard title="Exports" subtitle="Files are saved where you choose. Figures remain local." className="section-gap">
+      <SectionCard title="Exports" subtitle="Files are saved where you choose." className="section-gap">
         <Space wrap>
           {can('reports.export') ? (
             <>
@@ -768,9 +768,9 @@ export default function ReportsPage() {
   return (
     <div>
       <PageHeader
-        eyebrow="Local reporting"
+        eyebrow="Business reporting"
         title="Reports"
-        subtitle="Figures are computed from local invoices, stock movements, purchases and expenses. Nothing is uploaded."
+        subtitle="Figures are calculated from recorded invoices, stock movements, purchases and expenses."
         extra={
           <Space wrap>
             <BrandMark size={38} />

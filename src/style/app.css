@@ -688,9 +688,56 @@ a {
   gap: 16px;
 }
 
-.dashboard-actions,
-.dashboard-backup {
+.dashboard-actions {
   margin-bottom: 16px;
+}
+
+.dashboard-backup {
+  margin-top: 18px;
+}
+
+.backup-state {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--mf-border);
+  border-radius: 8px;
+  background: #faf9f6;
+}
+
+.backup-state.is-ok > .anticon {
+  color: var(--mf-success);
+  font-size: 20px;
+}
+
+.backup-state.is-warning > .anticon {
+  color: var(--mf-warning);
+  font-size: 20px;
+}
+
+.backup-state-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.backup-state-copy span {
+  overflow: hidden;
+  color: var(--mf-muted);
+  font-size: 11px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.backup-state-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 6px;
 }
 
 .dashboard-actions .ant-space {

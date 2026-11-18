@@ -22,7 +22,7 @@ export default function SessionGate() {
       <Result
         status="error"
         title="The application could not start"
-        subTitle={bootError.message || 'The local database is unavailable.'}
+        subTitle={bootError.message || 'Your shop data could not be opened.'}
         extra={<p>Close the app and try again. If the problem continues, restore a verified backup.</p>}
       />
     );

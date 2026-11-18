@@ -45,6 +45,12 @@ const ROLES = [
   { value: 'cashier', label: roleLabel('cashier') },
 ];
 
+function actionText(value) {
+  return String(value || '')
+    .replace(/[._]/g, ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+}
+
 export default function UsersPage() {
   const { user: currentUser } = useSession();
   const { message } = AntApp.useApp();
@@ -525,21 +531,16 @@ export default function UsersPage() {
               />
             </SectionCard>
 
-            <SectionCard title="Audit entries" className="inner-panel" bodyClassName="panel-body flush">
+            <SectionCard title="Activity entries" className="inner-panel" bodyClassName="panel-body flush">
               <Table
                 rowKey={(row, index) => `${row.action}-${row.createdAt}-${index}`}
                 size="small"
                 dataSource={activityData.audit}
                 pagination={{ pageSize: 10 }}
-                locale={{ emptyText: 'No audit entries for this account.' }}
+                locale={{ emptyText: 'No activity entries for this account.' }}
                 columns={[
                   { title: 'When', dataIndex: 'createdAt', width: 170, render: formatDateTime },
-                  { title: 'Action', dataIndex: 'action', width: 200 },
-                  {
-                    title: 'Details',
-                    dataIndex: 'details',
-                    render: (value) => <span className="mono small break-all">{JSON.stringify(value)}</span>,
-                  },
+                  { title: 'Action', dataIndex: 'action', render: actionText },
                 ]}
               />
             </SectionCard>

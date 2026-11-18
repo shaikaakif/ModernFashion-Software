@@ -113,7 +113,7 @@ export default function CustomersPage() {
       />
 
       <div className="kpi-grid three">
-        <Kpi label="Customers" value={rows.length} hint="Saved in the local database" />
+        <Kpi label="Customers" value={rows.length} hint="Customer records" />
         <Kpi label="Lifetime purchases" value={money(totalSpent)} hint="Completed invoices only" />
         <Kpi
           label="Outstanding balances"

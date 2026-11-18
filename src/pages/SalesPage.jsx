@@ -155,13 +155,13 @@ export default function SalesPage() {
     try {
       if (a4) {
         await api('print.a4', { saleId: detail.id });
-        message.success('A4 invoice sent to the Windows printer driver. Verify the physical copy.');
+        message.success('A4 invoice sent to the printer. Check the printed copy.');
       } else {
         await api('print.receipt', { saleId: detail.id, duplicate, widthMm });
         message.success(
           duplicate
-            ? 'Duplicate receipt sent to the Windows printer driver. Verify the physical copy.'
-            : 'Receipt sent to the Windows printer driver. Verify the physical copy.'
+            ? 'Duplicate receipt sent to the printer. Check the printed copy.'
+            : 'Receipt sent to the printer. Check the printed copy.'
         );
       }
       await refreshDetail();
@@ -297,7 +297,7 @@ export default function SalesPage() {
             showIcon
             className="detail-alert"
             message="This does not delete the sale."
-            description="The invoice remains in the ledger as voided, every item is returned to stock, and the reason is written to the audit log."
+            description="The invoice remains in the ledger as voided, every item is returned to stock, and the reason is written to the activity log."
           />
           <Form form={voidForm} layout="vertical" onFinish={submitVoid} requiredMark={false}>
             <Form.Item
@@ -674,10 +674,8 @@ export default function SalesPage() {
               <div>
                 <h3>Printing</h3>
                 <p className="muted small">
-                  The application reports whether Windows accepted the job. Paper, cut and print quality must be
-                  checked on the physical device.
+                  Check the printed copy for paper, cut and print quality. The PDF is saved on this computer.
                 </p>
-                {detail.pdfPath ? <p className="mono small break-all">PDF: {detail.pdfPath}</p> : null}
               </div>
             </div>
           </div>
@@ -701,7 +699,7 @@ export default function SalesPage() {
           showIcon
           className="detail-alert"
           message="This does not delete the sale."
-          description="The invoice remains in the ledger as voided, every item is returned to stock, and the reason is written to the audit log."
+          description="The invoice remains in the ledger as voided, every item is returned to stock, and the reason is written to the activity log."
         />
         <Form form={voidForm} layout="vertical" onFinish={submitVoid} requiredMark={false}>
           <Form.Item

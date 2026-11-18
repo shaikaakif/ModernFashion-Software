@@ -44,8 +44,7 @@ export default function LoginPage() {
           </address>
         </div>
         <div className="auth-brand-foot">
-          <span>Offline-first billing and stock</span>
-          <span>Engineered by Meninges Labs</span>
+          <span>Billing and stock, on this computer</span>
         </div>
       </section>
 

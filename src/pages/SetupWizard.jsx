@@ -115,8 +115,8 @@ export default function SetupWizard({ firstRun = false, onFinish }) {
         intervalHours: values.backupIntervalHours,
         retention: values.backupRetention,
       });
-      const result = await api('backup.create');
-      message.success(`Backup verified: ${result.path}`, 6);
+      await api('backup.create');
+      message.success('Backup created and verified.', 6);
     } catch (error) {
       message.error(errorMessage(error));
     } finally {
@@ -389,8 +389,8 @@ export default function SetupWizard({ firstRun = false, onFinish }) {
             <Alert
               type="info"
               showIcon
-              message="Automatic backups protect the local database and business assets"
-              description="Keep the folder on a separate drive where possible. A backup is verified before it is reported as successful."
+              message="Automatic backups protect your shop data"
+              description="Keep the folder on a separate drive where possible. Every backup is checked before it is reported as successful."
             />
             <Form.Item name="backupEnabled" label="Automatic daily backup" valuePropName="checked">
               <Switch />

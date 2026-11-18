@@ -58,8 +58,8 @@ const NAV = [
   { key: '/reports', label: 'Reports', icon: <BarChartOutlined />, any: ['reports.sales', 'reports.profit'] },
   { key: '/users', label: 'Users & shifts', icon: <PercentageOutlined />, any: ['users.manage'] },
   { key: '/settings', label: 'Settings', icon: <SettingOutlined />, any: ['settings.manage'] },
-  { key: '/releases', label: 'Releases', icon: <CloudDownloadOutlined />, any: ['settings.manage'] },
-  { key: '/audit', label: 'Audit log', icon: <AuditOutlined />, any: ['audit.view'] },
+  { key: '/releases', label: 'Updates', icon: <CloudDownloadOutlined />, any: ['settings.manage'] },
+  { key: '/audit', label: 'Activity log', icon: <AuditOutlined />, any: ['audit.view'] },
 ];
 
 function Protected({ any, children }) {
@@ -111,8 +111,8 @@ export default function AppShell() {
         notification.info({
           message: next.downloaded ? 'Update ready to install' : 'Update available',
           description: next.downloaded
-            ? `Version ${next.version} is downloaded. Restart and install it from Releases.`
-            : `Version ${next.version} is available from GitHub Releases.`,
+            ? `Version ${next.version} is downloaded. Restart to install it.`
+            : `Version ${next.version} is ready to download.`,
           btn: (
             <Button
               type="primary"
@@ -122,7 +122,7 @@ export default function AppShell() {
                 navigate('/releases');
               }}
             >
-              View release
+              View update
             </Button>
           ),
           duration: 10,
@@ -245,7 +245,7 @@ export default function AppShell() {
           onClick={({ key }) => navigate(key)}
         />
         <div className="sider-foot">
-          {!collapsed ? <span>Offline · local data</span> : null}
+          {!collapsed ? <span>Saved on this computer</span> : null}
           <Button
             type="text"
             aria-label={collapsed ? 'Expand navigation' : 'Collapse navigation'}
@@ -267,8 +267,8 @@ export default function AppShell() {
               <Tooltip
                 title={
                   updateStatus.downloaded
-                    ? `Version ${updateStatus.version} is downloaded. Restart and install from Releases.`
-                    : `Version ${updateStatus.version} is available. Open Releases to review it.`
+                    ? `Version ${updateStatus.version} is downloaded. Restart and install it.`
+                    : `Version ${updateStatus.version} is available. Open Updates to review it.`
                 }
               >
                 <Button
