@@ -1,13 +1,12 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-18
-**Implementation checkpoint:** v1.2.3 candidate on `whatsapp-automation` — invoice workspace, GST monthly report and guided setup (unpublished)
-**Verification record:** v1.2.3 candidate `npm run verify` passing; v1.2.2 remains the published release
-**Current public release:** 1.2.2 — opening-stock patch on top of the v1.2.1 receipt, dashboard and branding release. Published as GitHub Release `v1.2.2`.
-**Previous public releases:** 1.2.1, 1.2.0 and 1.1.0 — remain available for rollback.
-**Current candidate:** 1.2.3 — professional New Sale, inline invoice workspace, GST monthly report, WhatsApp Desktop caption handoff, map link and guided setup.
+**Implementation checkpoint:** v1.2.3 published release, code commit `56c686bf`
+**Verification record:** v1.2.3 GitHub Release published and publicly verified
+**Current public release:** 1.2.3 — professional New Sale, inline invoice workspace, GST monthly report, WhatsApp Desktop caption handoff, receipt typography and guided setup. Published as GitHub Release `v1.2.3`.
+**Previous public releases:** 1.2.2, 1.2.1, 1.2.0 and 1.1.0 — remain available for rollback.
 **Developer:** Meninges Labs
-**Working branch:** `whatsapp-automation`
+**Working branch:** `whatsapp-automation` (published tag `v1.2.3` points to `56c686bf`)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
