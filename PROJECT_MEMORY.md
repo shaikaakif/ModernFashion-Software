@@ -33,7 +33,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **26/26 passing** on v1.2.0 (includes branding, archive/restore/delete, Add/Correct/Remove stock, Product Sales report and backup-with-assets tests) |
+| `npm test` | **40/40 passing** on the `whatsapp-automation` branch (adds barcode-studio and CSV/Excel import coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
@@ -71,6 +71,7 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 
 - Products and Inventory are one navigation destination. `/products` redirects to `/inventory`; the Inventory tabs are Products, Stock, Stock history, Categories, Archived, Valuation and Reconciliation.
 - Archive means `products.status = 'inactive'`. Archived products leave active stock lists and POS search but remain on historical invoices, movements and reports.
+- **Import data** (`/import`, owner/manager only) reads CSV/XLSX/XLS product lists, auto-maps common headers (including Vyapar item exports), previews every row with new/update/skip/error status, creates missing categories/brands, and commits in one transaction. Rows match by barcode, SKU, or product + colour + size. Stock becomes an `opening` movement for new variants and an `adjustment_in`/`adjustment_out` movement for existing ones, under one `IMP/<FY>/<seq>` reference. Re-import is idempotent when stock is set to the same count.
 - Delete is allowed only when the product has no sale, purchase or stock-movement history. Products with history must be archived.
 - Stock updates are `add`, `correct` (set the actual counted quantity) and `remove`; every operation writes an immutable `stock_movements` row and an audit entry.
 
@@ -123,6 +124,8 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 | `electron/core/database.js` | Schema, migrations, structural seeds, transactions |
 | `electron/core/inventory.js` | Stock availability and immutable movement ledger |
 | `electron/services/saleService.js` | POS bootstrap, totals, idempotent checkout, void, receipt data |
+| `electron/services/importService.js` | CSV/XLSX parsing, column mapping, row validation, duplicate matching and transactional product/stock import |
+| `src/pages/ImportPage.jsx` | Import workspace: file, mapping, rules, preview and commit |
 | `electron/services/reportService.js` | Dashboard, sales/profit/product/tax/purchase/expense/inventory reports |
 | `electron/services/settingsService.js` | Settings, offers, logo data, print normalization/preview, trusted print snapshot |
 | `electron/services/updateService.js` | GitHub Releases status, check, download and backup-first install |
@@ -189,7 +192,7 @@ assets/
 1. Review the `v1.2.1` diff; run `npm run verify`.
 2. Exercise the candidate on the workstation: login layout, product delete, per-variant pricing, Add/Correct/Remove stock, receipt at 58 mm and 80 mm, A4 invoice, dashboard quick actions and backup status.
 3. Build the v1.2.1 installer only after review; do not publish without explicit owner approval. v1.2.0 remains the public release.
-4. Deferred master-prompt work: CSV/Vyapar import framework, first-run business wizard, full structured invoice designer and the complete single-folder backup export.
+4. Deferred master-prompt work: full structured invoice designer and the complete single-folder backup export.
 
 ## 9. Session continuation protocol
 

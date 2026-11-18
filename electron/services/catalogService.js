@@ -22,7 +22,7 @@ function slugCode(value, length = 3) {
   return code || 'STD';
 }
 
-function nextBarcode(db) {
+export function nextBarcode(db) {
   let config = DEFAULT_BARCODE;
   try {
     config = normalizeBarcodeConfig(getSetting(db, 'barcode'));
@@ -34,7 +34,7 @@ function nextBarcode(db) {
   return formatBarcode(config.prefix, config.digits, sequence);
 }
 
-function buildSku(db, categoryCode, productId, color, size) {
+export function buildSku(db, categoryCode, productId, color, size) {
   const base = `${categoryCode.toUpperCase().slice(0, 3)}-${String(productId).padStart(4, '0')}-${slugCode(
     color
   )}-${slugCode(size)}`;

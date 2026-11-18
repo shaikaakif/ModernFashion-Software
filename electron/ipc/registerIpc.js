@@ -10,6 +10,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     branding,
     catalog,
     inventory,
+    importer,
     suppliers,
     purchases,
     sales,
@@ -82,6 +83,24 @@ export function createIpcHandlers({ services, paths, printService, exportService
     }
     settings.setLogoPath('');
     return { changed: true, logo: settings.getLogo() };
+  }
+
+  function chooseImportFile() {
+    auth.requirePermission('products.manage');
+    const file = dialog.showOpenDialogSync({
+      title: 'Choose a product list to import',
+      filters: [
+        { name: 'CSV or Excel', extensions: ['csv', 'xlsx', 'xls', 'tsv'] },
+        { name: 'All files', extensions: ['*'] },
+      ],
+      properties: ['openFile'],
+    })?.[0];
+    if (!file) return null;
+    const stat = fs.statSync(file);
+    if (!stat.isFile() || stat.size > 20 * 1024 * 1024) {
+      fail('Choose a CSV or Excel file smaller than 20 MB.');
+    }
+    return { path: file, fileName: path.basename(file), sizeBytes: stat.size };
   }
 
   function chooseBackupFile() {
@@ -202,6 +221,10 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'catalog.posSearch': (payload) => catalog.posSearch(payload?.query, payload),
     'catalog.lowStock': (payload) => catalog.lowStock(payload),
     'catalog.labels': (payload) => catalog.labelData(payload?.variantIds),
+
+    'import.chooseFile': chooseImportFile,
+    'import.preview': (payload) => importer.preview(payload),
+    'import.commit': (payload) => importer.commit(payload),
 
     'inventory.list': (payload) => inventory.list(payload),
     'inventory.summary': () => inventory.summary(),

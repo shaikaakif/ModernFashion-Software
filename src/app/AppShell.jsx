@@ -10,6 +10,7 @@ import {
   DollarOutlined,
   DownOutlined,
   FileTextOutlined,
+  ImportOutlined,
   LockOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -33,6 +34,7 @@ import PosPage from '@/pages/PosPage';
 import SalesPage from '@/pages/SalesPage';
 import InventoryPage from '@/pages/InventoryPage';
 import BarcodesPage from '@/pages/BarcodesPage';
+import ImportPage from '@/pages/ImportPage';
 import PurchasesPage from '@/pages/PurchasesPage';
 import SuppliersPage from '@/pages/SuppliersPage';
 import CustomersPage from '@/pages/CustomersPage';
@@ -51,6 +53,7 @@ const NAV = [
   { key: '/sales', label: 'Invoices', icon: <FileTextOutlined />, any: ['sales.view.all', 'sales.view.own'] },
   { key: '/inventory', label: 'Inventory', icon: <ShopOutlined />, any: ['inventory.view', 'products.view'] },
   { key: '/barcodes', label: 'Barcodes', icon: <BarcodeOutlined />, any: ['products.manage'] },
+  { key: '/import', label: 'Import data', icon: <ImportOutlined />, any: ['products.manage'] },
   { key: '/purchases', label: 'Purchases', icon: <WalletOutlined />, any: ['purchases.view'] },
   { key: '/suppliers', label: 'Suppliers', icon: <TeamOutlined />, any: ['purchases.view'] },
   { key: '/customers', label: 'Customers', icon: <UserOutlined />, any: ['customers.view'] },
@@ -310,6 +313,7 @@ export default function AppShell() {
             <Route path="/sales/:id" element={<Protected any={['sales.view.all', 'sales.view.own']}><SalesPage /></Protected>} />
             <Route path="/inventory" element={<Protected any={['inventory.view', 'products.view']}><InventoryPage /></Protected>} />
             <Route path="/barcodes" element={<Protected any={['products.manage']}><BarcodesPage /></Protected>} />
+            <Route path="/import" element={<Protected any={['products.manage']}><ImportPage /></Protected>} />
             <Route path="/products" element={<Navigate to="/inventory" replace />} />
             <Route path="/purchases" element={<Protected any={['purchases.view']}><PurchasesPage /></Protected>} />
             <Route path="/suppliers" element={<Protected any={['purchases.view']}><SuppliersPage /></Protected>} />

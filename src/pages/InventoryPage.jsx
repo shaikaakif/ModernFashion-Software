@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   App as AntApp,
   Alert,
@@ -17,6 +17,7 @@ import {
 } from 'antd';
 import {
   HistoryOutlined,
+  ImportOutlined,
   ReloadOutlined,
   SearchOutlined,
   SwapOutlined,
@@ -45,6 +46,7 @@ const MOVEMENT_TYPES = [
 export default function InventoryPage() {
   const { can } = useSession();
   const { message } = AntApp.useApp();
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [tab, setTab] = useState('products');
   const [query, setQuery] = useState('');
@@ -538,6 +540,13 @@ export default function InventoryPage() {
         eyebrow="Stock control"
         title="Inventory"
         subtitle="Products, stock levels and the immutable movement ledger live together. Archived products stay in history but leave the active catalogue."
+        extra={
+          can('products.manage') ? (
+            <Button icon={<ImportOutlined />} onClick={() => navigate('/import')}>
+              Import products
+            </Button>
+          ) : null
+        }
       />
 
       <Tabs

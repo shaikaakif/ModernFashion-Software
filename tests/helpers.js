@@ -6,6 +6,7 @@ import { createAuthService } from '../electron/services/authService.js';
 import { createSettingsService } from '../electron/services/settingsService.js';
 import { createCatalogService } from '../electron/services/catalogService.js';
 import { createInventoryService } from '../electron/services/inventoryService.js';
+import { createImportService } from '../electron/services/importService.js';
 import { createSupplierService } from '../electron/services/supplierService.js';
 import { createPurchaseService } from '../electron/services/purchaseService.js';
 import { createSaleService } from '../electron/services/saleService.js';
@@ -32,6 +33,7 @@ export function createTestApp(t) {
     branding: createBrandingService({ db }),
     catalog,
     inventory: createInventoryService({ db, auth }),
+    importer: createImportService({ db, auth, logger: silentLogger }),
     suppliers: createSupplierService({ db, auth }),
     purchases: createPurchaseService({ db, auth }),
     sales: createSaleService({ db, auth }),

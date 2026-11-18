@@ -10,6 +10,7 @@ import { createAuthService } from './services/authService.js';
 import { createSettingsService } from './services/settingsService.js';
 import { createCatalogService } from './services/catalogService.js';
 import { createInventoryService } from './services/inventoryService.js';
+import { createImportService } from './services/importService.js';
 import { createSupplierService } from './services/supplierService.js';
 import { createPurchaseService } from './services/purchaseService.js';
 import { createSaleService } from './services/saleService.js';
@@ -159,6 +160,7 @@ async function bootstrap() {
   const branding = createBrandingService({ db });
   const catalog = createCatalogService({ db, auth });
   const inventory = createInventoryService({ db, auth });
+  const importer = createImportService({ db, auth, logger });
   const suppliers = createSupplierService({ db, auth });
   const purchases = createPurchaseService({ db, auth });
   const sales = createSaleService({ db, auth });
@@ -183,6 +185,7 @@ async function bootstrap() {
     branding,
     catalog,
     inventory,
+    importer,
     suppliers,
     purchases,
     sales,
