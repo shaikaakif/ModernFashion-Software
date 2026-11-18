@@ -1,13 +1,13 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-18
-**Implementation checkpoint:** v1.3.0 public release, code commit `03e5db13`
-**Verification record:** v1.3.0 GitHub Release `449970817` published and publicly verified
-**Current public release:** 1.3.0 - Vyapar migration, negative stock, user lifecycle, full-width billing terminal, EAN-13 labels and receipt typography.
-**Previous public releases:** 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** label legibility (Code 128-C numeric compression, larger bars, brand/price/barcode text) and faster scanner Enter handling. No new installer built.
+**Implementation checkpoint:** v1.3.1 public release
+**Verification record:** v1.3.1 GitHub Release published and publicly verified
+**Current public release:** 1.3.1 - label legibility, scanner Enter fix and per-variant UPC-A regeneration on top of 1.3.0.
+**Previous public releases:** 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
+**Unreleased branch work:** none; release asset built from the `v1.3.1` tag.
 **Developer:** Meninges Labs
-**Working branch:** `v1.3.0` (package version 1.3.0; public release tag points to `03e5db13`, branch has post-release commits)
+**Working branch:** `v1.3.1` (package version 1.3.1; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
