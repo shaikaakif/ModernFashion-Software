@@ -124,7 +124,7 @@ export function receiptHtml({
 }) {
   const width = widthMm === 58 ? 58 : 80;
   const compact = width === 58;
-  const contentWidth = compact ? 46 : 70;
+  const sidePadding = compact ? 3.5 : 4.5;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -205,7 +205,7 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${contentWidth}mm; padding: 2mm 1.2mm 4mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
+  body { width: ${width}mm; margin: 0 auto; padding: 3mm ${sidePadding}mm 7mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
     compact ? 9 : 10
   )}; line-height: 1.35; }
   .center { text-align: center; }
@@ -241,6 +241,8 @@ export function receiptHtml({
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
   .totals .grand td { padding-top: 1.2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 12 : 14)}; font-weight: 800; }
   .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 1.5mm; padding: 1mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-weight: 800; text-transform: uppercase; }
+  .words { margin-top: 1.5mm; padding-top: 1mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 7.2 : 8)}; line-height: 1.4; }
+  .words strong { display: block; margin-top: 0.3mm; font-weight: 700; }
   .terms { margin-top: 2mm; font-size: ${fs(compact ? 7.2 : 8)}; line-height: 1.4; }
   .terms strong { display: block; margin-bottom: 0.5mm; font-size: ${fs(8)}; letter-spacing: 0.04em; text-transform: uppercase; }
   .footer-note { margin-top: 1.5mm; font-size: ${fs(7.5)}; text-align: center; }
@@ -303,6 +305,7 @@ export function receiptHtml({
     <tr class="grand"><td>Total</td><td>${money(sale.totalPaise)}</td></tr>
     ${amountRows}
   </table>
+  <div class="words">Amount in words<strong>${escapeHtml(amountInWords(sale.totalPaise))}</strong></div>
   ${
     receipt?.showSavings !== false && discountTotal > 0
       ? `<div class="savings"><span>You saved</span><strong>${money(discountTotal)}</strong></div>`
@@ -523,7 +526,7 @@ export function labelsHtml({ labels, business, options = {} }) {
 
 export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 80 }) {
   const width = widthMm === 58 ? 58 : 80;
-  const contentWidth = width === 58 ? 46 : 70;
+  const sidePadding = width === 58 ? 3.5 : 4.5;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -538,7 +541,7 @@ export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl =
   <style>
     @page { margin: 0; }
     html, body { margin: 0; padding: 0; color: #000; background: #fff; }
-    body { width: ${contentWidth}mm; padding: 2mm 1mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
+    body { width: ${width}mm; margin: 0 auto; padding: 2mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
     .center { text-align: center; } .logo { display:block; margin:0 auto 2mm; max-width:70%; object-fit:contain; }
     .title { margin: 2mm 0; font-size: ${fs(14)}; font-weight: 800; letter-spacing: 0.1em; }
     .banner { margin: 2mm 0; padding: 1.5mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; text-align: center; }

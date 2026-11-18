@@ -257,7 +257,8 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.match(html, /Thanks for shopping with us!/);
   assert.match(html, /We appreciate your business\./);
   assert.match(html, /Keep the bill\./);
-  assert.match(html, /width: 46mm/);
+  assert.match(html, /width: 58mm/);
+  assert.match(html, /padding: 3mm 3\.5mm 7mm/);
   assert.doesNotMatch(html, /You saved/);
   assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
   assert.doesNotMatch(html, /Round off/);

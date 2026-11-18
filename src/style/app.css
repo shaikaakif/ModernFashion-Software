@@ -2603,7 +2603,8 @@ a {
 
 .invoice-preview-frame {
   width: 100%;
-  min-height: 66vh;
+  height: 1120px;
+  min-height: 1120px;
   border: 0;
   background: #fff;
   box-shadow: 0 1px 8px rgb(0 0 0 / 12%);
