@@ -60,7 +60,7 @@ test('CSV import maps common headers, creates products, variants and stock', (t)
   assert.equal(variants[0].cost_paise, 32000);
   assert.equal(variants[0].tax_rate_bp, 500);
   assert.equal(variants[0].quantity, 12);
-  assert.match(variants[1].barcode, /^MF/);
+  assert.match(variants[1].barcode, /^20\d{11}$/);
   assert.equal(
     Number(app.db.prepare("SELECT COUNT(*) AS count FROM stock_movements WHERE movement_type = 'opening'").get().count),
     3
@@ -231,5 +231,15 @@ test('a barcode match under a changed file name still reuses the existing produc
   assert.equal(
     Number(app.db.prepare("SELECT COUNT(*) AS count FROM product_variants WHERE product_id = (SELECT id FROM products WHERE name = 'Everyday Tee')").get().count),
     2
+  );
+});
+
+test('Vyapar .VYB backups are rejected instead of pretending to restore them', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const file = writeFile(app.directory, 'shop.vyb', 'not-a-real-vyapar-backup');
+  assert.throws(
+    () => app.services.importer.preview({ filePath: file }),
+    /proprietary backup container/i
   );
 });

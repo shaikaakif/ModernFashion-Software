@@ -12,7 +12,7 @@ import { getSetting } from '../core/settings.js';
 import { allocateSequence } from '../core/sequences.js';
 import { transaction } from '../core/database.js';
 import { AppError } from '../core/errors.js';
-import { DEFAULT_BARCODE, formatBarcode, normalizeBarcodeConfig } from '../../shared/barcode.js';
+import { DEFAULT_BARCODE, generatedBarcode, normalizeBarcodeConfig } from '../../shared/barcode.js';
 
 function slugCode(value, length = 3) {
   const code = String(value || '')
@@ -28,10 +28,14 @@ export function nextBarcode(db) {
     config = normalizeBarcodeConfig(getSetting(db, 'barcode'));
   } catch {
     // A damaged setting must never stop catalogue work. Existing barcodes keep
-    // their values; new variants fall back to the internal MF format.
+    // their values; new variants fall back to the internal EAN-13 format.
   }
-  const sequence = allocateSequence(db, 'barcode', 'global');
-  return formatBarcode(config.prefix, config.digits, sequence);
+  for (let attempt = 0; attempt < 50; attempt += 1) {
+    const sequence = allocateSequence(db, 'barcode', 'global');
+    const candidate = generatedBarcode(config, sequence);
+    if (!db.prepare('SELECT id FROM product_variants WHERE barcode = ?').get(candidate)) return candidate;
+  }
+  fail('Could not generate a unique barcode. Check the barcode sequence in Settings.');
 }
 
 export function buildSku(db, categoryCode, productId, color, size) {

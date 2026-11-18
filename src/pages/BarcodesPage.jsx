@@ -112,7 +112,7 @@ export default function BarcodesPage() {
       <PageHeader
         eyebrow="Barcode studio"
         title="Barcodes"
-        subtitle="Select variants, set label counts and preview the exact Code 128 labels before printing. No stock or sales records change here."
+        subtitle="Select variants, set label counts and preview the exact EAN-13, UPC-A or Code 128 labels before printing. No stock or sales records change here."
         extra={
           <Space wrap>
             <Button icon={<ReloadOutlined />} onClick={() => variants.reload()} loading={variants.loading}>

@@ -567,6 +567,24 @@ export default function ImportPage() {
             </div>
           </SectionCard>
         ) : null}
+
+        <SectionCard
+          title="Coming from Vyapar?"
+          subtitle="Import the item export, not the .VYB backup."
+        >
+          <ol className="vyapar-steps">
+            <li>In Vyapar, open <strong>Items</strong> and use <strong>Export to Excel</strong> (or CSV).</li>
+            <li>Save the file and choose it above. The column names are matched automatically.</li>
+            <li>Review the preview, then import products and current stock.</li>
+          </ol>
+          <Alert
+            type="info"
+            showIcon
+            className="section-gap-sm"
+            message="Vyapar .VYB backups are not supported."
+            description="A .VYB file is Vyapar's own backup container, not a standard database or spreadsheet. This app does not claim to restore it. The item export is the safe, documented route. Customers, suppliers and old sales still need to be exported separately from Vyapar."
+          />
+        </SectionCard>
       </div>
     </div>
   );

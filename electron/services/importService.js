@@ -339,6 +339,11 @@ function readTable(filePath) {
   if (!stat.size) fail('The chosen file is empty.');
 
   const extension = path.extname(resolved).toLowerCase();
+  if (extension === '.vyb') {
+    fail(
+      'Vyapar .VYB files are a proprietary backup container and cannot be decoded reliably here. In Vyapar, export Items to Excel/CSV, then import that file.'
+    );
+  }
   if (['.csv', '.txt', '.tsv'].includes(extension)) {
     const buffer = fs.readFileSync(resolved);
     const source = decodeBuffer(buffer);

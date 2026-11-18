@@ -25,7 +25,10 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 - Dashboard quick actions, backup status, month-to-date sales and out-of-stock visibility
 - Barcode-driven POS with cart, offers/manual discounts, tax-inclusive support, split payment status, change, receipt preview and reprint
 - Transactional checkout: one invoice, one stock deduction, idempotency protection and no negative stock
-- Products with colour/size variants, unique SKU/barcode, opening stock and Code 128 labels
+- Products with colour/size variants, unique SKU/barcode, opening stock and EAN-13/UPC-A labels
+- Barcode studio with label preview, per-variant counts, MRP/selling price and adaptive 20–110 mm label stock
+- CSV/XLSX product and stock import with column mapping, row preview and duplicate-safe matching
+- Imported-data workspace; Vyapar item exports are supported, while proprietary `.VYB` backups are rejected with a documented Excel/CSV route
 - Inventory balances, immutable movement ledger, adjustments and reconciliation
 - Purchases, suppliers, landed cost and weighted-average costing
 - Customers, operating expenses, users, shifts, audit log and settings
@@ -34,7 +37,7 @@ The application runs on one Windows computer. Authentication, billing, stock, re
 - Local backups with integrity + SHA-256 verification, scheduled backups and guarded restore
 - Receipt, A4 invoice and label HTML printed through the Windows driver; PDF save and WhatsApp handoff
 - Owner-editable print layout: logo size/visibility, header fields, receipt sections, header/footer notes, terms, paper width and font scale, with a live sample receipt preview
-- Owner-editable Code 128 barcode prefix and digit width for newly generated product barcodes; existing barcode values are never rewritten
+- Owner-editable EAN-13 / UPC-A / Code 128 barcode format for newly generated product barcodes; existing barcode values are never rewritten
 - GitHub Releases update page with check, download and backup-first install; business data stays in the user-data folder
 - Logo preview in Settings with a restart prompt after the logo changes
 

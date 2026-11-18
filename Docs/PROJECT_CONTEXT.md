@@ -393,9 +393,11 @@ Label printer reported as **TVS LP 46 NEO**. Verify actual label size,
 DPI, driver, connection and supported printer language.
 
 -   Generate internal SKU/barcode IDs; never invent registered EAN/GTIN
-    identifiers.
--   Support Code 128 internal labels as a default candidate if the
-    printer and workflow support it.
+    identifiers. Internally generated EAN-13/UPC-A numbers use the GS1
+    restricted-circulation range (prefix 20–29) and are not GS1-registered.
+-   Generate EAN-13 by default, with UPC-A and legacy Code 128 available;
+    calculate and validate the check digit.
+-   Never rewrite existing stored barcode values when the format changes.
 -   Print product name, variant/size, selling price and barcode as
     configured.
 -   Support label dimensions, margins, gap/black-mark calibration,

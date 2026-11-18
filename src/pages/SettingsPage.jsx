@@ -40,7 +40,7 @@ import { useSession } from '@/app/SessionContext';
 import { formatDateTime, money, percentFromBp } from '@/app/format';
 import { LoadingPanel, MoneyInput, PageHeader, SectionCard } from '@/app/components';
 import SetupWizard from '@/pages/SetupWizard';
-import { barcodeExample, BARCODE_SYMBOLOGY } from '@shared/barcode.js';
+import { barcodeExample, SYMBOLOGY_LABELS } from '@shared/barcode.js';
 
 const PAYMENT_METHODS = [
   { value: 'cash', label: 'Cash' },
@@ -111,8 +111,10 @@ export default function SettingsPage() {
       ...data.invoice,
       ...data.receipt,
       receiptWidthMm: data.hardware.receiptWidthMm,
+      barcodeSymbology: data.barcode.symbology,
       barcodePrefix: data.barcode.prefix,
       barcodeDigits: data.barcode.digits,
+      barcodeEanPrefix: data.barcode.eanPrefix,
     });
     taxForm.setFieldsValue({
       ...data.tax,
@@ -125,10 +127,16 @@ export default function SettingsPage() {
 
   let barcodeText = '';
   let barcodeError = '';
+  const barcodeSymbology = printValues?.barcodeSymbology || 'ean13';
   try {
     barcodeText =
-      printValues?.barcodePrefix !== undefined && printValues?.barcodeDigits !== undefined
-        ? barcodeExample(printValues.barcodePrefix, printValues.barcodeDigits)
+      printValues?.barcodeSymbology !== undefined
+        ? barcodeExample({
+            symbology: barcodeSymbology,
+            prefix: printValues.barcodePrefix,
+            digits: printValues.barcodeDigits,
+            eanPrefix: printValues.barcodeEanPrefix,
+          })
         : '';
   } catch (error) {
     barcodeError = error.message;
@@ -143,7 +151,7 @@ export default function SettingsPage() {
     }
     try {
       JsBarcode(node, barcodeText, {
-        format: 'CODE128',
+        format: barcodeSymbology === 'ean13' ? 'EAN13' : barcodeSymbology === 'upca' ? 'UPC' : 'CODE128',
         width: 2,
         height: 58,
         displayValue: true,
@@ -155,7 +163,7 @@ export default function SettingsPage() {
     } catch {
       // The visible error message already explains an invalid format.
     }
-  }, [barcodeText]);
+  }, [barcodeText, barcodeSymbology]);
 
   const printSignature = printValues ? JSON.stringify(printValues) : '';
 
@@ -733,31 +741,65 @@ export default function SettingsPage() {
 
           <SectionCard
             title="Barcode format"
-            subtitle={`New product barcodes use ${BARCODE_SYMBOLOGY}. Existing barcode values are never rewritten.`}
-            extra={<Tag icon={<BarcodeOutlined />}>CODE128</Tag>}
+            subtitle={`New product barcodes use ${SYMBOLOGY_LABELS[barcodeSymbology] || 'EAN-13'}. Existing barcode values are never rewritten.`}
+            extra={
+              <Tag icon={<BarcodeOutlined />}>
+                {(SYMBOLOGY_LABELS[barcodeSymbology] || 'EAN-13').toUpperCase()}
+              </Tag>
+            }
           >
             <div className="form-grid two">
               <Form.Item
-                name="barcodePrefix"
-                label="Barcode prefix"
-                rules={[
-                  { required: true, message: 'Enter a prefix.' },
-                  { pattern: /^[A-Za-z0-9]{2,6}$/, message: 'Use 2–6 letters or digits.' },
-                ]}
-                extra="Example: MF. Stored in uppercase."
+                name="barcodeSymbology"
+                label="Symbology"
+                extra="EAN-13 is compact and recommended for retail scanning."
               >
-                <Input maxLength={6} style={{ textTransform: 'uppercase' }} />
+                <Select
+                  options={[
+                    { value: 'ean13', label: 'EAN-13 — 13 digits (recommended)' },
+                    { value: 'upca', label: 'UPC-A — 12 digits' },
+                    { value: 'code128', label: 'Code 128 — legacy alphanumeric' },
+                  ]}
+                />
               </Form.Item>
-              <Form.Item name="barcodeDigits" label="Sequence digits" extra="6–12 digits. Wider numbers stay scannable.">
-                <InputNumber min={6} max={12} style={{ width: '100%' }} />
-              </Form.Item>
+              {barcodeSymbology === 'code128' ? (
+                <>
+                  <Form.Item
+                    name="barcodePrefix"
+                    label="Barcode prefix"
+                    rules={[
+                      { required: true, message: 'Enter a prefix.' },
+                      { pattern: /^[A-Za-z0-9]{2,6}$/, message: 'Use 2–6 letters or digits.' },
+                    ]}
+                    extra="Example: MF. Stored in uppercase."
+                  >
+                    <Input maxLength={6} style={{ textTransform: 'uppercase' }} />
+                  </Form.Item>
+                  <Form.Item name="barcodeDigits" label="Sequence digits" extra="6–12 digits.">
+                    <InputNumber min={6} max={12} style={{ width: '100%' }} />
+                  </Form.Item>
+                </>
+              ) : (
+                <Form.Item
+                  name="barcodeEanPrefix"
+                  label="In-store prefix"
+                  rules={[
+                    { required: true, message: 'Enter an in-store prefix.' },
+                    { pattern: /^2\d$/, message: 'Use 20–29.' },
+                  ]}
+                  extra="20–29 is the in-store range. These numbers are generated by this app, not registered with GS1."
+                >
+                  <Input maxLength={2} inputMode="numeric" />
+                </Form.Item>
+              )}
             </div>
             <div className="barcode-preview-card">
               {barcodeText ? <svg ref={barcodeRef} role="img" aria-label={`Barcode preview ${barcodeText}`} /> : null}
               {barcodeError ? <p className="form-error">{barcodeError}</p> : null}
               <p className="mono barcode-value">{barcodeText || 'Enter a valid prefix and digit width'}</p>
               <p className="muted small">
-                Preview value only. The printed label uses the stored internal barcode, not a fabricated EAN/GTIN.
+                Preview only. Generated codes use the in-store range and are not GS1-allocated retail identifiers.
+                Existing product barcodes keep their stored values.
               </p>
             </div>
           </SectionCard>

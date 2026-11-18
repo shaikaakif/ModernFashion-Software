@@ -33,8 +33,10 @@ export function createSettingsService({ db, auth }) {
     let barcode;
     try {
       barcode = normalizeBarcodeConfig({
+        symbology: input.barcodeSymbology ?? barcodeCurrent.symbology,
         prefix: input.barcodePrefix ?? barcodeCurrent.prefix,
         digits: input.barcodeDigits ?? barcodeCurrent.digits,
+        eanPrefix: input.barcodeEanPrefix ?? barcodeCurrent.eanPrefix,
       });
     } catch (error) {
       fail(error.message);
@@ -161,6 +163,8 @@ export function createSettingsService({ db, auth }) {
           fontScale: normalized.receipt.fontScale,
           barcodePrefix: normalized.barcode.prefix,
           barcodeDigits: normalized.barcode.digits,
+          barcodeSymbology: normalized.barcode.symbology,
+          barcodeEanPrefix: normalized.barcode.eanPrefix,
         },
       });
     });

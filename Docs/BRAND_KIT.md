@@ -236,8 +236,10 @@ Keep the barcode large enough for reliable scanning. Do not place
 decorative graphics near barcode quiet zones. Verify every printed label
 by scanning it back into the POS.
 
-Use internal Code 128 identifiers where suitable. Do not fabricate
-registered EAN/GTIN numbers.
+Use internally generated EAN-13/UPC-A numbers in the GS1 restricted-circulation
+range (prefix 20–29) where suitable. They are not GS1-registered retail
+identifiers. Do not fabricate registered EAN/GTIN numbers. Legacy Code 128
+values remain readable.
 
 ## 9. Accessibility and usability
 

@@ -61,7 +61,7 @@ export function code128Svg(value, { moduleWidth = 2, height = 46, quietZone = 10
     : '';
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${totalWidth}" height="${height + textHeight}" viewBox="0 0 ${totalWidth} ${
     height + textHeight
-  }" role="img" aria-label="Barcode ${escapeHtml(value)}">${bars.join('')}${text}</svg>`;
+  }" preserveAspectRatio="none" role="img" aria-label="Barcode ${escapeHtml(value)}">${bars.join('')}${text}</svg>`;
 }
 
 function escapeHtml(value) {

@@ -5,6 +5,7 @@
 **Verification record:** v1.2.4 GitHub Release `449602732` published and publicly verified
 **Current public release:** 1.2.4 - barcode studio, CSV/Excel product import, owner-facing text cleanup, dashboard backup card.
 **Previous public releases:** 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
+**Unreleased branch work:** EAN-13/UPC-A barcode generation, redesigned labels, left-aligned thermal receipt, Vyapar `.VYB` investigation and import guidance. No installer built or published.
 **Developer:** Meninges Labs
 **Working branch:** `whatsapp-automation` (published tag `v1.2.4`)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
@@ -24,7 +25,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 - Permissions are enforced in main-process services, not only by navigation.
 - Backups use `VACUUM INTO`, SQLite integrity check, SHA-256 and a guarded restore with an automatic pre-restore backup.
 - Printing uses hidden Electron windows through the installed Windows driver; raw ESC/POS is not assumed.
-- Code128 labels are generated internally. New barcodes use the owner-configured prefix and digit width (default `MF` + 10 digits); existing barcodes are never rewritten. No fabricated EAN/GTIN.
+- Barcodes are generated internally as EAN-13 by default (in-store prefix 20–29), with UPC-A and legacy Code 128 available. The check digit is calculated, existing barcode values are never rewritten, and generated numbers are not GS1-registered retail identifiers. Labels detect the symbology per stored value.
 - The print layout is owner-editable: logo visibility/size, header fields, receipt sections, notes, terms, paper width and font scale, with a live sample preview that records nothing.
 - GitHub Releases and `electron-updater` are wired for the installed build. A successful update starts from **Releases**, creates a verified SQLite backup first, and replaces program files only.
 - Graphify graph and Ponytail skills are installed in the project. Knowledge graph output is under `graphify-out/`.
@@ -33,7 +34,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **40/40 passing** on the `whatsapp-automation` branch (adds barcode-studio and CSV/Excel import coverage) |
+| `npm test` | **43/43 passing** on the `whatsapp-automation` branch (adds EAN-13/UPC-A, receipt-alignment, barcode-studio, CSV/Excel import and `.VYB` rejection coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
@@ -72,7 +73,7 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 
 - Products and Inventory are one navigation destination. `/products` redirects to `/inventory`; the Inventory tabs are Products, Stock, Stock history, Categories, Archived, Valuation and Reconciliation.
 - Archive means `products.status = 'inactive'`. Archived products leave active stock lists and POS search but remain on historical invoices, movements and reports.
-- **Import data** (`/import`, owner/manager only) reads CSV/XLSX/XLS product lists, auto-maps common headers (including Vyapar item exports), previews every row with new/update/skip/error status, creates missing categories/brands, and commits in one transaction. Rows match by barcode, SKU, or product + colour + size. Stock becomes an `opening` movement for new variants and an `adjustment_in`/`adjustment_out` movement for existing ones, under one `IMP/<FY>/<seq>` reference. Re-import is idempotent when stock is set to the same count.
+- **Import data** (`/import`, owner/manager only) reads CSV/XLSX/XLS product lists, auto-maps common headers (including Vyapar item exports), previews every row with new/update/skip/error status, creates missing categories/brands, and commits in one transaction. Rows match by barcode, SKU, or product + colour + size. Stock becomes an `opening` movement for new variants and an `adjustment_in`/`adjustment_out` movement for existing ones, under one `IMP/<FY>/<seq>` reference. Re-import is idempotent when stock is set to the same count. Vyapar `.VYB` backups are rejected as proprietary; the documented route is a Vyapar Items → Excel/CSV export (`Docs/VYAPAR_IMPORT.md`).
 - Delete is allowed only when the product has no sale, purchase or stock-movement history. Products with history must be archived.
 - Stock updates are `add`, `correct` (set the actual counted quantity) and `remove`; every operation writes an immutable `stock_movements` row and an audit entry.
 
@@ -133,6 +134,7 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 | `electron/core/logo.js` | Shared logo file reader with 5 MB guard and MIME allow-list |
 | `electron/hardware/printService.js` | Printer list, receipt/A4/label/PDF/WhatsApp, sample receipt preview |
 | `electron/hardware/documents.js` | Receipt, invoice, label and test HTML honoring print settings |
+| `electron/hardware/ean.js` | EAN-13 / UPC-A SVG renderer with check digits, quiet zones and per-value symbology detection |
 | `shared/barcode.js` | Barcode prefix/digit validation and formatting shared by main and renderer |
 | `src/app/AppShell.jsx` | Permission-aware navigation and routes, update badge and notifications |
 | `src/app/SessionContext.jsx` | Session bootstrap, idle lock, login/logout |

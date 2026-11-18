@@ -92,8 +92,10 @@ export const DEFAULT_SETTINGS = {
       'Hello {customer}, thank you for shopping at {shop}. Invoice {invoice} for {amount} is attached.',
   },
   barcode: {
+    symbology: 'ean13',
     prefix: 'MF',
     digits: 10,
+    eanPrefix: '20',
   },
   alerts: {
     lowStockEnabled: true,

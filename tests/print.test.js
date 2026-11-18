@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { addStaff, completeSale, createProduct, createTestApp, login, setupOwner } from './helpers.js';
-import { barcodeExample, formatBarcode, normalizeBarcodeConfig } from '../shared/barcode.js';
+import { barcodeExample, formatBarcode, generatedBarcode, isValidEan13, isValidUpcA, normalizeBarcodeConfig, symbologyForBarcode } from '../shared/barcode.js';
 import { readLogoDataUrl } from '../electron/core/logo.js';
 import { receiptHtml, labelHtml } from '../electron/hardware/documents.js';
 
@@ -42,13 +42,33 @@ function sampleSale() {
   };
 }
 
-test('barcode format is normalized and generates safe Code 128 values', () => {
-  assert.deepEqual(normalizeBarcodeConfig({ prefix: ' mf ', digits: 10 }), { prefix: 'MF', digits: 10 });
+test('barcode format validates EAN-13, UPC-A and legacy Code 128 values', () => {
+  assert.deepEqual(normalizeBarcodeConfig({ symbology: 'code128', prefix: ' mf ', digits: 10 }), {
+    symbology: 'code128',
+    prefix: 'MF',
+    digits: 10,
+    eanPrefix: '20',
+  });
   assert.equal(formatBarcode('MF', 10, 42), 'MF0000000042');
-  assert.equal(barcodeExample('SHOP', 8), 'SHOP00123456');
+  assert.equal(barcodeExample({ symbology: 'code128', prefix: 'SHOP', digits: 8 }), 'SHOP00123456');
   assert.throws(() => normalizeBarcodeConfig({ prefix: 'M', digits: 10 }), /2 to 6/);
   assert.throws(() => normalizeBarcodeConfig({ prefix: 'MF', digits: 5 }), /6 and 12/);
   assert.throws(() => normalizeBarcodeConfig({ prefix: 'M-F', digits: 10 }), /2 to 6/);
+  assert.throws(() => normalizeBarcodeConfig({ eanPrefix: '12' }), /20 to 29/);
+
+  assert.equal(isValidEan13('4006381333931'), true);
+  assert.equal(isValidEan13('4006381333930'), false);
+  assert.equal(isValidUpcA('036000291452'), true);
+  assert.equal(symbologyForBarcode('4006381333931'), 'ean13');
+  assert.equal(symbologyForBarcode('036000291452'), 'upca');
+  assert.equal(symbologyForBarcode('MF0000000042'), 'code128');
+
+  const ean = generatedBarcode({ symbology: 'ean13', eanPrefix: '21' }, 42);
+  assert.match(ean, /^21\d{11}$/);
+  assert.equal(isValidEan13(ean), true);
+  const upc = generatedBarcode({ symbology: 'upca', eanPrefix: '20' }, 42);
+  assert.match(upc, /^20\d{10}$/);
+  assert.equal(isValidUpcA(upc), true);
 });
 
 test('logo reader returns a data URL only for supported, small local images', (t) => {
@@ -91,6 +111,7 @@ test('owner print settings persist, preview without saving and drive new barcode
     showAmountReceived: false,
     showPoweredBy: false,
     showTax: true,
+    barcodeSymbology: 'code128',
     barcodePrefix: 'ab',
     barcodeDigits: 8,
     terms: 'Goods once sold are exchanged only with a valid bill.',
@@ -105,8 +126,10 @@ test('owner print settings persist, preview without saving and drive new barcode
   assert.equal(saved.receipt.showTax, true);
   assert.equal(saved.barcode.prefix, 'AB');
   assert.equal(saved.barcode.digits, 8);
+  assert.equal(saved.barcode.symbology, 'code128');
 
   const preview = app.services.settings.previewPrint({
+    barcodeSymbology: 'code128',
     barcodePrefix: 'ZZ',
     barcodeDigits: 9,
     fontScale: 95,
@@ -114,6 +137,7 @@ test('owner print settings persist, preview without saving and drive new barcode
   });
   assert.equal(preview.barcode.prefix, 'ZZ');
   assert.equal(preview.barcode.digits, 9);
+  assert.equal(preview.barcode.symbology, 'code128');
   assert.equal(preview.receipt.fontScale, 95);
   assert.equal(preview.receipt.headerNote, 'Unsaved preview header');
   assert.equal(app.services.settings.getPublic().barcode.prefix, 'AB');
@@ -122,7 +146,7 @@ test('owner print settings persist, preview without saving and drive new barcode
   const variant = app.services.catalog.getProduct(product.id).variants[0];
   assert.match(variant.barcode, /^AB\d{8}$/);
 
-  app.services.settings.updatePrint({ barcodePrefix: 'CD', barcodeDigits: 10, receiptWidthMm: 80 });
+  app.services.settings.updatePrint({ barcodeSymbology: 'code128', barcodePrefix: 'CD', barcodeDigits: 10, receiptWidthMm: 80 });
   const existing = app.services.catalog.getProduct(product.id).variants[0];
   assert.equal(existing.barcode, variant.barcode, 'Existing barcode values must never be rewritten.');
 
@@ -131,6 +155,15 @@ test('owner print settings persist, preview without saving and drive new barcode
     variants: [{ color: 'White', size: 'L', openingStock: 1 }],
   });
   assert.match(app.services.catalog.getProduct(second.id).variants[0].barcode, /^CD\d{10}$/);
+
+  app.services.settings.updatePrint({ barcodeSymbology: 'ean13', barcodeEanPrefix: '21', receiptWidthMm: 80 });
+  const third = createProduct(app, {
+    name: 'Third Product',
+    variants: [{ color: 'Blue', size: 'S', openingStock: 1 }],
+  });
+  const thirdBarcode = app.services.catalog.getProduct(third.id).variants[0].barcode;
+  assert.match(thirdBarcode, /^21\d{11}$/);
+  assert.equal(isValidEan13(thirdBarcode), true);
 
   addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
   login(app, '9000000002');
@@ -198,7 +231,9 @@ test('receipt HTML honors logo, section, text and font settings', () => {
   assert.match(html, /HEADER-NOTE/);
   assert.match(html, /FOOTER-NOTE/);
   assert.match(html, /Exchange within 7 days with a valid bill\./);
-  assert.match(html, /font-size: 12\.00px/);
+  assert.match(html, /font-size: 12\.60px/);
+  assert.match(html, /text-align: left/);
+  assert.doesNotMatch(html, /text-align: center/);
 
   const withLogo = receiptHtml({
     sale: sampleSale(),
@@ -258,7 +293,7 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.match(html, /We appreciate your business\./);
   assert.match(html, /Keep the bill\./);
   assert.match(html, /width: 58mm/);
-  assert.match(html, /padding: 8mm 3mm 7mm/);
+  assert.match(html, /padding: 9mm 3mm 8mm/);
   assert.doesNotMatch(html, /You saved/);
   assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
   assert.doesNotMatch(html, /Round off/);
@@ -279,12 +314,31 @@ test('barcode label shows MRP, selling price, barcode and adaptive page size', (
     options: { labelWidthMm: 50, labelHeightMm: 25 },
   });
   assert.match(html, /@page \{ size: 50mm 25mm/);
-  assert.match(html, /MRP: ₹799/);
-  assert.match(html, /Price: ₹699/);
-  assert.match(html, /COLOR: Blue/);
-  assert.match(html, /SIZE: M/);
+  assert.match(html, /MRP ₹799/);
+  assert.match(html, /₹699/);
+  assert.match(html, /Blue · M/);
   assert.match(html, /page-break-after: auto/);
   assert.match(html, /<svg/);
+  assert.match(html, /MF0000000042/);
+});
+
+test('EAN-13 labels render the compact retail symbology with quiet zones', () => {
+  const html = labelHtml({
+    label: {
+      productName: 'EAN T-Shirt',
+      sku: 'TSH-EAN-BLU-M',
+      barcode: '4006381333931',
+      color: 'Blue',
+      size: 'M',
+      pricePaise: 69900,
+      mrpPaise: 79900,
+    },
+    options: { labelWidthMm: 50, labelHeightMm: 25 },
+  });
+  assert.match(html, /aria-label="Barcode 4006381333931"/);
+  assert.match(html, /4 006381 333931/);
+  assert.match(html, /height: 8\.0mm/);
+  assert.doesNotMatch(html, /brand/);
 });
 
 test('a completed sale renders real product and payment data on the receipt', (t) => {
@@ -303,4 +357,30 @@ test('a completed sale renders real product and payment data on the receipt', (t
   });
   assert.match(html, /Everyday Tee/);
   assert.match(html, /Total/);
+});
+
+test('label typography clamps long names and adapts to short stock', () => {
+  const base = {
+    sku: 'TSH-LONG-BLU-M',
+    barcode: '4006381333931',
+    color: 'Blue',
+    size: 'M',
+    pricePaise: 69900,
+    mrpPaise: 79900,
+  };
+  const tall = labelHtml({
+    label: { ...base, productName: 'Premium oversized cotton t-shirt with a very long printed product name' },
+    options: { labelWidthMm: 50, labelHeightMm: 30 },
+  });
+  assert.match(tall, /-webkit-line-clamp: 2/);
+  assert.doesNotMatch(tall, /class="label is-short"/);
+  assert.match(tall, /height: 9\.6mm/);
+
+  const short = labelHtml({
+    label: { ...base, productName: 'Short Tee' },
+    options: { labelWidthMm: 50, labelHeightMm: 18 },
+  });
+  assert.match(short, /class="label is-short"/);
+  assert.match(short, /-webkit-line-clamp: 1/);
+  assert.match(short, /\.label\.is-short \.meta \{ display: none; \}/);
 });

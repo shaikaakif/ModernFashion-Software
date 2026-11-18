@@ -1,4 +1,5 @@
-import { escapeHtml, code128Svg } from './code128.js';
+import { escapeHtml } from './code128.js';
+import { barcodeDisplayText, barcodeSvg } from './ean.js';
 
 const DATE_FORMAT = new Intl.DateTimeFormat('en-IN', {
   timeZone: 'Asia/Kolkata',
@@ -205,51 +206,52 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 7mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
-    compact ? 10 : 11
-  )}; line-height: 1.48; }
-  .center { text-align: center; }
-  .header { padding-bottom: 1.5mm; border-bottom: 1px solid #000; }
-  .logo { display: block; margin: 0 auto 3mm; max-width: 70%; object-fit: contain; }
-  .business-name { font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; letter-spacing: 0.07em; line-height: 1.15; text-transform: uppercase; }
-  .business-meta { margin-top: 1mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.5; }
-  .return-policy { margin-top: 1.5mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.45; text-transform: uppercase; }
-  .title { margin: 3mm 0 1.5mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
-  .duplicate, .sample { margin: 2mm 0; padding: 1.2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
+  body { width: ${width}mm; margin: 0 auto; padding: 9mm ${sidePadding}mm 8mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
+    compact ? 10.5 : 11.5
+  )}; line-height: 1.55; text-align: left; }
+  .center { text-align: left; }
+  .header { padding-bottom: 2.5mm; border-bottom: 1px solid #000; text-align: left; }
+  .logo { display: block; margin: 0 0 3mm; max-width: 70%; object-fit: contain; }
+  .business-name { font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; letter-spacing: 0.06em; line-height: 1.2; text-transform: uppercase; }
+  .business-meta { margin-top: 1.2mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; }
+  .return-policy { margin-top: 2mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.5; text-transform: uppercase; }
+  .title { margin: 3.5mm 0 2mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
+  .duplicate, .sample { margin: 2.5mm 0; padding: 1.5mm 2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.05em; text-align: left; }
   .sample { border-style: solid; }
-  .header-note { margin: 1.5mm 0; font-size: ${fs(9)}; text-align: center; }
-  .meta { width: 100%; margin-top: 1.5mm; border-collapse: collapse; }
-  .meta td { padding: 0.6mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; }
-  .meta td:first-child { width: 24%; font-weight: 700; }
-  .meta td:last-child { font-weight: 600; text-align: right; }
-  .separator { margin: 2mm 0; border-top: 1px dashed #000; }
+  .header-note { margin: 2mm 0; font-size: ${fs(9)}; line-height: 1.5; text-align: left; }
+  .meta { width: 100%; margin-top: 2.5mm; border-collapse: collapse; }
+  .meta td { padding: 0.9mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; text-align: left; }
+  .meta td:first-child { width: 26%; font-weight: 700; }
+  .meta td:last-child { padding-left: 3mm; font-weight: 600; text-align: left; }
+  .separator { margin: 3mm 0; border-top: 1px dashed #000; }
   .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .items th { padding: 1.2mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8 : 9.5)}; font-weight: 700; letter-spacing: 0.04em; text-align: left; text-transform: uppercase; }
-  .items th.num, .items td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .items th:nth-child(1) { width: 46%; }
-  .items th:nth-child(2) { width: 12%; }
-  .items th:nth-child(3) { width: 20%; }
-  .items th:nth-child(4) { width: 22%; }
-  .items td { padding: 1.2mm 0 0; vertical-align: top; font-size: ${fs(compact ? 9.5 : 11)}; word-break: break-word; overflow-wrap: anywhere; }
-  .item-row td { padding-top: 1.8mm; }
-  .item-name { display: block; font-weight: 700; line-height: 1.35; }
-  .item-meta { display: block; margin-top: 0.3mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.4; }
-  .sub-row td { padding: 0.5mm 0; font-size: ${fs(compact ? 9 : 10)}; }
-  .sub-row.final td { padding-top: 0.8mm; font-weight: 700; }
-  .totals { width: 100%; margin-top: 2mm; border-collapse: collapse; }
-  .totals td { padding: 0.7mm 0; font-size: ${fs(compact ? 9.5 : 10.5)}; }
+  .items th { padding: 1.4mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8 : 9.5)}; font-weight: 700; letter-spacing: 0.04em; text-align: left; text-transform: uppercase; }
+  .items th.num, .items td.num { padding-left: 1.2mm; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .items th:nth-child(2), .items td:nth-child(2), .items th:nth-child(3), .items td:nth-child(3) { padding-right: 1.2mm; }
+  .items th:nth-child(1) { width: 41%; }
+  .items th:nth-child(2) { width: 10%; }
+  .items th:nth-child(3) { width: 24%; }
+  .items th:nth-child(4) { width: 25%; }
+  .items td { padding: 1.4mm 0 0; vertical-align: top; font-size: ${fs(compact ? 9.5 : 11)}; word-break: break-word; overflow-wrap: anywhere; text-align: left; }
+  .item-row td { padding-top: 2.2mm; }
+  .item-name { display: block; font-weight: 700; line-height: 1.4; }
+  .item-meta { display: block; margin-top: 0.4mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.45; }
+  .sub-row td { padding: 0.7mm 0; font-size: ${fs(compact ? 9 : 10)}; }
+  .sub-row.final td { padding-top: 1mm; font-weight: 700; }
+  .totals { width: 100%; margin-top: 2.5mm; border-collapse: collapse; }
+  .totals td { padding: 1mm 0; font-size: ${fs(compact ? 9.5 : 10.5)}; text-align: left; }
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .totals .grand td { padding-top: 1.6mm; border-top: 1px solid #000; font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; }
-  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 2mm; padding: 1.4mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; text-transform: uppercase; }
-  .words { margin-top: 2mm; padding-top: 1.2mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.5; }
-  .words strong { display: block; margin-top: 0.4mm; font-weight: 700; }
-  .terms { margin-top: 2.5mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.5; }
-  .terms strong { display: block; margin-bottom: 0.7mm; font-size: ${fs(9.5)}; letter-spacing: 0.04em; text-transform: uppercase; }
-  .footer-note { margin-top: 1.5mm; font-size: ${fs(9)}; text-align: center; }
-  .thanks { margin-top: 2.5mm; padding-top: 2mm; border-top: 1px dashed #000; text-align: center; }
-  .thanks strong { display: block; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; line-height: 1.35; }
-  .thanks div { margin-top: 0.8mm; font-size: ${fs(9)}; line-height: 1.45; }
-  .powered { margin-top: 2mm; color: #555; font-size: ${fs(8)}; text-align: center; }
+  .totals .grand td { padding-top: 2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; }
+  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 2.5mm; padding: 1.8mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; text-transform: uppercase; }
+  .words { margin-top: 2.5mm; padding-top: 1.6mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.55; }
+  .words strong { display: block; margin-top: 0.5mm; font-weight: 700; }
+  .terms { margin-top: 3mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; }
+  .terms strong { display: block; margin-bottom: 0.8mm; font-size: ${fs(9.5)}; letter-spacing: 0.04em; text-transform: uppercase; }
+  .footer-note { margin-top: 1.8mm; font-size: ${fs(9)}; line-height: 1.5; text-align: left; }
+  .thanks { margin-top: 3mm; padding-top: 2.5mm; border-top: 1px dashed #000; text-align: left; }
+  .thanks strong { display: block; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; line-height: 1.4; }
+  .thanks div { margin-top: 1mm; font-size: ${fs(9)}; line-height: 1.5; }
+  .powered { margin-top: 2.5mm; color: #555; font-size: ${fs(8)}; text-align: left; }
   .gst { font-size: ${fs(9)}; }
 </style></head>
 <body class="${compact ? 'w58' : 'w80'}">
@@ -488,55 +490,72 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
 </body></html>`;
 }
 
-export function labelHtml({ label, business, options = {} }) {
+function labelAmount(paise) {
+  const amount = (Number(paise) || 0) / 100;
+  const text = Number.isInteger(amount)
+    ? amount.toLocaleString('en-IN')
+    : amount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  return `₹${text}`;
+}
+
+export function labelHtml({ label, options = {} }) {
   const width = Number(options.labelWidthMm || 50);
   const height = Number(options.labelHeightMm || 25);
   const showName = options.labelShowName !== false;
   const showSku = options.labelShowSku !== false;
   const showPrice = options.labelShowPrice !== false;
   const showSize = options.labelShowSize !== false;
-  const scale = Math.max(0.72, Math.min(1.35, height / 25));
+  const scale = Math.max(0.72, Math.min(1.3, height / 25));
   const fs = (size) => `${(size * scale).toFixed(1)}px`;
-  const topPadding = Math.max(2, height * 0.08);
+  const topPadding = Math.max(1.6, Math.min(3, height * 0.09));
   const mrpPaise = Number(label.mrpPaise || 0);
   const pricePaise = Number(label.pricePaise || 0);
-  const showMrp = showPrice && mrpPaise > 0;
-  const showSelling = showPrice && pricePaise > 0 && pricePaise !== mrpPaise;
-  const barcode = code128Svg(label.barcode, { moduleWidth: 2, height: 34, showText: true });
-  return `<div class="label">
-    <div class="brand">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
+  const showMrp = showPrice && mrpPaise > 0 && mrpPaise !== pricePaise;
+  const showSelling = showPrice && pricePaise > 0;
+  const barcodeHeight = Math.max(6.5, Math.min(10, height * 0.32));
+  const shortLabel = height < 22;
+  const barcode = barcodeSvg(label.barcode, { moduleWidth: 2, height: 60, showText: false });
+  const variantLine = [label.color, label.size].filter(Boolean).join(' · ');
+  const metaLine = [variantLine, showSku ? label.sku : ''].filter(Boolean).join(' · ');
+  return `<div class="label${shortLabel ? ' is-short' : ''}">
     ${showName ? `<div class="name">${escapeHtml(label.productName)}</div>` : ''}
     ${
-      showMrp || showSelling
+      showSelling
         ? `<div class="price-row">
-            ${showMrp ? `<span>MRP: ${money(mrpPaise, { symbol: '₹', space: '' })}</span>` : ''}
-            ${showSelling ? `<span>Price: ${money(pricePaise, { symbol: '₹', space: '' })}</span>` : ''}
+            <span class="price">${labelAmount(pricePaise)}</span>
+            ${showMrp ? `<span class="mrp">MRP ${labelAmount(mrpPaise)}</span>` : ''}
           </div>`
         : ''
     }
-    <div class="barcode">${barcode}</div>
+    <div class="barcode">${barcode}<div class="barcode-text">${escapeHtml(barcodeDisplayText(label.barcode))}</div></div>
     ${
-      showSize
-        ? `<div class="meta"><span>COLOR: ${escapeHtml(label.color)}</span><span>SIZE: ${escapeHtml(
-            label.size
-          )}</span></div>`
-        : ''
+      showSize && metaLine
+        ? `<div class="meta">${escapeHtml(metaLine)}</div>`
+        : showSku && metaLine
+          ? `<div class="meta">${escapeHtml(metaLine)}</div>`
+          : ''
     }
-    ${showSku ? `<div class="sku">${escapeHtml(label.sku)}</div>` : ''}
   </div>
   <style>
     @page { size: ${width}mm ${height}mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
-    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; page-break-after: always; }
+    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2.4mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 0.4mm; overflow: hidden; page-break-after: always; }
     .label:last-child { page-break-after: auto; }
-    .brand { width: 100%; overflow: hidden; color: #222; font-size: ${fs(6)}; font-weight: 700; letter-spacing: 0.08em; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-    .name { display: -webkit-box; max-width: 100%; overflow: hidden; font-size: ${fs(10)}; font-weight: 800; line-height: 1.1; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-    .price-row { display: flex; width: 100%; flex-wrap: wrap; justify-content: center; gap: 2.5mm; font-size: ${fs(8)}; font-weight: 700; line-height: 1.2; }
-    .barcode { display: flex; width: 100%; flex: 1; align-items: center; justify-content: center; padding: 0.6mm 0; }
-    .barcode svg { width: 100%; height: auto; max-height: ${Math.max(7, height * 0.38).toFixed(1)}mm; }
-    .meta { display: flex; width: 100%; justify-content: space-between; gap: 2mm; font-size: ${fs(7)}; font-weight: 600; line-height: 1.2; }
-    .sku { width: 100%; overflow: hidden; color: #333; font-family: Consolas, monospace; font-size: ${fs(5.6)}; text-align: center; text-overflow: ellipsis; white-space: nowrap; }
+    .name { display: -webkit-box; width: 100%; overflow: hidden; font-size: ${fs(9.5)}; font-weight: 800; line-height: 1.18; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
+    .price-row { display: flex; align-items: baseline; justify-content: center; gap: 2.5mm; line-height: 1.12; }
+    .price { font-size: ${fs(10.5)}; font-weight: 800; letter-spacing: 0.01em; }
+    .mrp { color: #333; font-size: ${fs(7)}; font-weight: 600; }
+    .barcode { display: flex; width: 100%; min-height: 0; flex-direction: column; align-items: center; justify-content: center; padding: 0.4mm 0 0.2mm; }
+    .barcode svg { display: block; width: 100%; height: ${barcodeHeight.toFixed(1)}mm; }
+    .barcode-text { margin-top: 0.3mm; font-family: Consolas, "Courier New", monospace; font-size: ${fs(6)}; letter-spacing: 0.08em; line-height: 1; text-align: center; white-space: nowrap; }
+    .meta { width: 100%; overflow: hidden; font-size: ${fs(6.5)}; font-weight: 600; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .label.is-short { gap: 0.25mm; padding: 1.2mm 2.2mm 1mm; }
+    .label.is-short .name { font-size: ${fs(8.5)}; line-height: 1.15; -webkit-line-clamp: 1; }
+    .label.is-short .price { font-size: ${fs(9.5)}; }
+    .label.is-short .mrp { display: none; }
+    .label.is-short .meta { display: none; }
+    .label.is-short .barcode-text { font-size: ${fs(5.5)}; }
   </style>`;
 }
 
@@ -604,12 +623,14 @@ export function testLabelHtml({ business, options = {} }) {
     .brand { font-size:7px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; }
     .title { font-size:9px; font-weight:800; }
     .barcode { width:100%; display:flex; justify-content:center; }
-    .barcode svg { width:100%; height:auto; max-height:10mm; }
+    .barcode svg { width:100%; height:8mm; }
+    .barcode-text { font-family:Consolas,monospace; font-size:6px; letter-spacing:0.08em; }
     .small { font-size:6px; text-align:center; }
   </style></head><body><div class="label">
     <div class="brand">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
     <div class="title">LABEL PRINTER TEST</div>
-    <div class="barcode">${code128Svg('MFTESTLABEL', { moduleWidth: 2, height: 30 })}</div>
+    <div class="barcode">${barcodeSvg('2000000000017', { moduleWidth: 2, height: 58, showText: false })}</div>
+    <div class="barcode-text">2 000000 000017</div>
     <div class="small">NOT A PRODUCT · CHECK ALIGNMENT &amp; SCAN<br/>${width} x ${height} mm</div>
   </div></body></html>`;
 }
