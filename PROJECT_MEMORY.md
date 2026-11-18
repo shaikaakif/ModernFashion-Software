@@ -38,7 +38,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **49/49 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
+| `npm test` | **50/50 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |

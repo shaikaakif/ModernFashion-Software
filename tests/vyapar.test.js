@@ -257,3 +257,18 @@ test('a failed pre-import backup leaves no partial records', (t) => {
   assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM sales').get().c, 0);
   assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM customers').get().c, 0);
 });
+
+test('a failure in the middle of the import rolls the whole transaction back', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const file = createVyaparFile(app.directory, 'rollback.vyp');
+  const source = new DatabaseSync(file);
+  source.prepare('UPDATE kb_transactions SET txn_name_id = 999 WHERE txn_id = 110').run();
+  source.close();
+  const inspected = app.services.vyapar.inspect(file, {});
+  assert.throws(() => app.services.vyapar.commit(inspected.token, {}), /supplier/i);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM products').get().c, 0);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM customers').get().c, 0);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM sales').get().c, 0);
+  assert.equal(app.db.prepare('SELECT COUNT(*) AS c FROM purchases').get().c, 0);
+});

@@ -167,7 +167,7 @@ graphify-out/   Persistent code knowledge graph (query with `graphify query`)
 
 ## Verification status
 
-- `npm test`: 49 tests passing (money, checkout idempotency, negative-stock oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backups, barcodes, branding, stock add/correct/remove from negative, Vyapar .vyp/.vyb.zip import, user removal/restore, dashboard, GST, receipt and print settings).
+- `npm test`: 50 tests passing (money, checkout idempotency, negative-stock oversell, payment failure, void/restock, permissions/cost hiding, duplicate checkout keys, backups, barcodes, branding, stock add/correct/remove from negative, Vyapar .vyp/.vyb.zip import, user removal/restore, dashboard, GST, receipt and print settings).
 - `npm run build`: passing.
 - `npm run lint`: passing.
 - v1.2.4: published and verified. GitHub Release `v1.2.4` includes the barcode studio, CSV/Excel import and owner-facing cleanup, plus EXE, blockmap and `latest.yml`.
