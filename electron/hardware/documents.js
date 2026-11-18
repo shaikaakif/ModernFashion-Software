@@ -124,7 +124,7 @@ export function receiptHtml({
 }) {
   const width = widthMm === 58 ? 58 : 80;
   const compact = width === 58;
-  const sidePadding = compact ? 3.5 : 4.5;
+  const sidePadding = compact ? 3 : 4;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -205,12 +205,12 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${width}mm; margin: 0 auto; padding: 3mm ${sidePadding}mm 7mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
+  body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 7mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
     compact ? 9 : 10
   )}; line-height: 1.35; }
   .center { text-align: center; }
   .header { padding-bottom: 1.5mm; border-bottom: 1px solid #000; }
-  .logo { display: block; margin: 0 auto 1.5mm; max-width: 70%; object-fit: contain; }
+  .logo { display: block; margin: 0 auto 2.5mm; max-width: 70%; object-fit: contain; }
   .business-name { font-size: ${fs(compact ? 12 : 15)}; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
   .business-meta { margin-top: 0.5mm; font-size: ${fs(compact ? 7.5 : 8.5)}; line-height: 1.4; }
   .return-policy { margin-top: 1mm; font-size: ${fs(compact ? 7.5 : 8)}; font-weight: 700; line-height: 1.35; text-transform: uppercase; }
@@ -526,7 +526,7 @@ export function labelsHtml({ labels, business, options = {} }) {
 
 export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 80 }) {
   const width = widthMm === 58 ? 58 : 80;
-  const sidePadding = width === 58 ? 3.5 : 4.5;
+  const sidePadding = width === 58 ? 3 : 4;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -541,7 +541,7 @@ export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl =
   <style>
     @page { margin: 0; }
     html, body { margin: 0; padding: 0; color: #000; background: #fff; }
-    body { width: ${width}mm; margin: 0 auto; padding: 2mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
+    body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
     .center { text-align: center; } .logo { display:block; margin:0 auto 2mm; max-width:70%; object-fit:contain; }
     .title { margin: 2mm 0; font-size: ${fs(14)}; font-weight: 800; letter-spacing: 0.1em; }
     .banner { margin: 2mm 0; padding: 1.5mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; text-align: center; }
