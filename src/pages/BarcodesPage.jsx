@@ -239,28 +239,27 @@ export default function BarcodesPage() {
 
         <SectionCard
           title="Label preview"
-          subtitle="The preview uses the same Code 128 generator and label HTML as the printer."
           extra={
             <Space wrap>
-              <label className="inline-check">
+              <label className="inline-check barcode-size-field">
                 Width
                 <InputNumber
                   min={20}
                   max={110}
                   value={widthMm}
                   onChange={(value) => setWidthMm(Number(value || 50))}
-                  style={{ width: 72 }}
+                  style={{ width: 112 }}
                   addonAfter="mm"
                 />
               </label>
-              <label className="inline-check">
+              <label className="inline-check barcode-size-field">
                 Height
                 <InputNumber
                   min={15}
                   max={80}
                   value={heightMm}
                   onChange={(value) => setHeightMm(Number(value || 25))}
-                  style={{ width: 72 }}
+                  style={{ width: 112 }}
                   addonAfter="mm"
                 />
               </label>

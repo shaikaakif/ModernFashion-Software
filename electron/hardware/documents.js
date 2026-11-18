@@ -497,6 +497,7 @@ export function labelHtml({ label, business, options = {} }) {
   const showSize = options.labelShowSize !== false;
   const scale = Math.max(0.72, Math.min(1.35, height / 25));
   const fs = (size) => `${(size * scale).toFixed(1)}px`;
+  const topPadding = Math.max(2, height * 0.08);
   const mrpPaise = Number(label.mrpPaise || 0);
   const pricePaise = Number(label.pricePaise || 0);
   const showMrp = showPrice && mrpPaise > 0;
@@ -527,7 +528,7 @@ export function labelHtml({ label, business, options = {} }) {
     @page { size: ${width}mm ${height}mm; margin: 0; }
     * { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
-    .label { width: ${width}mm; height: ${height}mm; padding: ${(1.2 * scale).toFixed(1)}mm 2mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; page-break-after: always; }
+    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; overflow: hidden; page-break-after: always; }
     .label:last-child { page-break-after: auto; }
     .brand { width: 100%; overflow: hidden; color: #222; font-size: ${fs(6)}; font-weight: 700; letter-spacing: 0.08em; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
     .name { display: -webkit-box; max-width: 100%; overflow: hidden; font-size: ${fs(10)}; font-weight: 800; line-height: 1.1; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }

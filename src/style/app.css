@@ -2663,9 +2663,17 @@ a {
   align-items: flex-start;
   justify-content: center;
   overflow: auto;
-  padding: 12px;
+  padding: 26px 12px 12px;
   border-radius: 6px;
   background: #e9e6df;
+}
+
+.barcode-size-field {
+  gap: 6px;
+}
+
+.barcode-size-field .ant-input-number-group-wrapper {
+  width: 112px;
 }
 
 .barcode-preview-frame {
