@@ -138,7 +138,7 @@ To roll back:
 - [x] `npm run verify` passes.
 - [x] `npm run dist` produces the EXE, blockmap and `latest.yml`.
 - [ ] A previous version is installed on a test PC.
-- [x] The new release is published (`v1.1.0`) and appears in **Releases** within one check.
+- [x] The new release is published (`v1.2.4`) and appears in **Updates** within one check.
 - [ ] Download reaches 100% and **Restart & install** creates a backup first.
 - [ ] The app reopens on the new version.
 - [ ] Products, sales history, customers, settings and the logo are unchanged.
