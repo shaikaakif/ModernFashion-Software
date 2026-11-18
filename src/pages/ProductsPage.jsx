@@ -50,7 +50,7 @@ function splitList(value) {
 
 export default function ProductsPage({ embedded = false, initialTab = 'products', initialAction = null }) {
   const { can } = useSession();
-  const { message } = AntApp.useApp();
+  const { message, modal } = AntApp.useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState(initialTab);
   const [query, setQuery] = useState('');
@@ -337,6 +337,33 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
       return;
     }
     navigate(`/barcodes?variant=${variantIds.join(',')}`);
+  }
+
+  function regenerateUpcA(row) {
+    modal.confirm({
+      title: `Regenerate ${row.sku} as UPC-A?`,
+      content: (
+        <div>
+          <p>
+            The barcode will change from <strong>{row.barcode}</strong> to a new 12-digit UPC-A number.
+          </p>
+          <p>Old printed labels will stop scanning for this variant until replaced. Sales history is unchanged.</p>
+          <p>Only the label code changes. The SKU, price, stock and invoice records stay the same.</p>
+        </div>
+      ),
+      okText: 'Regenerate UPC-A',
+      okButtonProps: { danger: true },
+      onOk: async () => {
+        try {
+          const result = await api('catalog.regenerateBarcode', { variantId: row.id, symbology: 'upca' });
+          message.success(`New UPC-A barcode: ${result.barcode}. Reprint the label.`, 8);
+          await refreshDetail();
+        } catch (error) {
+          message.error(errorMessage(error));
+          throw error;
+        }
+      },
+    });
   }
 
   const canManage = can('products.manage');
@@ -901,7 +928,7 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                   },
                   {
                     title: '',
-                    width: 160,
+                    width: 240,
                     render: (_, row) => (
                       <Space size={2}>
                         <Button
@@ -912,15 +939,25 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                           onClick={() => openLabelPreview([row.id])}
                         />
                         {canManage ? (
-                          <Button
-                            type="text"
-                            size="small"
-                            icon={<EditOutlined />}
-                            aria-label={`Edit price for ${row.sku}`}
-                            onClick={() => setVariantModal({ open: true, record: row })}
-                          >
-                            Edit price
-                          </Button>
+                          <>
+                            <Button
+                              type="text"
+                              size="small"
+                              onClick={() => regenerateUpcA(row)}
+                              aria-label={`Regenerate UPC-A for ${row.sku}`}
+                            >
+                              UPC-A
+                            </Button>
+                            <Button
+                              type="text"
+                              size="small"
+                              icon={<EditOutlined />}
+                              aria-label={`Edit price for ${row.sku}`}
+                              onClick={() => setVariantModal({ open: true, record: row })}
+                            >
+                              Edit price
+                            </Button>
+                          </>
                         ) : null}
                       </Space>
                     ),

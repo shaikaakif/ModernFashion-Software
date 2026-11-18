@@ -236,6 +236,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'catalog.addVariant': (payload) => catalog.addVariant(payload?.productId, payload),
     'catalog.updateVariant': (payload) => catalog.updateVariant(payload?.variantId, payload),
     'catalog.assignBarcode': (payload) => catalog.assignBarcode(payload?.variantId),
+    'catalog.regenerateBarcode': (payload) => catalog.regenerateBarcode(payload?.variantId, payload),
     'catalog.posLookup': (payload) => catalog.posLookup(payload?.code),
     'catalog.posSearch': (payload) => catalog.posSearch(payload?.query, payload),
     'catalog.lowStock': (payload) => catalog.lowStock(payload),

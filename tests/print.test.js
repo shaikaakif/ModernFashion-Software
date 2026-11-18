@@ -391,3 +391,21 @@ test('label typography clamps long names and adapts to short stock', () => {
   assert.match(short, /-webkit-line-clamp: 1/);
   assert.match(short, /\.label\.is-short \.meta \{ display: none; \}/);
 });
+
+test('regenerating a barcode as UPC-A replaces the label code and audits it', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const product = createProduct(app, { variants: [{ color: 'Black', size: 'M', openingStock: 1 }] });
+  const variant = app.services.catalog.getProduct(product.id).variants[0];
+  const result = app.services.catalog.regenerateBarcode(variant.id, { symbology: 'upca' });
+  assert.equal(result.symbology, 'upca');
+  assert.equal(result.previousBarcode, variant.barcode);
+  assert.notEqual(result.barcode, variant.barcode);
+  assert.equal(isValidUpcA(result.barcode), true);
+  const saved = app.services.catalog.getProduct(product.id).variants[0];
+  assert.equal(saved.barcode, result.barcode);
+  assert.equal(
+    app.db.prepare("SELECT COUNT(*) AS c FROM audit_logs WHERE action = 'variant.barcode_regenerated'").get().c,
+    1
+  );
+});

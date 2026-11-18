@@ -662,6 +662,38 @@ export function createCatalogService({ db, auth }) {
     });
   }
 
+  function regenerateBarcode(variantId, input = {}) {
+    const user = auth.requirePermission('products.manage');
+    const id = requireInt(variantId, 'Variant', { min: 1 });
+    const current = db.prepare('SELECT * FROM product_variants WHERE id = ?').get(id);
+    if (!current) fail('Product variant not found.');
+    const symbology = String(input.symbology || 'upca').toLowerCase();
+    if (!['upca', 'ean13'].includes(symbology)) fail('Choose UPC-A or EAN-13.');
+    return transaction(db, () => {
+      const config = normalizeBarcodeConfig({ ...getSetting(db, 'barcode'), symbology });
+      let barcode = '';
+      for (let attempt = 0; attempt < 100; attempt += 1) {
+        const sequence = allocateSequence(db, 'barcode', 'global');
+        const candidate = generatedBarcode(config, sequence);
+        if (!db.prepare('SELECT id FROM product_variants WHERE barcode = ?').get(candidate)) {
+          barcode = candidate;
+          break;
+        }
+      }
+      if (!barcode) fail('Could not generate a unique UPC-A barcode.');
+      db.prepare('UPDATE product_variants SET barcode = ?, updated_at = ? WHERE id = ?').run(barcode, nowIso(), id);
+      writeAudit(db, {
+        userId: user.user.id,
+        userName: user.user.name,
+        action: 'variant.barcode_regenerated',
+        entityType: 'product_variant',
+        entityId: id,
+        details: { sku: current.sku, previousBarcode: current.barcode, barcode, symbology },
+      });
+      return { barcode, previousBarcode: current.barcode, symbology };
+    });
+  }
+
   function posLookup(code) {
     auth.requirePermission('pos.use');
     const value = requireText(code, 'Barcode or SKU', { max: 64 });
@@ -819,6 +851,7 @@ export function createCatalogService({ db, auth }) {
     addVariant,
     updateVariant,
     assignBarcode,
+    regenerateBarcode,
     posLookup,
     posSearch,
     lowStock,

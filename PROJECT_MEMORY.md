@@ -26,7 +26,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 - Backups use `VACUUM INTO`, SQLite integrity check, SHA-256 and a guarded restore with an automatic pre-restore backup.
 - Printing uses hidden Electron windows through the installed Windows driver; raw ESC/POS is not assumed.
 - Barcodes are generated internally as EAN-13 by default (in-store prefix 20–29), with UPC-A and legacy Code 128 available. The check digit is calculated, existing barcode values are never rewritten, and generated numbers are not GS1-registered retail identifiers. Labels detect the symbology per stored value.
-- **Label legibility:** Code 128 uses Code C for long numeric runs, reducing bar count by roughly a third while preserving the scanned value. Labels show the shop name, product name, selling price, MRP, a taller barcode, the human-readable barcode number and colour/size. SKU is shown only on labels 30 mm or taller.
+- **Label legibility:** Code 128 uses Code C for long numeric runs, reducing bar count by roughly a third while preserving the scanned value. Labels show the shop name, product name, selling price, MRP, a taller barcode, the human-readable barcode number and colour/size. SKU is shown only on labels 30 mm or taller. A per-variant **UPC-A** action regenerates an existing Code 128 label code after an explicit warning; the old label stops scanning and purchase/invoice history is unchanged.
 - **Scanner Enter:** the billing scanner field submits the live DOM value rather than waiting for React state to flush, so a fast keyboard-wedge scan cannot produce a stale "not found" lookup.
 - **Vyapar import** (`/vyapar-import`, owner/manager) reads `.vyp` or `.vyb.zip` read-only, checks SQLite integrity, previews counts/warnings, creates a verified backup, and imports products, categories, customers, suppliers, sales, payments, purchases and expenses in one transaction. The source hash blocks duplicate imports. Negative stock, zero prices, invoice numbers, dates, discounts and balances are preserved. Services, estimates, payment-outs, opening balances and zero-amount expenses are reported as skipped.
 - **Negative stock** is stored as a real inventory state with a migration that removes the non-negative table constraints. `inventory_balances` and `stock_movements` allow negative balances; sales, corrections, filters, dashboard counts and valuation show the signed value. A correction records previous quantity, new quantity, difference, user, reason and timestamp.
@@ -41,7 +41,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **50/50 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
+| `npm test` | **51/51 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
