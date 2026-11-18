@@ -1,8 +1,8 @@
 # Modern Fashion POS — Project Memory
 
 **Last updated:** 2026-11-18
-**Implementation checkpoint:** v1.3.0 public release
-**Verification record:** v1.3.0 GitHub Release published and publicly verified
+**Implementation checkpoint:** v1.3.0 public release, code commit `03e5db13`
+**Verification record:** v1.3.0 GitHub Release `449970817` published and publicly verified
 **Current public release:** 1.3.0 - Vyapar migration, negative stock, user lifecycle, full-width billing terminal, EAN-13 labels and receipt typography.
 **Previous public releases:** 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
 **Unreleased branch work:** none; release asset built from the `v1.3.0` tag.
@@ -43,6 +43,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
+| Packaged NSIS EXE v1.3.0 | Published GitHub Release `v1.3.0` (ID `449970817`): EXE 123,805,117 bytes, blockmap 130,938 bytes, `latest.yml` 361 bytes; SHA-256 and installer SHA-512 verified |
 | Packaged NSIS EXE v1.2.4 | Published GitHub Release `v1.2.4` (ID `449602732`): EXE 123,788,602 bytes, blockmap 130,799 bytes, `latest.yml` 361 bytes; public URLs, SHA-256 and installer SHA-512 verified |
 | Packaged NSIS EXE v1.2.0 | Published: GitHub Release `v1.2.0`; local artifact `release-final/ModernFashionPOS-Setup-1.2.0.exe` (122,311,889 bytes); `app.asar` reduced from 46.7 MB to 3.18 MB by excluding Vite-bundled renderer dependencies |
 | Packaged 1.2.0 startup | Verified with isolated `MF_DATA_DIR`: main process started, database/folders created, version 1.2.0 logged |
