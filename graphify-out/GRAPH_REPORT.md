@@ -1,7 +1,7 @@
 # Graph Report - ModernFashion-Software  (2026-11-18)
 
 ## Corpus Check
-- 101 files · ~121,780 words
+- 101 files · ~122,019 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .ico 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `894a9270`
+- Built from commit: `b9d6be15`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -94,19 +94,19 @@
 7. `getSetting()` - 60 edges
 8. `useSession()` - 45 edges
 9. `requireText()` - 44 edges
-10. `optionalText()` - 42 edges
+10. `createPrintService()` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Data and money` --references--> `transaction()`  [INFERRED]
   PROJECT_MEMORY.md → electron/core/database.js
-- `createTestApp()` --calls--> `openDatabase()`  [EXTRACTED]
-  tests/helpers.js → electron/core/database.js
-- `createTestApp()` --calls--> `createAuditService()`  [EXTRACTED]
-  tests/helpers.js → electron/services/auditService.js
-- `createTestApp()` --calls--> `createAuthService()`  [EXTRACTED]
-  tests/helpers.js → electron/services/authService.js
-- `createTestApp()` --calls--> `createBackupService()`  [EXTRACTED]
-  tests/helpers.js → electron/services/backupService.js
+- `barcodeForItem()` --calls--> `generatedBarcode()`  [EXTRACTED]
+  electron/services/vyaparService.js → shared/barcode.js
+- `barcodeForItem()` --calls--> `normalizeBarcodeConfig()`  [EXTRACTED]
+  electron/services/vyaparService.js → shared/barcode.js
+- `createTestApp()` --calls--> `createVyaparService()`  [EXTRACTED]
+  tests/helpers.js → electron/services/vyaparService.js
+- `nextBarcode()` --calls--> `generatedBarcode()`  [EXTRACTED]
+  electron/services/catalogService.js → shared/barcode.js
 
 ## Import Cycles
 - None detected.
@@ -380,15 +380,15 @@ Nodes (3): allocate(), computeCartTotals(), roundToRupee()
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `electron` connect `electron` to `@vitejs/plugin-react`, `createPrintService`, `main.js`, `devDependencies`?**
-  _High betweenness centrality (0.173) - this node is a cross-community bridge._
+  _High betweenness centrality (0.180) - this node is a cross-community bridge._
 - **Should `vyaparService.js` be split into smaller, more focused modules?**
   _Cohesion score 0.1402116402116402 - nodes in this community are weakly interconnected._
-- **Why does `fail()` connect `fail` to `vyaparService.js`, `createPrintService`, `main.js`, `createIpcHandlers`, `importService.js`, `createReportService`, `createBackupService`?**
+- **Why does `xlsx` connect `devDependencies` to `importService.js`, `helpers.js`?**
   _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **Should `api` be split into smaller, more focused modules?**
   _Cohesion score 0.0655631288542681 - nodes in this community are weakly interconnected._
-- **Why does `xlsx` connect `devDependencies` to `importService.js`, `helpers.js`?**
-  _High betweenness centrality (0.066) - this node is a cross-community bridge._
+- **Why does `fail()` connect `fail` to `vyaparService.js`, `createPrintService`, `main.js`, `createIpcHandlers`, `importService.js`, `createReportService`, `createBackupService`?**
+  _High betweenness centrality (0.073) - this node is a cross-community bridge._
 - **Should `createPrintService` be split into smaller, more focused modules?**
   _Cohesion score 0.06052093973442288 - nodes in this community are weakly interconnected._
 - **Should `4. Scope and modules` be split into smaller, more focused modules?**

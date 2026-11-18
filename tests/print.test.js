@@ -232,8 +232,12 @@ test('receipt HTML honors logo, section, text and font settings', () => {
   assert.match(html, /FOOTER-NOTE/);
   assert.match(html, /Exchange within 7 days with a valid bill\./);
   assert.match(html, /font-size: 12\.60px/);
-  assert.match(html, /text-align: left/);
-  assert.doesNotMatch(html, /text-align: center/);
+  assert.match(html, /text-align: center/);
+  assert.match(html, /\.meta td:last-child[^}]*text-align: right/);
+  assert.match(html, /THANK YOU FOR CHOOSING MODERN FASHION!/);
+  assert.match(html, /We truly appreciate your business\./);
+  assert.match(html, /We look forward to welcoming you again\./);
+  assert.match(html, /Grand Total/);
 
   const withLogo = receiptHtml({
     sale: sampleSale(),
@@ -289,7 +293,10 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
     widthMm: 58,
   });
   assert.match(html, /NO RETURN \/ EXCHANGE WITHIN 3 DAYS/);
-  assert.match(html, /Thanks for shopping with us!/);
+  assert.match(html, /THANK YOU FOR CHOOSING MODERN FASHION!/);
+  assert.match(html, /We truly appreciate your business\./);
+  assert.match(html, /We look forward to welcoming you again\./);
+  assert.match(html, /Powered by Modern Fashion POS · Engineered by Meninges Labs/);
   assert.match(html, /We appreciate your business\./);
   assert.match(html, /Keep the bill\./);
   assert.match(html, /width: 58mm/);

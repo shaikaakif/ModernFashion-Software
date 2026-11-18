@@ -147,7 +147,6 @@ export function receiptHtml({
   const discountTotal = Number(sale.discountTotalPaise || 0);
   const headerNote = String(receipt?.headerNote || '').trim();
   const returnPolicy = String(business?.returnPolicy || '').trim();
-  const thanks = String(invoice?.thankYou || 'Thank you for shopping with us!').trim();
   const stateLine = [
     showState
       ? business?.stateCode
@@ -190,11 +189,11 @@ export function receiptHtml({
     .join('');
 
   const amountRows = showAmountReceived
-    ? `<tr><td>Amount received</td><td>${money(sale.amountPaidPaise)}</td></tr>${
+    ? `<tr><td>Amount paid</td><td>${money(sale.amountPaidPaise)}</td></tr>${
         balance > 0
           ? `<tr><td>Balance due</td><td>${money(balance)}</td></tr>`
           : change > 0
-            ? `<tr><td>Change</td><td>${money(change)}</td></tr>`
+            ? `<tr><td>Change returned</td><td>${money(change)}</td></tr>`
             : ''
       }`
     : '';
@@ -209,20 +208,21 @@ export function receiptHtml({
   body { width: ${width}mm; margin: 0 auto; padding: 9mm ${sidePadding}mm 8mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
     compact ? 10.5 : 11.5
   )}; line-height: 1.55; text-align: left; }
-  .center { text-align: left; }
-  .header { padding-bottom: 2.5mm; border-bottom: 1px solid #000; text-align: left; }
-  .logo { display: block; margin: 0 0 3mm; max-width: 70%; object-fit: contain; }
-  .business-name { font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; letter-spacing: 0.06em; line-height: 1.2; text-transform: uppercase; }
-  .business-meta { margin-top: 1.2mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; }
-  .return-policy { margin-top: 2mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.5; text-transform: uppercase; }
-  .title { margin: 3.5mm 0 2mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; }
-  .duplicate, .sample { margin: 2.5mm 0; padding: 1.5mm 2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.05em; text-align: left; }
+  .center { text-align: center; }
+  .header { padding-bottom: 3mm; border-bottom: 1px solid #000; text-align: center; }
+  .logo { display: block; margin: 0 auto 3mm; max-width: 68%; object-fit: contain; }
+  .business-name { font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; letter-spacing: 0.05em; line-height: 1.2; text-transform: uppercase; overflow-wrap: anywhere; }
+  .business-meta { margin-top: 1.2mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; overflow-wrap: anywhere; }
+  .return-policy { margin-top: 2mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.5; text-transform: uppercase; overflow-wrap: anywhere; }
+  .title { margin: 4mm 0 2.5mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.12em; text-align: center; text-transform: uppercase; }
+  .duplicate, .sample { margin: 2.5mm 0; padding: 1.5mm 2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.05em; text-align: center; }
   .sample { border-style: solid; }
-  .header-note { margin: 2mm 0; font-size: ${fs(9)}; line-height: 1.5; text-align: left; }
-  .meta { width: 100%; margin-top: 2.5mm; border-collapse: collapse; }
-  .meta td { padding: 0.9mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; text-align: left; }
+  .header-note { margin: 2mm 0; font-size: ${fs(9)}; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
+  .section-label { margin: 3mm 0 1mm; font-size: ${fs(compact ? 8 : 9)}; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
+  .meta { width: 100%; margin-top: 1mm; border-collapse: collapse; }
+  .meta td { padding: 0.9mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; text-align: left; overflow-wrap: anywhere; }
   .meta td:first-child { width: 26%; font-weight: 700; }
-  .meta td:last-child { padding-left: 3mm; font-weight: 600; text-align: left; }
+  .meta td:last-child { padding-left: 3mm; font-weight: 600; text-align: right; }
   .separator { margin: 3mm 0; border-top: 1px dashed #000; }
   .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
   .items th { padding: 1.4mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8 : 9.5)}; font-weight: 700; letter-spacing: 0.04em; text-align: left; text-transform: uppercase; }
@@ -234,24 +234,24 @@ export function receiptHtml({
   .items th:nth-child(4) { width: 25%; }
   .items td { padding: 1.4mm 0 0; vertical-align: top; font-size: ${fs(compact ? 9.5 : 11)}; word-break: break-word; overflow-wrap: anywhere; text-align: left; }
   .item-row td { padding-top: 2.2mm; }
-  .item-name { display: block; font-weight: 700; line-height: 1.4; }
-  .item-meta { display: block; margin-top: 0.4mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.45; }
+  .item-name { display: block; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
+  .item-meta { display: block; margin-top: 0.4mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.45; overflow-wrap: anywhere; }
   .sub-row td { padding: 0.7mm 0; font-size: ${fs(compact ? 9 : 10)}; }
   .sub-row.final td { padding-top: 1mm; font-weight: 700; }
-  .totals { width: 100%; margin-top: 2.5mm; border-collapse: collapse; }
+  .totals { width: 100%; margin-top: 3mm; border-collapse: collapse; }
   .totals td { padding: 1mm 0; font-size: ${fs(compact ? 9.5 : 10.5)}; text-align: left; }
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .totals .grand td { padding-top: 2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; }
+  .totals .grand td { padding-top: 2.2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 17 : 20)}; font-weight: 800; }
   .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 2.5mm; padding: 1.8mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; text-transform: uppercase; }
-  .words { margin-top: 2.5mm; padding-top: 1.6mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.55; }
+  .words { margin-top: 3mm; padding-top: 1.6mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.55; }
   .words strong { display: block; margin-top: 0.5mm; font-weight: 700; }
-  .terms { margin-top: 3mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; }
+  .terms { margin-top: 3mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; overflow-wrap: anywhere; }
   .terms strong { display: block; margin-bottom: 0.8mm; font-size: ${fs(9.5)}; letter-spacing: 0.04em; text-transform: uppercase; }
-  .footer-note { margin-top: 1.8mm; font-size: ${fs(9)}; line-height: 1.5; text-align: left; }
-  .thanks { margin-top: 3mm; padding-top: 2.5mm; border-top: 1px dashed #000; text-align: left; }
-  .thanks strong { display: block; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; line-height: 1.4; }
-  .thanks div { margin-top: 1mm; font-size: ${fs(9)}; line-height: 1.5; }
-  .powered { margin-top: 2.5mm; color: #555; font-size: ${fs(8)}; text-align: left; }
+  .closing { margin-top: 4mm; padding-top: 3mm; border-top: 1px dashed #000; text-align: center; }
+  .closing strong { display: block; font-size: ${fs(compact ? 11 : 12.5)}; font-weight: 800; line-height: 1.45; overflow-wrap: anywhere; }
+  .closing div { margin-top: 1mm; font-size: ${fs(9)}; line-height: 1.55; overflow-wrap: anywhere; }
+  .closing .closing-note { margin-top: 1.5mm; font-size: ${fs(8.5)}; color: #333; }
+  .closing .powered { margin-top: 2.5mm; color: #555; font-size: ${fs(8)}; text-align: center; }
   .gst { font-size: ${fs(9)}; }
 </style></head>
 <body class="${compact ? 'w58' : 'w80'}">
@@ -269,6 +269,7 @@ export function receiptHtml({
   ${sample ? '<div class="sample">SAMPLE PREVIEW · NOT A SALE</div>' : ''}
   ${duplicate ? `<div class="duplicate">${escapeHtml(invoice?.duplicateLabel || 'DUPLICATE COPY')}</div>` : ''}
   ${headerNote ? `<div class="header-note">${escapeHtml(headerNote).replace(/\n/g, '<br/>')}</div>` : ''}
+  <div class="section-label">Invoice details</div>
   <table class="meta">
     ${
       receipt?.showCustomer !== false && sale.customerName
@@ -291,6 +292,7 @@ export function receiptHtml({
     ${showPayment ? `<tr><td>Payment</td><td>${escapeHtml(paymentLabel(sale.paymentMethod))}</td></tr>` : ''}
   </table>
   <div class="separator"></div>
+  <div class="section-label">Purchase details</div>
   <table class="items">
     <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
     <tbody>${itemRows}</tbody>
@@ -299,26 +301,28 @@ export function receiptHtml({
   <table class="totals">
     <tr><td>Total quantity</td><td>${totalQuantity}</td></tr>
     <tr><td>Subtotal</td><td>${money(sale.subtotalPaise)}</td></tr>
-    ${discountTotal > 0 ? `<tr><td>Discount</td><td>- ${money(discountTotal)}</td></tr>` : ''}
+    ${discountTotal > 0 ? `<tr><td>Total discount</td><td>- ${money(discountTotal)}</td></tr>` : ''}
     ${showTax ? `<tr><td>${inclusiveTax ? 'Tax included' : 'Tax'}</td><td>${money(sale.taxPaise)}</td></tr>` : ''}
     ${Number(sale.roundOffPaise) !== 0 ? `<tr><td>Round off</td><td>${Number(sale.roundOffPaise) > 0 ? '+' : '-'} ${money(
       Math.abs(sale.roundOffPaise)
     )}</td></tr>` : ''}
-    <tr class="grand"><td>Total</td><td>${money(sale.totalPaise)}</td></tr>
+    <tr class="grand"><td>Grand Total</td><td>${money(sale.totalPaise)}</td></tr>
     ${amountRows}
   </table>
   <div class="words">Amount in words<strong>${escapeHtml(amountInWords(sale.totalPaise))}</strong></div>
   ${
     receipt?.showSavings !== false && discountTotal > 0
-      ? `<div class="savings"><span>You saved</span><strong>${money(discountTotal)}</strong></div>`
+      ? `<div class="savings"><span>Total savings</span><strong>${money(discountTotal)}</strong></div>`
       : ''
   }
   ${termsMarkup(invoice, { ...receipt, footerNote: '' })}
-  <div class="thanks">
-    <strong>${escapeHtml(thanks)}</strong>
-    ${receipt?.footerNote ? `<div>${escapeHtml(receipt.footerNote).replace(/\n/g, '<br/>')}</div>` : ''}
+  <div class="closing">
+    <strong>THANK YOU FOR CHOOSING MODERN FASHION!</strong>
+    <div>We truly appreciate your business.</div>
+    <div>We look forward to welcoming you again.</div>
+    ${receipt?.footerNote ? `<div class="closing-note">${escapeHtml(receipt.footerNote).replace(/\n/g, '<br/>')}</div>` : ''}
+    ${showPoweredBy ? '<div class="powered">Powered by Modern Fashion POS · Engineered by Meninges Labs</div>' : ''}
   </div>
-  ${showPoweredBy ? '<div class="powered">Modern Fashion POS · Engineered by Meninges Labs</div>' : ''}
 </body></html>`;
 }
 
