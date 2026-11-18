@@ -52,6 +52,9 @@ export default function PosPage() {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [customer, setCustomer] = useState(null);
+  const [customerName, setCustomerName] = useState('');
+  const [customerPhone, setCustomerPhone] = useState('');
+  const [customerGstin, setCustomerGstin] = useState('');
   const [customerOpen, setCustomerOpen] = useState(false);
   const [billDiscount, setBillDiscount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState('cash');
@@ -197,6 +200,9 @@ export default function PosPage() {
       setCart([]);
       setBillDiscount(0);
       setCustomer(null);
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerGstin('');
       setNotes('');
       setAmountTouched(false);
       setLastSale(null);
@@ -229,6 +235,16 @@ export default function PosPage() {
       focusScan();
       return;
     }
+    const phone = String(customer?.phone || customerPhone || '').replace(/\D/g, '').slice(-10);
+    if (!/^\d{10}$/.test(phone)) {
+      message.error('Customer mobile number is required for every invoice.');
+      return;
+    }
+    const gstin = String(customerGstin || '').trim().toUpperCase();
+    if (gstin && !/^[0-9A-Z]{15}$/.test(gstin)) {
+      message.error('Customer GSTIN must be exactly 15 letters and digits.');
+      return;
+    }
     if (paymentMethod !== 'credit' && toPaise(amountReceived || 0) < totals.totalPaise) {
       message.error('Amount received is less than the total. Choose Credit / pay later for a partial payment.');
       return;
@@ -243,18 +259,20 @@ export default function PosPage() {
         idempotencyKey: idempotencyRef.current,
         items: cartToPayload(cart),
         customerId: customer?.id || null,
-        customerName: customer?.id ? undefined : customer?.name || undefined,
-        customerPhone: customer?.id ? undefined : customer?.phone || undefined,
+        customerName: customer?.id ? undefined : customerName.trim() || undefined,
+        customerPhone: phone,
+        customerGstin: gstin || undefined,
         billDiscountPaise: manualDiscountPaise,
         notes,
         paymentMethod,
         amountPaidPaise: toPaise(amountReceived || 0),
         allowPartial: paymentMethod === 'credit',
       });
-      setLastSale(result.sale);
-      setLastPrinted(false);
       setCart([]);
       setCustomer(null);
+      setCustomerName('');
+      setCustomerPhone('');
+      setCustomerGstin('');
       setBillDiscount(0);
       setNotes('');
       setAmountTouched(false);
@@ -281,6 +299,7 @@ export default function PosPage() {
       } else {
         message.success(`Sale ${result.sale.invoiceNo} saved.`);
       }
+      navigate(`/sales?invoice=${result.sale.id}`);
     } catch (saleError) {
       message.error(errorMessage(saleError));
     } finally {
@@ -531,10 +550,42 @@ export default function PosPage() {
               <strong>Bill summary</strong>
             </div>
 
-            <Button icon={<UserOutlined />} block className="customer-button" onClick={() => setCustomerOpen(true)}>
-              {customer?.name || 'Walk-in customer'}
-              {customer?.phone ? <span className="muted"> · {customer.phone}</span> : null}
-            </Button>
+            <div className="pos-customer-block">
+              <div className="pos-section-head">
+                <span className="eyebrow">Customer</span>
+                <Button type="link" size="small" icon={<UserOutlined />} onClick={() => setCustomerOpen(true)}>
+                  {customer ? 'Change' : 'Find saved'}
+                </Button>
+              </div>
+              {customer ? (
+                <div className="pos-selected-customer">
+                  <strong>{customer.name}</strong>
+                  <span>{customer.phone}</span>
+                </div>
+              ) : (
+                <div className="pos-customer-fields">
+                  <Input
+                    placeholder="Customer name (optional)"
+                    value={customerName}
+                    onChange={(event) => setCustomerName(event.target.value)}
+                    maxLength={120}
+                  />
+                  <Input
+                    placeholder="Mobile number (required)"
+                    inputMode="tel"
+                    maxLength={10}
+                    value={customerPhone}
+                    onChange={(event) => setCustomerPhone(event.target.value.replace(/\D/g, ''))}
+                  />
+                </div>
+              )}
+              <Input
+                placeholder="Customer GSTIN (optional, for B2B)"
+                maxLength={15}
+                value={customerGstin}
+                onChange={(event) => setCustomerGstin(event.target.value.toUpperCase())}
+              />
+            </div>
 
             <div className="total-rows">
               <div>
@@ -670,6 +721,8 @@ export default function PosPage() {
         onClose={() => setCustomerOpen(false)}
         onSelect={(value) => {
           setCustomer(value);
+          setCustomerName(value.name || '');
+          setCustomerPhone(value.phone || '');
           setCustomerOpen(false);
         }}
         canManage={can('customers.manage')}

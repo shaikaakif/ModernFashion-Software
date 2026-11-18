@@ -39,6 +39,7 @@ import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import { formatDateTime, money, percentFromBp } from '@/app/format';
 import { LoadingPanel, MoneyInput, PageHeader, SectionCard } from '@/app/components';
+import SetupWizard from '@/pages/SetupWizard';
 import { barcodeExample, BARCODE_SYMBOLOGY } from '@shared/barcode.js';
 
 const PAYMENT_METHODS = [
@@ -66,6 +67,7 @@ export default function SettingsPage() {
   const [offerModal, setOfferModal] = useState({ open: false, record: null });
   const [restorePath, setRestorePath] = useState('');
   const [restoreOpen, setRestoreOpen] = useState(false);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [previewBusy, setPreviewBusy] = useState(false);
   const [preview, setPreview] = useState({ html: '', widthMm: 80, error: '' });
@@ -468,7 +470,15 @@ export default function SettingsPage() {
     <LoadingPanel label="Loading settings…" />
   ) : (
     <div className="settings-stack">
-      <SectionCard title="Business identity" subtitle="Used on receipts, invoices, reports and barcode labels.">
+      <SectionCard
+        title="Business identity"
+        subtitle="Used on receipts, invoices, reports and barcode labels."
+        extra={
+          <Button icon={<EditOutlined />} onClick={() => setWizardOpen(true)}>
+            Configure software
+          </Button>
+        }
+      >
         <Form form={businessForm} layout="vertical" onFinish={submitBusiness} requiredMark={false}>
           <div className="form-grid two">
             <Form.Item name="name" label="Business name" rules={[{ required: true, max: 160 }]}>
@@ -521,6 +531,13 @@ export default function SettingsPage() {
             extra="Shown on receipts under the business details. Example: NO RETURN / EXCHANGE WITHIN 3 DAYS. Use the owner's confirmed wording."
           >
             <Input.TextArea rows={2} maxLength={500} />
+          </Form.Item>
+          <Form.Item
+            name="mapUrl"
+            label="Map link"
+            extra="Optional Google Maps or location link. Opens in the browser; no map is embedded and the app stays offline."
+          >
+            <Input placeholder="https://maps.google.com/..." maxLength={500} />
           </Form.Item>
           <Button type="primary" htmlType="submit" icon={<SaveOutlined />} loading={saving === 'business'}>
             Save business details
@@ -707,6 +724,13 @@ export default function SettingsPage() {
               </Form.Item>
               <Form.Item name="thankYou" label="Thank-you heading">
                 <Input maxLength={300} />
+              </Form.Item>
+              <Form.Item
+                name="whatsappCaption"
+                label="WhatsApp caption"
+                extra="Placeholders: {customer}, {invoice}, {amount}, {shop}. The document is attached manually in WhatsApp."
+              >
+                <Input.TextArea rows={2} maxLength={1000} />
               </Form.Item>
             </div>
             <Form.Item
@@ -1343,6 +1367,22 @@ export default function SettingsPage() {
             <Input autoComplete="off" />
           </Form.Item>
         </Form>
+      </Modal>
+
+      <Modal
+        title="Configure your software"
+        open={wizardOpen}
+        onCancel={() => setWizardOpen(false)}
+        footer={null}
+        width={1000}
+        destroyOnClose
+      >
+        <SetupWizard
+          onFinish={async () => {
+            setWizardOpen(false);
+            await reloadSettings();
+          }}
+        />
       </Modal>
     </div>
   );

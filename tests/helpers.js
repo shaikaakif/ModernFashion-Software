@@ -118,6 +118,9 @@ export function completeSale(app, variantId, overrides = {}) {
     idempotencyKey: overrides.idempotencyKey || `test-${Date.now()}-${Math.random().toString(16).slice(2)}`,
     items: overrides.items || [{ variantId, quantity: overrides.quantity ?? 1 }],
     paymentMethod: overrides.paymentMethod || 'cash',
+    customerName: overrides.customerName || 'Test Customer',
+    customerPhone: overrides.customerPhone || '9000000000',
+    customerGstin: overrides.customerGstin || '',
     ...(overrides.amountPaidPaise === undefined ? {} : { amountPaidPaise: overrides.amountPaidPaise }),
   });
 }

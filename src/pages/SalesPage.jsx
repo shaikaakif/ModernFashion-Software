@@ -31,6 +31,7 @@ import { useAsync, useDebouncedValue } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import { formatDate, formatDateTime, money, paymentLabel } from '@/app/format';
 import { EmptyPanel, ErrorPanel, LoadingPanel, PageHeader, SectionCard, StatusTag } from '@/app/components';
+import InvoiceWorkspace from '@/pages/InvoiceWorkspace';
 
 const { RangePicker } = DatePicker;
 
@@ -148,7 +149,7 @@ export default function SalesPage() {
     }
   }
 
-  async function printReceipt({ duplicate = false, a4 = false } = {}) {
+  async function printReceipt({ duplicate = false, a4 = false, widthMm = null } = {}) {
     if (!detail) return;
     setActionBusy(a4 ? 'a4' : 'receipt');
     try {
@@ -156,7 +157,7 @@ export default function SalesPage() {
         await api('print.a4', { saleId: detail.id });
         message.success('A4 invoice sent to the Windows printer driver. Verify the physical copy.');
       } else {
-        await api('print.receipt', { saleId: detail.id, duplicate });
+        await api('print.receipt', { saleId: detail.id, duplicate, widthMm });
         message.success(
           duplicate
             ? 'Duplicate receipt sent to the Windows printer driver. Verify the physical copy.'
@@ -254,6 +255,62 @@ export default function SalesPage() {
     } finally {
       setExporting(false);
     }
+  }
+
+  if (detailOpen) {
+    if (detailLoading) return <LoadingPanel label="Opening the invoice…" />;
+    if (!detail) {
+      return (
+        <div>
+          <Button onClick={closeDetail}>Back to invoices</Button>
+          <EmptyPanel title="Invoice unavailable" description="Choose another invoice from the list." />
+        </div>
+      );
+    }
+    return (
+      <div>
+        <InvoiceWorkspace
+          detail={detail}
+          loading={detailLoading}
+          actionBusy={actionBusy}
+          canPrint={can('sales.print')}
+          canVoid={can('sales.void')}
+          onBack={closeDetail}
+          onPrintReceipt={printReceipt}
+          onPrintA4={() => printReceipt({ a4: true })}
+          onSavePdf={savePdf}
+          onWhatsapp={whatsapp}
+          onVoid={() => setVoidOpen(true)}
+        />
+        <Modal
+          title="Void this invoice?"
+          open={voidOpen}
+          onCancel={() => setVoidOpen(false)}
+          onOk={() => voidForm.submit()}
+          okText="Void invoice and restock"
+          okButtonProps={{ danger: true }}
+          confirmLoading={actionBusy === 'void'}
+          destroyOnClose
+        >
+          <Alert
+            type="warning"
+            showIcon
+            className="detail-alert"
+            message="This does not delete the sale."
+            description="The invoice remains in the ledger as voided, every item is returned to stock, and the reason is written to the audit log."
+          />
+          <Form form={voidForm} layout="vertical" onFinish={submitVoid} requiredMark={false}>
+            <Form.Item
+              name="reason"
+              label="Reason for voiding"
+              rules={[{ required: true, message: 'Record why this invoice is being voided.' }, { max: 300 }]}
+            >
+              <Input.TextArea rows={3} maxLength={300} showCount />
+            </Form.Item>
+          </Form>
+        </Modal>
+      </div>
+    );
   }
 
   return (

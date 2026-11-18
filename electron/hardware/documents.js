@@ -276,6 +276,11 @@ export function receiptHtml({
         ? `<tr><td>Mobile</td><td>${escapeHtml(sale.customerPhone)}</td></tr>`
         : ''
     }
+    ${
+      receipt?.showCustomer !== false && sale.customerGstin
+        ? `<tr><td>GSTIN</td><td>${escapeHtml(sale.customerGstin)}</td></tr>`
+        : ''
+    }
     <tr><td>Invoice</td><td>${escapeHtml(sale.invoiceNo)}</td></tr>
     <tr><td>Date</td><td>${escapeHtml(formatDateTime(sale.completedAt || sale.saleDate))}</td></tr>
     ${receipt?.showCashier !== false ? `<tr><td>Cashier</td><td>${escapeHtml(sale.cashierName || '')}</td></tr>` : ''}
@@ -435,6 +440,7 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
       <div class="label">Billed to</div>
       <strong>${escapeHtml(sale.customerName || 'Walk-in customer')}</strong>
       <div>${escapeHtml(sale.customerPhone || '')}</div>
+      ${sale.customerGstin ? `<div>GSTIN: ${escapeHtml(sale.customerGstin)}</div>` : ''}
     </div>
     <div class="party">
       <div class="label">Sold by</div>

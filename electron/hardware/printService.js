@@ -148,7 +148,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     return saleService.getSale(saleId);
   }
 
-  async function receiptData(saleId, duplicate) {
+  async function receiptData(saleId, duplicate, widthMm = null) {
     requireSaleAccess(saleId);
     const data = saleService.receiptData(saleId);
     const settings = settingsSnapshot();
@@ -158,18 +158,18 @@ export function createPrintService({ auth, saleService, catalogService, settings
       html: receiptHtml({
         ...data,
         logoDataUrl: logoFrom(settings),
-        widthMm: Number(settings.hardware.receiptWidthMm || 80),
+        widthMm: Number(widthMm || settings.hardware.receiptWidthMm || 80) === 58 ? 58 : 80,
         duplicate,
       }),
     };
   }
 
-  async function printReceipt(saleId, { duplicate = false } = {}) {
+  async function printReceipt(saleId, { duplicate = false, widthMm = null } = {}) {
     requirePrintPermission('sales.print');
     const id = requireInt(saleId, 'Invoice', { min: 1 });
     const settings = settingsSnapshot();
     const printerName = settings.hardware.receiptPrinter;
-    const { data, html } = await receiptData(id, duplicate);
+    const { data, html } = await receiptData(id, duplicate, widthMm);
     const result = await printHtml({
       html,
       printerName,
@@ -183,6 +183,22 @@ export function createPrintService({ auth, saleService, catalogService, settings
       duplicate,
     });
     return { ...result, ...printed, invoiceNo: data.sale.invoiceNo, physicalVerification: 'unverified' };
+  }
+
+  async function previewSale(saleId, { widthMm = 80, a4 = false } = {}) {
+    requirePrintPermission('sales.print');
+    const id = requireInt(saleId, 'Invoice', { min: 1 });
+    requireSaleAccess(id);
+    const data = saleService.receiptData(id);
+    const settings = settingsSnapshot();
+    const paperWidth = Number(widthMm) === 58 ? 58 : 80;
+    return {
+      format: a4 ? 'a4' : 'receipt',
+      widthMm: a4 ? 210 : paperWidth,
+      html: a4
+        ? invoiceHtml({ ...data, logoDataUrl: logoFrom(settings) })
+        : receiptHtml({ ...data, logoDataUrl: logoFrom(settings), widthMm: paperWidth }),
+    };
   }
 
   async function printA4Invoice(saleId, { printerName = null } = {}) {
@@ -356,9 +372,15 @@ export function createPrintService({ auth, saleService, catalogService, settings
     const sale = saleService.getSale(saleId);
     const phone = String(sale.customerPhone || '').replace(/\D/g, '').slice(-10);
     const customer = sale.customerName || 'Walk-in customer';
-    const messageText = `Hello ${sale.customerName || ''}, thank you for shopping at Modern Fashion. Invoice ${
-      sale.invoiceNo
-    } for ${(sale.totalPaise / 100).toFixed(2)} is attached.`;
+    const settings = settingsSnapshot();
+    const template =
+      settings.receipt?.whatsappCaption ||
+      'Hello {customer}, thank you for shopping at {shop}. Invoice {invoice} for {amount} is attached.';
+    const messageText = template
+      .replaceAll('{customer}', sale.customerName || '')
+      .replaceAll('{invoice}', sale.invoiceNo || '')
+      .replaceAll('{amount}', `₹${(sale.totalPaise / 100).toFixed(2)}`)
+      .replaceAll('{shop}', settings.business?.name || 'Modern Fashion');
     const message = encodeURIComponent(messageText);
 
     // Show the generated PDF first so Explorer selects it, then bring WhatsApp
@@ -440,6 +462,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
     printTestLabel,
     previewReceipt,
     saveInvoicePdf,
+    previewSale,
     whatsappHandoff,
     openPath,
     openFolder,

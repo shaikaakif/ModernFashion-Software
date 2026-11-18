@@ -20,6 +20,12 @@ import { computeCartTotals, pickBestOffer } from '../../shared/money.js';
 
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'bank_transfer', 'credit'];
 
+function normalizeGstin(value) {
+  const text = optionalText(value, { max: 15 }).toUpperCase();
+  if (text && !/^[0-9A-Z]{15}$/.test(text)) fail('GSTIN must be exactly 15 letters and digits.');
+  return text;
+}
+
 export function createSaleService({ db, auth }) {
   function activeOffers(businessDateKey) {
     return db
@@ -202,6 +208,8 @@ export function createSaleService({ db, auth }) {
       }
       customer = { id: null, name: walkInName, phone: walkInPhone };
     }
+    if (!customer.phone) fail('Customer mobile number is required for every invoice.', 'CUSTOMER_PHONE_REQUIRED');
+    const customerGstin = normalizeGstin(input.customerGstin);
     const notes = optionalText(input.notes, { max: 1000 });
 
     return transaction(db, () => {
@@ -211,12 +219,12 @@ export function createSaleService({ db, auth }) {
       const invoiceNo = formatInvoiceNumber(invoice.prefix || 'MF', fy, allocateSequence(db, 'sale', fy));
       const inserted = db
         .prepare(
-          `INSERT INTO sales (invoice_no, idempotency_key, customer_id, customer_name, customer_phone, sale_date,
+          `INSERT INTO sales (invoice_no, idempotency_key, customer_id, customer_name, customer_phone, customer_gstin, sale_date,
              business_date, subtotal_paise, line_discount_paise, bill_discount_paise, discount_total_paise, tax_paise,
              round_off_paise, total_paise, amount_paid_paise, change_paise, payment_status, payment_method,
              cashier_id, shift_id, status, notes, offer_id, offer_name, tax_enabled, tax_rate_bp, prices_include_tax,
              created_at, completed_at)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?)`
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'completed', ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
           invoiceNo,
@@ -224,6 +232,7 @@ export function createSaleService({ db, auth }) {
           customer.id,
           customer.name,
           customer.phone || '',
+          customerGstin,
           now,
           dateKey,
           totals.subtotalPaise,
@@ -330,6 +339,7 @@ export function createSaleService({ db, auth }) {
       customerId: row.customer_id,
       customerName: row.customer_name,
       customerPhone: row.customer_phone,
+      customerGstin: row.customer_gstin || '',
       saleDate: row.sale_date,
       businessDate: row.business_date,
       subtotalPaise: row.subtotal_paise,

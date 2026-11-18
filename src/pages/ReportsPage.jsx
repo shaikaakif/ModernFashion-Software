@@ -7,7 +7,7 @@ import { useAsync } from '@/app/hooks';
 import { useSession } from '@/app/SessionContext';
 import BrandMark from '@/app/BrandMark';
 import { formatDate, money, paymentLabel } from '@/app/format';
-import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard } from '@/app/components';
+import { ErrorPanel, Kpi, LoadingPanel, PageHeader, SectionCard, StatusTag } from '@/app/components';
 
 const { RangePicker } = DatePicker;
 
@@ -19,6 +19,7 @@ export default function ReportsPage() {
   const { can } = useSession();
   const { message } = AntApp.useApp();
   const [range, setRange] = useState([dayjs().startOf('month'), dayjs()]);
+  const [gstMonth, setGstMonth] = useState(dayjs());
   const [tab, setTab] = useState('sales');
   const [exporting, setExporting] = useState('');
 
@@ -47,6 +48,13 @@ export default function ReportsPage() {
     () => (canProfit ? api('reports.tax', { from, to }) : Promise.resolve(null)),
     [from, to]
   );
+  const gst = useAsync(
+    () =>
+      canProfit
+        ? api('reports.gstMonthly', { month: gstMonth.format('YYYY-MM') })
+        : Promise.resolve(null),
+    [canProfit, gstMonth]
+  );
   const purchases = useAsync(
     () => (canPurchases ? api('reports.purchases', { from, to }) : Promise.resolve(null)),
     [from, to, canPurchases]
@@ -65,6 +73,7 @@ export default function ReportsPage() {
     canProfit ? 'profit' : null,
     canSales ? 'products' : null,
     canProfit ? 'tax' : null,
+    canProfit ? 'gst' : null,
     canPurchases ? 'purchases' : null,
     canExpenses ? 'expenses' : null,
     canInventory ? 'inventory' : null,
@@ -82,6 +91,7 @@ export default function ReportsPage() {
     profit.reload();
     products.reload();
     tax.reload();
+    gst.reload();
     purchases.reload();
     expenses.reload();
     inventory.reload();
@@ -108,6 +118,7 @@ export default function ReportsPage() {
   const profitData = profit.data;
   const productData = products.data;
   const taxData = tax.data;
+  const gstData = gst.data;
   const purchaseData = purchases.data;
   const expenseData = expenses.data;
   const inventoryData = inventory.data;
@@ -646,11 +657,110 @@ export default function ReportsPage() {
     </div>
   ) : null;
 
+  const gstPanel = gst.loading && !gstData ? (
+    <LoadingPanel label="Building the GST monthly report…" />
+  ) : gst.error ? (
+    <ErrorPanel error={gst.error} onRetry={gst.reload} />
+  ) : gstData ? (
+    <div>
+      <div className="toolbar section-gap-sm">
+        <DatePicker
+          picker="month"
+          value={gstMonth}
+          onChange={(value) => setGstMonth(value || dayjs())}
+          format="MMMM YYYY"
+          allowClear={false}
+        />
+        {can('reports.export') ? (
+          <Button
+            icon={<FileExcelOutlined />}
+            loading={exporting === 'gst'}
+            onClick={() => runExport('gst', 'export.gstMonthly', { month: gstData.month })}
+          >
+            Export GST register CSV
+          </Button>
+        ) : null}
+      </div>
+      <Alert
+        type="info"
+        showIcon
+        className="section-gap-sm"
+        message={`GST monthly report · ${gstData.month}`}
+        description={
+          <div>
+            {gstData.warnings.map((warning) => (
+              <div key={warning}>{warning}</div>
+            ))}
+          </div>
+        }
+      />
+      <div className="kpi-grid four">
+        <Metric label="Invoices" value={gstData.totals.invoiceCount} hint={`${gstData.totals.b2bCount} B2B · ${gstData.totals.b2cCount} B2C`} />
+        <Metric label="Taxable value" value={money(gstData.totals.taxablePaise)} hint="After discounts, excluding tax" tone="accent" />
+        <Metric label="Tax" value={money(gstData.totals.taxPaise)} hint={`CGST ${money(gstData.totals.cgstPaise)} · SGST ${money(gstData.totals.sgstPaise)}`} />
+        <Metric label="Invoice total" value={money(gstData.totals.totalPaise)} hint="Including tax and round-off" />
+      </div>
+      <div className="split-2">
+        <SectionCard title="Sales by tax rate" bodyClassName="panel-body flush">
+          <Table
+            rowKey="rateBp"
+            size="small"
+            pagination={false}
+            dataSource={gstData.byRate || []}
+            locale={{ emptyText: 'No tax-rate sales in this month.' }}
+            columns={[
+              { title: 'Rate', dataIndex: 'ratePercent', width: 80, align: 'right', render: (value) => `${value}%` },
+              { title: 'Invoices', dataIndex: 'invoiceCount', width: 90, align: 'right' },
+              { title: 'Taxable', dataIndex: 'taxablePaise', align: 'right', render: money },
+              { title: 'Tax', dataIndex: 'taxPaise', width: 120, align: 'right', render: money },
+            ]}
+          />
+        </SectionCard>
+        <SectionCard title="HSN summary" bodyClassName="panel-body flush">
+          <Table
+            rowKey={(row) => `${row.hsnCode}-${row.rateBp}`}
+            size="small"
+            pagination={false}
+            dataSource={gstData.hsn || []}
+            locale={{ emptyText: 'No HSN data recorded.' }}
+            columns={[
+              { title: 'HSN', dataIndex: 'hsnCode', render: (value) => value || '—' },
+              { title: 'Rate', dataIndex: 'ratePercent', width: 80, align: 'right', render: (value) => `${value}%` },
+              { title: 'Units', dataIndex: 'units', width: 80, align: 'right' },
+              { title: 'Taxable', dataIndex: 'taxablePaise', align: 'right', render: money },
+              { title: 'Tax', dataIndex: 'taxPaise', width: 110, align: 'right', render: money },
+            ]}
+          />
+        </SectionCard>
+      </div>
+      <SectionCard title="Invoice register" subtitle="Completed invoices for the selected month." className="section-gap" bodyClassName="panel-body flush">
+        <Table
+          rowKey="invoiceNo"
+          size="small"
+          dataSource={gstData.register || []}
+          pagination={{ pageSize: 20 }}
+          locale={{ emptyText: 'No invoices in this month.' }}
+          columns={[
+            { title: 'Invoice', dataIndex: 'invoiceNo', render: (value) => <strong>{value}</strong> },
+            { title: 'Date', dataIndex: 'businessDate', width: 120, render: formatDate },
+            { title: 'Customer', dataIndex: 'customerName', ellipsis: true },
+            { title: 'Customer GSTIN', dataIndex: 'customerGstin', ellipsis: true, render: (value) => value || 'B2C' },
+            { title: 'Taxable', dataIndex: 'taxablePaise', width: 130, align: 'right', render: money },
+            { title: 'Tax', dataIndex: 'taxPaise', width: 110, align: 'right', render: money },
+            { title: 'Total', dataIndex: 'totalPaise', width: 120, align: 'right', render: money },
+            { title: 'Payment', dataIndex: 'paymentStatus', width: 100, render: (value) => <StatusTag status={value} /> },
+          ]}
+        />
+      </SectionCard>
+    </div>
+  ) : null;
+
   const items = [];
   if (canSales) items.push({ key: 'sales', label: 'Sales summary', children: salesPanel });
   if (canProfit) items.push({ key: 'profit', label: 'Profit & loss', children: profitPanel });
   if (canSales) items.push({ key: 'products', label: 'Product sales', children: productsPanel });
   if (canProfit) items.push({ key: 'tax', label: 'Tax summary', children: taxPanel });
+  if (canProfit) items.push({ key: 'gst', label: 'GST monthly', children: gstPanel });
   if (canPurchases) items.push({ key: 'purchases', label: 'Purchases', children: purchasesPanel });
   if (canExpenses) items.push({ key: 'expenses', label: 'Expenses', children: expensesPanel });
   if (canInventory) items.push({ key: 'inventory', label: 'Inventory', children: inventoryPanel });

@@ -74,6 +74,7 @@ export function createSettingsService({ db, auth }) {
           max: 130,
         }),
         footerNote: optionalText(input.footerNote ?? receiptCurrent.footerNote, { max: 500 }),
+        whatsappCaption: optionalText(input.whatsappCaption ?? receiptCurrent.whatsappCaption, { max: 1000 }),
       },
       hardware: { receiptWidthMm },
       barcode,
@@ -188,6 +189,7 @@ export function createSettingsService({ db, auth }) {
         gstin: optionalText(input.gstin ?? current.gstin, { max: 20 }).toUpperCase(),
         legalName: optionalText(input.legalName ?? current.legalName, { max: 160 }),
         returnPolicy: optionalText(input.returnPolicy ?? current.returnPolicy, { max: 500 }),
+        mapUrl: optionalText(input.mapUrl ?? current.mapUrl, { max: 500 }),
       },
       user.user.id
     );

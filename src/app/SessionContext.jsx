@@ -77,12 +77,16 @@ export function SessionProvider({ children }) {
   const setupOwner = useCallback(async (input) => {
     const current = await api('auth.setupOwner', input);
     setSession(current);
-    setNeedsSetup(false);
     setLockReason('');
     setPublicBusiness(current.business || null);
     refreshBranding().catch(() => {});
     return current;
   }, [refreshBranding]);
+
+  const completeSetup = useCallback(() => {
+    setNeedsSetup(false);
+    setLockReason('');
+  }, []);
 
   const logout = useCallback(async (input = {}) => {
     const result = await api('auth.logout', input);
@@ -139,13 +143,14 @@ export function SessionProvider({ children }) {
       lockReason,
       login,
       setupOwner,
+      completeSetup,
       logout,
       lock,
       refresh,
       refreshBranding,
       can,
     }),
-    [booting, bootError, needsSetup, publicBusiness, branding, session, lockReason, login, setupOwner, logout, lock, refresh, refreshBranding, can]
+    [booting, bootError, needsSetup, publicBusiness, branding, session, lockReason, login, setupOwner, completeSetup, logout, lock, refresh, refreshBranding, can]
   );
 
   return <SessionContext.Provider value={value}>{children}</SessionContext.Provider>;

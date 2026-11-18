@@ -5,7 +5,6 @@ import {
   CloudUploadOutlined,
   PlusOutlined,
   ReloadOutlined,
-  SettingOutlined,
   ShoppingCartOutlined,
   ShoppingOutlined,
   SwapOutlined,
@@ -94,13 +93,6 @@ export default function DashboardPage() {
       allowed: can('backup.manage'),
       loading: backupBusy,
       onClick: backupNow,
-    },
-    {
-      key: 'settings',
-      label: 'Configure Software',
-      icon: <SettingOutlined />,
-      allowed: can('settings.manage'),
-      onClick: () => navigate('/settings'),
     },
   ].filter((action) => action.allowed);
 

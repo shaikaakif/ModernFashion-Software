@@ -418,6 +418,137 @@ export function createReportService({ db, auth, catalog }) {
     };
   }
 
+  function gstMonthly(input = {}) {
+    auth.requirePermission('reports.profit');
+    const month = /^\d{4}-\d{2}$/.test(String(input.month || ''))
+      ? String(input.month)
+      : businessDate().slice(0, 7);
+    const range = monthRange(month);
+    const taxEnabled = Boolean(getSetting(db, 'tax').enabled);
+    const salesByRate = db
+      .prepare(
+        `SELECT si.tax_rate_bp, COUNT(DISTINCT si.sale_id) AS invoice_count,
+                COALESCE(SUM(si.quantity), 0) AS units,
+                COALESCE(SUM(si.line_total_paise - si.tax_paise), 0) AS taxable,
+                COALESCE(SUM(si.tax_paise), 0) AS tax,
+                COALESCE(SUM(si.line_total_paise), 0) AS gross
+         FROM sale_items si JOIN sales s ON s.id = si.sale_id
+         WHERE s.status = 'completed' AND s.business_date BETWEEN ? AND ?
+         GROUP BY si.tax_rate_bp ORDER BY si.tax_rate_bp`
+      )
+      .all(range.from, range.to);
+    const hsn = db
+      .prepare(
+        `SELECT si.hsn_code, si.tax_rate_bp, COALESCE(SUM(si.quantity), 0) AS units,
+                COALESCE(SUM(si.line_total_paise - si.tax_paise), 0) AS taxable,
+                COALESCE(SUM(si.tax_paise), 0) AS tax
+         FROM sale_items si JOIN sales s ON s.id = si.sale_id
+         WHERE s.status = 'completed' AND s.business_date BETWEEN ? AND ?
+         GROUP BY si.hsn_code, si.tax_rate_bp ORDER BY si.hsn_code, si.tax_rate_bp`
+      )
+      .all(range.from, range.to);
+    const register = db
+      .prepare(
+        `SELECT s.invoice_no, s.business_date, s.customer_name, s.customer_phone, s.customer_gstin,
+                s.subtotal_paise, s.discount_total_paise, s.tax_paise, s.total_paise,
+                s.payment_status, s.payment_method, s.tax_enabled
+         FROM sales s
+         WHERE s.status = 'completed' AND s.business_date BETWEEN ? AND ?
+         ORDER BY s.business_date, s.id`
+      )
+      .all(range.from, range.to);
+    const purchases = db
+      .prepare(
+        `SELECT pi.tax_rate_bp, COALESCE(SUM(pi.tax_paise), 0) AS tax,
+                COALESCE(SUM(pi.line_total_paise - pi.tax_paise), 0) AS taxable
+         FROM purchase_items pi JOIN purchases pu ON pu.id = pi.purchase_id
+         WHERE pu.status = 'posted' AND pu.business_date BETWEEN ? AND ?
+         GROUP BY pi.tax_rate_bp ORDER BY pi.tax_rate_bp`
+      )
+      .all(range.from, range.to);
+    const totals = register.reduce(
+      (acc, row) => {
+        const taxable = Number(row.subtotal_paise) - Number(row.discount_total_paise);
+        acc.invoiceCount += 1;
+        acc.taxablePaise += taxable;
+        acc.taxPaise += Number(row.tax_paise);
+        acc.totalPaise += Number(row.total_paise);
+        if (row.customer_gstin) {
+          acc.b2bCount += 1;
+          acc.b2bTaxablePaise += taxable;
+        } else {
+          acc.b2cCount += 1;
+          acc.b2cTaxablePaise += taxable;
+        }
+        return acc;
+      },
+      {
+        invoiceCount: 0,
+        taxablePaise: 0,
+        taxPaise: 0,
+        totalPaise: 0,
+        b2bCount: 0,
+        b2bTaxablePaise: 0,
+        b2cCount: 0,
+        b2cTaxablePaise: 0,
+      }
+    );
+    totals.cgstPaise = Math.round(totals.taxPaise / 2);
+    totals.sgstPaise = totals.taxPaise - totals.cgstPaise;
+    totals.igstPaise = 0;
+    const warnings = [];
+    if (!taxEnabled) warnings.push('Tax is disabled in Settings. This report contains no GST amounts.');
+    warnings.push(
+      'CGST and SGST are split equally on the assumption that all sales are intra-state. IGST and place of supply are not captured in this version.'
+    );
+    warnings.push('Customer GSTIN is optional; invoices without it are treated as B2C.');
+    warnings.push('This is a local report for CA review. It is not a filed GST return.');
+    return {
+      month,
+      ...range,
+      taxEnabled,
+      businessStateCode: getSetting(db, 'business').stateCode || '',
+      totals,
+      byRate: salesByRate.map((row) => ({
+        rateBp: row.tax_rate_bp,
+        ratePercent: row.tax_rate_bp / 100,
+        invoiceCount: Number(row.invoice_count || 0),
+        units: Number(row.units || 0),
+        taxablePaise: Number(row.taxable || 0),
+        taxPaise: Number(row.tax || 0),
+        grossPaise: Number(row.gross || 0),
+      })),
+      hsn: hsn.map((row) => ({
+        hsnCode: row.hsn_code || '',
+        rateBp: row.tax_rate_bp,
+        ratePercent: row.tax_rate_bp / 100,
+        units: Number(row.units || 0),
+        taxablePaise: Number(row.taxable || 0),
+        taxPaise: Number(row.tax || 0),
+      })),
+      register: register.map((row) => ({
+        invoiceNo: row.invoice_no,
+        businessDate: row.business_date,
+        customerName: row.customer_name,
+        customerPhone: row.customer_phone,
+        customerGstin: row.customer_gstin || '',
+        taxablePaise: Number(row.subtotal_paise) - Number(row.discount_total_paise),
+        taxPaise: Number(row.tax_paise),
+        totalPaise: Number(row.total_paise),
+        paymentStatus: row.payment_status,
+        paymentMethod: row.payment_method,
+        taxEnabled: Boolean(row.tax_enabled),
+      })),
+      purchases: purchases.map((row) => ({
+        rateBp: row.tax_rate_bp,
+        ratePercent: row.tax_rate_bp / 100,
+        taxablePaise: Number(row.taxable || 0),
+        taxPaise: Number(row.tax || 0),
+      })),
+      warnings,
+    };
+  }
+
   function taxSummary(input = {}) {
     auth.requirePermission('reports.profit');
     const range = resolveRange(input);
@@ -587,6 +718,7 @@ export function createReportService({ db, auth, catalog }) {
     productSales,
     inventoryReport,
     taxSummary,
+    gstMonthly,
     purchaseReport,
     expenseReport,
     salesRegister,

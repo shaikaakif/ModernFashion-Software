@@ -15,6 +15,7 @@ export const DEFAULT_SETTINGS = {
     gstin: '',
     legalName: '',
     returnPolicy: '',
+    mapUrl: '',
     logoPath: '',
   },
   invoice: {
@@ -87,6 +88,8 @@ export const DEFAULT_SETTINGS = {
     headerNote: '',
     fontScale: 100,
     footerNote: 'We appreciate your business. Visit us again.',
+    whatsappCaption:
+      'Hello {customer}, thank you for shopping at {shop}. Invoice {invoice} for {amount} is attached.',
   },
   barcode: {
     prefix: 'MF',
@@ -555,6 +558,16 @@ const MIGRATIONS = [
       const columns = db.prepare('PRAGMA table_info(sales)').all().map((row) => row.name);
       if (!columns.includes('prices_include_tax')) {
         db.exec('ALTER TABLE sales ADD COLUMN prices_include_tax INTEGER NOT NULL DEFAULT 0');
+      }
+    },
+  },
+  {
+    version: 3,
+    name: 'sales_customer_gstin',
+    up(db) {
+      const columns = db.prepare('PRAGMA table_info(sales)').all().map((row) => row.name);
+      if (!columns.includes('customer_gstin')) {
+        db.exec("ALTER TABLE sales ADD COLUMN customer_gstin TEXT NOT NULL DEFAULT ''");
       }
     },
   },

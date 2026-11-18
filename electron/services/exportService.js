@@ -284,6 +284,38 @@ export function createExportService({ auth, reportService, inventoryService, cus
     return { folder: target, files: files.map(([name]) => name), month: pack.month };
   }
 
+  function exportGstMonthly(input = {}) {
+    auth.requirePermission('reports.export');
+    const report = reportService.gstMonthly(input);
+    const columns = [
+      { label: 'Invoice No', value: (row) => row.invoiceNo },
+      { label: 'Business Date', value: (row) => row.businessDate },
+      { label: 'Customer', value: (row) => row.customerName },
+      { label: 'Phone', value: (row) => row.customerPhone },
+      { label: 'Customer GSTIN', value: (row) => row.customerGstin },
+      { label: 'Taxable Value (INR)', value: (row) => rupees(row.taxablePaise) },
+      { label: 'Tax (INR)', value: (row) => rupees(row.taxPaise) },
+      { label: 'Invoice Total (INR)', value: (row) => rupees(row.totalPaise) },
+      { label: 'Payment Status', value: (row) => row.paymentStatus },
+      { label: 'Payment Method', value: (row) => row.paymentMethod },
+      { label: 'Tax Enabled', value: (row) => (row.taxEnabled ? 'Yes' : 'No') },
+    ];
+    const meta = [
+      `Modern Fashion GST monthly sales register`,
+      `Month: ${report.month}`,
+      `Invoices: ${report.totals.invoiceCount}`,
+      `Taxable value (INR): ${rupees(report.totals.taxablePaise)}`,
+      `Tax (INR): ${rupees(report.totals.taxPaise)}`,
+      `CGST (INR): ${rupees(report.totals.cgstPaise)}`,
+      `SGST (INR): ${rupees(report.totals.sgstPaise)}`,
+      `IGST (INR): ${rupees(report.totals.igstPaise)}`,
+      `B2B invoices: ${report.totals.b2bCount}`,
+      `B2C invoices: ${report.totals.b2cCount}`,
+      ...report.warnings.map((warning) => `NOTE: ${warning}`),
+    ];
+    return saveCsv(`gst-monthly-${report.month}.csv`, columns, report.register, meta);
+  }
+
   return {
     exportSalesRegister,
     exportPurchases,
@@ -291,6 +323,7 @@ export function createExportService({ auth, reportService, inventoryService, cus
     exportInventory,
     exportCustomers,
     exportCatalogue,
+    exportGstMonthly,
     exportAccountingPack,
   };
 }

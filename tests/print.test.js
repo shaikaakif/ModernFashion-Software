@@ -263,8 +263,7 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.doesNotMatch(html, /Round off/);
 });
 
-test('a completed sale renders real product and payment data on the receipt', (t) => {
-  const app = createTestApp(t);
+test('a completed sale renders real product and payment data on the receipt', (t) => {  const app = createTestApp(t);
   setupOwner(app);
   const product = createProduct(app, { openingStock: 2 });
   completeSale(app, product.variants[0].id, { quantity: 1 });
