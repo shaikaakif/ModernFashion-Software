@@ -205,52 +205,52 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 7mm; font-family: Arial, Helvetica, sans-serif; font-size: ${fs(
-    compact ? 9 : 10
-  )}; line-height: 1.35; }
+  body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 7mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
+    compact ? 10 : 11
+  )}; line-height: 1.48; }
   .center { text-align: center; }
   .header { padding-bottom: 1.5mm; border-bottom: 1px solid #000; }
-  .logo { display: block; margin: 0 auto 2.5mm; max-width: 70%; object-fit: contain; }
-  .business-name { font-size: ${fs(compact ? 12 : 15)}; font-weight: 800; letter-spacing: 0.06em; text-transform: uppercase; }
-  .business-meta { margin-top: 0.5mm; font-size: ${fs(compact ? 7.5 : 8.5)}; line-height: 1.4; }
-  .return-policy { margin-top: 1mm; font-size: ${fs(compact ? 7.5 : 8)}; font-weight: 700; line-height: 1.35; text-transform: uppercase; }
-  .title { margin: 2mm 0 1mm; font-size: ${fs(compact ? 10 : 11)}; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
-  .duplicate, .sample { margin: 1.5mm 0; padding: 1mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
+  .logo { display: block; margin: 0 auto 3mm; max-width: 70%; object-fit: contain; }
+  .business-name { font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; letter-spacing: 0.07em; line-height: 1.15; text-transform: uppercase; }
+  .business-meta { margin-top: 1mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.5; }
+  .return-policy { margin-top: 1.5mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.45; text-transform: uppercase; }
+  .title { margin: 3mm 0 1.5mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; }
+  .duplicate, .sample { margin: 2mm 0; padding: 1.2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
   .sample { border-style: solid; }
-  .header-note { margin: 1.2mm 0; font-size: ${fs(8)}; text-align: center; }
-  .meta { width: 100%; margin-top: 1mm; border-collapse: collapse; }
-  .meta td { padding: 0.35mm 0; vertical-align: top; font-size: ${fs(compact ? 7.5 : 8.5)}; }
+  .header-note { margin: 1.5mm 0; font-size: ${fs(9)}; text-align: center; }
+  .meta { width: 100%; margin-top: 1.5mm; border-collapse: collapse; }
+  .meta td { padding: 0.6mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; }
   .meta td:first-child { width: 24%; font-weight: 700; }
-  .meta td:last-child { text-align: right; }
-  .separator { margin: 1.5mm 0; border-top: 1px dashed #000; }
+  .meta td:last-child { font-weight: 600; text-align: right; }
+  .separator { margin: 2mm 0; border-top: 1px dashed #000; }
   .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .items th { padding: 1mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 7 : 8)}; font-weight: 700; text-align: left; text-transform: uppercase; }
+  .items th { padding: 1.2mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8 : 9.5)}; font-weight: 700; letter-spacing: 0.04em; text-align: left; text-transform: uppercase; }
   .items th.num, .items td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   .items th:nth-child(1) { width: 46%; }
   .items th:nth-child(2) { width: 12%; }
   .items th:nth-child(3) { width: 20%; }
   .items th:nth-child(4) { width: 22%; }
-  .items td { padding: 1mm 0 0; vertical-align: top; font-size: ${fs(compact ? 7.5 : 8.5)}; word-break: break-word; overflow-wrap: anywhere; }
-  .item-row td { padding-top: 1.3mm; }
-  .item-name { display: block; font-weight: 700; }
-  .item-meta { display: block; color: #333; font-size: ${fs(compact ? 6.8 : 7.5)}; line-height: 1.3; }
-  .sub-row td { padding: 0.25mm 0; font-size: ${fs(compact ? 7.2 : 8)}; }
-  .sub-row.final td { font-weight: 700; }
-  .totals { width: 100%; margin-top: 1.5mm; border-collapse: collapse; }
-  .totals td { padding: 0.45mm 0; font-size: ${fs(compact ? 8 : 9)}; }
-  .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; }
-  .totals .grand td { padding-top: 1.2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 12 : 14)}; font-weight: 800; }
-  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 1.5mm; padding: 1mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-weight: 800; text-transform: uppercase; }
-  .words { margin-top: 1.5mm; padding-top: 1mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 7.2 : 8)}; line-height: 1.4; }
-  .words strong { display: block; margin-top: 0.3mm; font-weight: 700; }
-  .terms { margin-top: 2mm; font-size: ${fs(compact ? 7.2 : 8)}; line-height: 1.4; }
-  .terms strong { display: block; margin-bottom: 0.5mm; font-size: ${fs(8)}; letter-spacing: 0.04em; text-transform: uppercase; }
-  .footer-note { margin-top: 1.5mm; font-size: ${fs(7.5)}; text-align: center; }
-  .thanks { margin-top: 2mm; padding-top: 1.5mm; border-top: 1px dashed #000; text-align: center; }
-  .thanks strong { display: block; font-size: ${fs(compact ? 9 : 10)}; font-weight: 800; }
-  .thanks div { margin-top: 0.7mm; font-size: ${fs(7.5)}; line-height: 1.4; }
-  .powered { margin-top: 1.5mm; color: #555; font-size: ${fs(6.5)}; text-align: center; }
-  .gst { font-size: ${fs(8)}; }
+  .items td { padding: 1.2mm 0 0; vertical-align: top; font-size: ${fs(compact ? 9.5 : 11)}; word-break: break-word; overflow-wrap: anywhere; }
+  .item-row td { padding-top: 1.8mm; }
+  .item-name { display: block; font-weight: 700; line-height: 1.35; }
+  .item-meta { display: block; margin-top: 0.3mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.4; }
+  .sub-row td { padding: 0.5mm 0; font-size: ${fs(compact ? 9 : 10)}; }
+  .sub-row.final td { padding-top: 0.8mm; font-weight: 700; }
+  .totals { width: 100%; margin-top: 2mm; border-collapse: collapse; }
+  .totals td { padding: 0.7mm 0; font-size: ${fs(compact ? 9.5 : 10.5)}; }
+  .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+  .totals .grand td { padding-top: 1.6mm; border-top: 1px solid #000; font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; }
+  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 2mm; padding: 1.4mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; text-transform: uppercase; }
+  .words { margin-top: 2mm; padding-top: 1.2mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.5; }
+  .words strong { display: block; margin-top: 0.4mm; font-weight: 700; }
+  .terms { margin-top: 2.5mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.5; }
+  .terms strong { display: block; margin-bottom: 0.7mm; font-size: ${fs(9.5)}; letter-spacing: 0.04em; text-transform: uppercase; }
+  .footer-note { margin-top: 1.5mm; font-size: ${fs(9)}; text-align: center; }
+  .thanks { margin-top: 2.5mm; padding-top: 2mm; border-top: 1px dashed #000; text-align: center; }
+  .thanks strong { display: block; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; line-height: 1.35; }
+  .thanks div { margin-top: 0.8mm; font-size: ${fs(9)}; line-height: 1.45; }
+  .powered { margin-top: 2mm; color: #555; font-size: ${fs(8)}; text-align: center; }
+  .gst { font-size: ${fs(9)}; }
 </style></head>
 <body class="${compact ? 'w58' : 'w80'}">
   <div class="header">
