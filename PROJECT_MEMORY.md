@@ -45,6 +45,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
+| Packaged NSIS EXE v1.3.2 | Published GitHub Release `v1.3.2` (ID `451206733`, tag commit `205621f9`): EXE 123,806,558 bytes, blockmap 130,948 bytes, `latest.yml` 361 bytes; public URLs HTTP 200, published `latest.yml` SHA-512 matches the EXE, `/releases/latest` redirects to `v1.3.2`, packaged app starts on an isolated data dir |
 | Packaged NSIS EXE v1.3.1 | Published GitHub Release `v1.3.1` (ID `450073657`, tag commit `b4f2a235`): EXE 123,805,606 bytes, blockmap 131,003 bytes, `latest.yml` 361 bytes; public URLs HTTP 200, `latest.yml` SHA-512 matches the EXE, `/releases/latest` redirects to `v1.3.1`, packaged app starts on an isolated data dir |
 | Packaged NSIS EXE v1.3.0 | Published GitHub Release `v1.3.0` (ID `449970817`): EXE 123,805,117 bytes, blockmap 130,938 bytes, `latest.yml` 361 bytes; SHA-256 and installer SHA-512 verified |
 | Packaged NSIS EXE v1.2.4 | Published GitHub Release `v1.2.4` (ID `449602732`): EXE 123,788,602 bytes, blockmap 130,799 bytes, `latest.yml` 361 bytes; public URLs, SHA-256 and installer SHA-512 verified |
