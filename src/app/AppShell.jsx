@@ -2,7 +2,6 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
 import { App as AntApp, Avatar, Button, Dropdown, Form, Input, InputNumber, Layout, Menu, Modal, Tag, Tooltip } from 'antd';
 import {
-  AuditOutlined,
   BarcodeOutlined,
   BarChartOutlined,
   CloudDownloadOutlined,
@@ -10,7 +9,6 @@ import {
   DollarOutlined,
   DownOutlined,
   FileTextOutlined,
-  ImportOutlined,
   LockOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
@@ -54,7 +52,6 @@ const NAV = [
   { key: '/sales', label: 'Invoices', icon: <FileTextOutlined />, any: ['sales.view.all', 'sales.view.own'] },
   { key: '/inventory', label: 'Inventory', icon: <ShopOutlined />, any: ['inventory.view', 'products.view'] },
   { key: '/barcodes', label: 'Barcodes', icon: <BarcodeOutlined />, any: ['products.manage'] },
-  { key: '/import', label: 'Import data', icon: <ImportOutlined />, any: ['products.manage'] },
   { key: '/purchases', label: 'Purchases', icon: <WalletOutlined />, any: ['purchases.view'] },
   { key: '/suppliers', label: 'Suppliers', icon: <TeamOutlined />, any: ['purchases.view'] },
   { key: '/customers', label: 'Customers', icon: <UserOutlined />, any: ['customers.view'] },
@@ -63,7 +60,6 @@ const NAV = [
   { key: '/users', label: 'Users & shifts', icon: <PercentageOutlined />, any: ['users.manage'] },
   { key: '/settings', label: 'Settings', icon: <SettingOutlined />, any: ['settings.manage'] },
   { key: '/releases', label: 'Updates', icon: <CloudDownloadOutlined />, any: ['settings.manage'] },
-  { key: '/audit', label: 'Activity log', icon: <AuditOutlined />, any: ['audit.view'] },
 ];
 
 function Protected({ any, children }) {

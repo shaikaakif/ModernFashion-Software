@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { addStaff, completeSale, createProduct, createTestApp, login, setupOwner } from './helpers.js';
-import { barcodeExample, formatBarcode, generatedBarcode, isValidEan13, isValidUpcA, normalizeBarcodeConfig, symbologyForBarcode } from '../shared/barcode.js';
+import { barcodeExample, formatBarcode, generatedBarcode, isValidEan13, isValidEan8, isValidUpcA, normalizeBarcodeConfig, symbologyForBarcode } from '../shared/barcode.js';
 import { readLogoDataUrl } from '../electron/core/logo.js';
 import { receiptHtml, labelHtml } from '../electron/hardware/documents.js';
 
@@ -69,6 +69,13 @@ test('barcode format validates EAN-13, UPC-A and legacy Code 128 values', () => 
   const upc = generatedBarcode({ symbology: 'upca', eanPrefix: '20' }, 42);
   assert.match(upc, /^20\d{10}$/);
   assert.equal(isValidUpcA(upc), true);
+
+  assert.equal(isValidEan8('20000011'), true);
+  assert.equal(isValidEan8('20000012'), false);
+  assert.equal(symbologyForBarcode('20000011'), 'ean8');
+  const ean8 = generatedBarcode({ symbology: 'ean8', eanPrefix: '20' }, 42);
+  assert.match(ean8, /^20\d{6}$/);
+  assert.equal(isValidEan8(ean8), true);
 });
 
 test('logo reader returns a data URL only for supported, small local images', (t) => {
@@ -301,6 +308,7 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.match(html, /Keep the bill\./);
   assert.match(html, /width: 58mm/);
   assert.match(html, /padding: 9mm 3mm 8mm/);
+  assert.match(html, /body \{ width: 58mm; margin: 0;/);
   assert.doesNotMatch(html, /You saved/);
   assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
   assert.doesNotMatch(html, /Round off/);
@@ -321,12 +329,29 @@ test('barcode label shows MRP, selling price, barcode and adaptive page size', (
     options: { labelWidthMm: 50, labelHeightMm: 25 },
   });
   assert.match(html, /@page \{ size: 50mm 25mm/);
-  assert.match(html, /MRP ₹799/);
-  assert.match(html, /₹699/);
-  assert.match(html, /Blue · M/);
+  assert.match(html, /SELLING PRICE : <span class="price">₹699<\/span>/);
+  assert.match(html, /MRP : ₹799/);
+  assert.match(html, /Blue · SIZE M/);
   assert.match(html, /page-break-after: auto/);
   assert.match(html, /<svg/);
   assert.match(html, /MF0000000042/);
+});
+
+test('EAN-8 labels print wider bars than EAN-13 on the same label width', () => {
+  const label = {
+    productName: 'EAN T-Shirt',
+    sku: 'TSH-EAN-BLU-M',
+    color: 'Blue',
+    size: 'M',
+    pricePaise: 69900,
+    mrpPaise: 79900,
+  };
+  const ean8 = labelHtml({ label: { ...label, barcode: '20000011' }, options: { labelWidthMm: 50, labelHeightMm: 25 } });
+  const ean13 = labelHtml({ label: { ...label, barcode: '4006381333931' }, options: { labelWidthMm: 50, labelHeightMm: 25 } });
+  const width = (html) => Number(html.match(/width="([\d.]+)" height="[\d.]+"/)[1]);
+  assert.match(ean8, /aria-label="Barcode 20000011"/);
+  assert.match(ean8, /2000 0011/);
+  assert.ok(width(ean8) < width(ean13), 'EAN-8 occupies fewer modules than EAN-13');
 });
 
 test('EAN-13 labels render the compact retail symbology with quiet zones', () => {
@@ -344,7 +369,7 @@ test('EAN-13 labels render the compact retail symbology with quiet zones', () =>
   });
   assert.match(html, /aria-label="Barcode 4006381333931"/);
   assert.match(html, /4 006381 333931/);
-  assert.match(html, /height: 9\.5mm/);
+  assert.match(html, /height: 7\.8mm/);
   assert.match(html, /MODERN FASHION/);
 });
 
@@ -381,8 +406,7 @@ test('label typography clamps long names and adapts to short stock', () => {
   });
   assert.match(tall, /-webkit-line-clamp: 2/);
   assert.doesNotMatch(tall, /class="label is-short"/);
-  assert.match(tall, /height: 11\.0mm/);
-
+  assert.match(tall, /height: 9\.3mm/);
   const short = labelHtml({
     label: { ...base, productName: 'Short Tee' },
     options: { labelWidthMm: 50, labelHeightMm: 18 },
@@ -390,6 +414,18 @@ test('label typography clamps long names and adapts to short stock', () => {
   assert.match(short, /class="label is-short"/);
   assert.match(short, /-webkit-line-clamp: 1/);
   assert.match(short, /\.label\.is-short \.meta \{ display: none; \}/);
+});
+
+test('regenerating a barcode as EAN-8 keeps a scannable 8-digit code', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const product = createProduct(app, { variants: [{ color: 'Black', size: 'M', openingStock: 1 }] });
+  const variant = app.services.catalog.getProduct(product.id).variants[0];
+  const result = app.services.catalog.regenerateBarcode(variant.id, { symbology: 'ean8' });
+  assert.equal(result.symbology, 'ean8');
+  assert.equal(isValidEan8(result.barcode), true);
+  assert.equal(symbologyForBarcode(result.barcode), 'ean8');
+  assert.equal(app.services.catalog.posLookup(result.barcode).variantId, variant.id);
 });
 
 test('regenerating a barcode as UPC-A replaces the label code and audits it', (t) => {

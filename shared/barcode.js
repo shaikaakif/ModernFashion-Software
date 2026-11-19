@@ -5,10 +5,11 @@ export const DEFAULT_BARCODE = {
   eanPrefix: '20',
 };
 
-export const BARCODE_SYMBOLOGIES = ['ean13', 'upca', 'code128'];
+export const BARCODE_SYMBOLOGIES = ['ean13', 'ean8', 'upca', 'code128'];
 
 export const SYMBOLOGY_LABELS = {
   ean13: 'EAN-13',
+  ean8: 'EAN-8',
   upca: 'UPC-A',
   code128: 'Code 128',
 };
@@ -20,7 +21,7 @@ export const SYMBOLOGY_LABELS = {
 export function normalizeBarcodeConfig(input = {}) {
   const rawSymbology = String(input.symbology ?? DEFAULT_BARCODE.symbology).toLowerCase();
   if (!BARCODE_SYMBOLOGIES.includes(rawSymbology)) {
-    throw new Error('Choose EAN-13, UPC-A or Code 128.');
+    throw new Error('Choose EAN-13, EAN-8, UPC-A or Code 128.');
   }
   const prefix = String(input.prefix ?? DEFAULT_BARCODE.prefix)
     .trim()
@@ -49,6 +50,16 @@ export function ean13CheckDigit(payload) {
   return (10 - (sum % 10)) % 10;
 }
 
+export function ean8CheckDigit(payload) {
+  const value = String(payload);
+  if (!/^\d{7}$/.test(value)) throw new Error('EAN-8 needs 7 digits before the check digit.');
+  let sum = 0;
+  for (let index = 0; index < 7; index += 1) {
+    sum += Number(value[index]) * (index % 2 === 0 ? 3 : 1);
+  }
+  return (10 - (sum % 10)) % 10;
+}
+
 export function upcACheckDigit(payload) {
   const value = String(payload);
   if (!/^\d{11}$/.test(value)) throw new Error('UPC-A needs 11 digits before the check digit.');
@@ -69,11 +80,23 @@ export function isValidUpcA(value) {
   return /^\d{12}$/.test(text) && upcACheckDigit(text.slice(0, 11)) === Number(text[11]);
 }
 
+export function isValidEan8(value) {
+  const text = String(value ?? '');
+  return /^\d{8}$/.test(text) && ean8CheckDigit(text.slice(0, 7)) === Number(text[7]);
+}
+
 export function formatEan13(eanPrefix, sequence) {
   const prefix = String(eanPrefix ?? DEFAULT_BARCODE.eanPrefix);
   if (!/^2\d$/.test(prefix)) throw new Error('In-store EAN prefix must be 20 to 29.');
   const payload = `${prefix}${String(Math.max(0, Number(sequence) || 0)).padStart(10, '0').slice(-10)}`;
   return `${payload}${ean13CheckDigit(payload)}`;
+}
+
+export function formatEan8(eanPrefix, sequence) {
+  const prefix = String(eanPrefix ?? DEFAULT_BARCODE.eanPrefix);
+  if (!/^2\d$/.test(prefix)) throw new Error('In-store EAN prefix must be 20 to 29.');
+  const payload = `${prefix}${String(Math.max(0, Number(sequence) || 0)).padStart(5, '0').slice(-5)}`;
+  return `${payload}${ean8CheckDigit(payload)}`;
 }
 
 export function formatUpcA(eanPrefix, sequence) {
@@ -92,12 +115,14 @@ export function formatBarcode(prefix, digits, sequence) {
 export function generatedBarcode(configInput, sequence) {
   const config = normalizeBarcodeConfig(configInput);
   if (config.symbology === 'ean13') return formatEan13(config.eanPrefix, sequence);
+  if (config.symbology === 'ean8') return formatEan8(config.eanPrefix, sequence);
   if (config.symbology === 'upca') return formatUpcA(config.eanPrefix, sequence);
   return formatBarcode(config.prefix, config.digits, sequence);
 }
 
 export function symbologyForBarcode(value) {
   if (isValidEan13(value)) return 'ean13';
+  if (isValidEan8(value)) return 'ean8';
   if (isValidUpcA(value)) return 'upca';
   return 'code128';
 }

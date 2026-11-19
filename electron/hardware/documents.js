@@ -205,7 +205,8 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  body { width: ${width}mm; margin: 0 auto; padding: 9mm ${sidePadding}mm 8mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
+  /* Left-aligned on the paper: an 80 mm receipt printed to A4 sits at the left edge. */
+  body { width: ${width}mm; margin: 0; padding: 9mm ${sidePadding}mm 8mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
     compact ? 10.5 : 11.5
   )}; line-height: 1.55; text-align: left; }
   .center { text-align: center; }
@@ -511,52 +512,52 @@ export function labelHtml({ label, business, options = {} }) {
   const showSize = options.labelShowSize !== false;
   const scale = Math.max(0.72, Math.min(1.3, height / 25));
   const fs = (size) => `${(size * scale).toFixed(1)}px`;
-  const topPadding = Math.max(1.4, Math.min(2.8, height * 0.08));
+  const topPadding = Math.max(1.2, Math.min(2.4, height * 0.07));
   const mrpPaise = Number(label.mrpPaise || 0);
   const pricePaise = Number(label.pricePaise || 0);
   const showMrp = showPrice && mrpPaise > 0 && mrpPaise !== pricePaise;
   const showSelling = showPrice && pricePaise > 0;
-  const barcodeHeight = Math.max(6.5, Math.min(11, height * 0.38));
+  // Reserve the tallest slice of the label for the barcode: wide bars scan better
+  // than wide text on a 50 x 25 mm stock.
+  const barcodeHeight = Math.max(6.4, Math.min(11, height * 0.31));
   const shortLabel = height < 22;
+  const tallLabel = height >= 30;
   const barcode = barcodeSvg(label.barcode, { moduleWidth: 2, height: 60, showText: false });
-  const variantLine = [label.color, label.size].filter(Boolean).join(' · ');
-  const metaLine = height >= 30 && showSku ? [variantLine, label.sku].filter(Boolean).join(' · ') : variantLine;
-  return `<div class="label${shortLabel ? ' is-short' : ''}">
+  const variantLine = [label.color, label.size ? `SIZE ${label.size}` : ''].filter(Boolean).join(' · ');
+  // SKU only fits on taller stock; short labels keep to one variant line.
+  const metaLine = tallLabel && showSku ? [variantLine, label.sku].filter(Boolean).join(' · ') : variantLine;
+  return `<div class="label${shortLabel ? ' is-short' : ''}${tallLabel ? ' is-tall' : ''}">
     <div class="brand">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
-    ${showName ? `<div class="name">${escapeHtml(label.productName)}</div>` : ''}
-    ${
-      showSelling
-        ? `<div class="price-row">
-            <span class="price">${labelAmount(pricePaise)}</span>
-            ${showMrp ? `<span class="mrp">MRP ${labelAmount(mrpPaise)}</span>` : ''}
-          </div>`
-        : ''
-    }
+    ${showSelling ? `<div class="price-row">SELLING PRICE : <span class="price">${labelAmount(pricePaise)}</span></div>` : ''}
+    ${showMrp ? `<div class="mrp">MRP : ${labelAmount(mrpPaise)}</div>` : ''}
     <div class="barcode">${barcode}<div class="barcode-text">${escapeHtml(barcodeDisplayText(label.barcode))}</div></div>
+    ${showName ? `<div class="name">${escapeHtml(label.productName)}</div>` : ''}
     ${showSize && metaLine ? `<div class="meta">${escapeHtml(metaLine)}</div>` : ''}
   </div>
   <style>
     @page { size: ${width}mm ${height}mm; margin: 0; }
     * { box-sizing: border-box; }
-    html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; }
-    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2.4mm 1.4mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 0.4mm; overflow: hidden; page-break-after: always; }
+    html, body { margin: 0; padding: 0; background: #fff; color: #000; font-family: "Segoe UI", Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
+    .label { width: ${width}mm; height: ${height}mm; padding: ${topPadding.toFixed(1)}mm 2mm 1.1mm; display: flex; flex-direction: column; align-items: center; justify-content: space-between; gap: 0.3mm; overflow: hidden; page-break-after: always; }
     .label:last-child { page-break-after: auto; }
-    .brand { width: 100%; overflow: hidden; color: #111; font-size: ${fs(6.5)}; font-weight: 800; letter-spacing: 0.1em; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-    .name { display: -webkit-box; width: 100%; overflow: hidden; font-size: ${fs(10)}; font-weight: 800; line-height: 1.18; text-align: center; -webkit-box-orient: vertical; -webkit-line-clamp: 2; }
-    .price-row { display: flex; align-items: baseline; justify-content: center; gap: 2.5mm; line-height: 1.12; }
-    .price { font-size: ${fs(12)}; font-weight: 800; letter-spacing: 0.01em; }
-    .mrp { color: #333; font-size: ${fs(8)}; font-weight: 600; }
-    .barcode { display: flex; width: 100%; min-height: 0; flex-direction: column; align-items: center; justify-content: center; padding: 0.5mm 0 0.2mm; }
+    .brand { width: 100%; overflow: hidden; font-size: ${fs(6.2)}; font-weight: 800; letter-spacing: 0.09em; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
+    .price-row { width: 100%; font-size: ${fs(8.6)}; font-weight: 700; letter-spacing: 0.02em; line-height: 1.12; text-align: center; text-transform: uppercase; white-space: nowrap; }
+    .price { font-size: ${fs(11)}; font-weight: 800; letter-spacing: 0; }
+    .mrp { width: 100%; font-size: ${fs(8)}; font-weight: 700; line-height: 1.1; text-align: center; text-transform: uppercase; white-space: nowrap; }
+    .barcode { display: flex; width: 100%; min-height: 0; flex-direction: column; align-items: center; justify-content: center; padding: 0.3mm 0 0; }
     .barcode svg { display: block; width: 100%; height: ${barcodeHeight.toFixed(1)}mm; }
-    .barcode-text { margin-top: 0.4mm; font-family: Consolas, "Courier New", monospace; font-size: ${fs(7.2)}; font-weight: 700; letter-spacing: 0.12em; line-height: 1; text-align: center; white-space: nowrap; }
+    .barcode-text { margin-top: 0.3mm; font-family: Consolas, "Courier New", monospace; font-size: ${fs(7.4)}; font-weight: 700; letter-spacing: 0.08em; line-height: 1; text-align: center; white-space: nowrap; }
+    .name { display: -webkit-box; width: 100%; overflow: hidden; font-size: ${fs(8.6)}; font-weight: 800; line-height: 1.12; text-align: center; text-transform: uppercase; -webkit-box-orient: vertical; -webkit-line-clamp: 1; }
     .meta { width: 100%; overflow: hidden; font-size: ${fs(7)}; font-weight: 700; line-height: 1.1; text-align: center; text-overflow: ellipsis; text-transform: uppercase; white-space: nowrap; }
-    .label.is-short { gap: 0.25mm; padding: 1.2mm 2.2mm 1mm; }
-    .label.is-short .brand { font-size: ${fs(6)}; }
-    .label.is-short .name { font-size: ${fs(9)}; line-height: 1.15; -webkit-line-clamp: 1; }
-    .label.is-short .price { font-size: ${fs(10.5)}; }
-    .label.is-short .mrp { display: none; }
+    .label.is-tall .name { font-size: ${fs(9.4)}; -webkit-line-clamp: 2; }
+    .label.is-short { gap: 0.2mm; padding: 0.9mm 1.8mm 0.8mm; }
+    .label.is-short .brand { font-size: ${fs(5.6)}; }
+    .label.is-short .price-row { font-size: ${fs(7.8)}; }
+    .label.is-short .price { font-size: ${fs(9.6)}; }
+    .label.is-short .mrp { font-size: ${fs(7.2)}; }
+    .label.is-short .name { font-size: ${fs(7.8)}; }
     .label.is-short .meta { display: none; }
-    .label.is-short .barcode-text { font-size: ${fs(6.5)}; }
+    .label.is-short .barcode-text { font-size: ${fs(6.4)}; }
   </style>`;
 }
 
@@ -588,7 +589,7 @@ export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl =
   <style>
     @page { margin: 0; }
     html, body { margin: 0; padding: 0; color: #000; background: #fff; }
-    body { width: ${width}mm; margin: 0 auto; padding: 8mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
+    body { width: ${width}mm; margin: 0; padding: 8mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
     .center { text-align: center; } .logo { display:block; margin:0 auto 2mm; max-width:70%; object-fit:contain; }
     .title { margin: 2mm 0; font-size: ${fs(14)}; font-weight: 800; letter-spacing: 0.1em; }
     .banner { margin: 2mm 0; padding: 1.5mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; text-align: center; }

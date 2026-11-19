@@ -6,6 +6,7 @@ import {
   Button,
   Descriptions,
   Drawer,
+  Dropdown,
   Form,
   Input,
   InputNumber,
@@ -339,24 +340,26 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
     navigate(`/barcodes?variant=${variantIds.join(',')}`);
   }
 
-  function regenerateUpcA(row) {
+  function regenerateBarcode(row, symbology) {
+    const label = symbology === 'ean8' ? 'EAN-8' : 'UPC-A';
+    const digits = symbology === 'ean8' ? 8 : 12;
     modal.confirm({
-      title: `Regenerate ${row.sku} as UPC-A?`,
+      title: `Regenerate ${row.sku} as ${label}?`,
       content: (
         <div>
           <p>
-            The barcode will change from <strong>{row.barcode}</strong> to a new 12-digit UPC-A number.
+            The barcode will change from <strong>{row.barcode}</strong> to a new {digits}-digit {label} number.
           </p>
           <p>Old printed labels will stop scanning for this variant until replaced. Sales history is unchanged.</p>
           <p>Only the label code changes. The SKU, price, stock and invoice records stay the same.</p>
         </div>
       ),
-      okText: 'Regenerate UPC-A',
+      okText: `Regenerate ${label}`,
       okButtonProps: { danger: true },
       onOk: async () => {
         try {
-          const result = await api('catalog.regenerateBarcode', { variantId: row.id, symbology: 'upca' });
-          message.success(`New UPC-A barcode: ${result.barcode}. Reprint the label.`, 8);
+          const result = await api('catalog.regenerateBarcode', { variantId: row.id, symbology });
+          message.success(`New ${label} barcode: ${result.barcode}. Reprint the label.`, 8);
           await refreshDetail();
         } catch (error) {
           message.error(errorMessage(error));
@@ -940,14 +943,20 @@ export default function ProductsPage({ embedded = false, initialTab = 'products'
                         />
                         {canManage ? (
                           <>
-                            <Button
-                              type="text"
-                              size="small"
-                              onClick={() => regenerateUpcA(row)}
-                              aria-label={`Regenerate UPC-A for ${row.sku}`}
+                            <Dropdown
+                              trigger={['click']}
+                              menu={{
+                                items: [
+                                  { key: 'ean8', label: 'EAN-8 — 8 digits, widest bars' },
+                                  { key: 'upca', label: 'UPC-A — 12 digits' },
+                                ],
+                                onClick: ({ key }) => regenerateBarcode(row, key),
+                              }}
                             >
-                              UPC-A
-                            </Button>
+                              <Button type="text" size="small" aria-label={`Regenerate barcode for ${row.sku}`}>
+                                New code
+                              </Button>
+                            </Dropdown>
                             <Button
                               type="text"
                               size="small"

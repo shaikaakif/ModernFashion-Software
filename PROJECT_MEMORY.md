@@ -5,7 +5,7 @@
 **Verification record:** v1.3.1 GitHub Release `450073657` published and publicly verified
 **Current public release:** 1.3.1 - label legibility, scanner Enter fix and per-variant UPC-A regeneration on top of 1.3.0.
 **Previous public releases:** 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** none; release asset built from the `v1.3.1` tag.
+**Unreleased branch work:** EAN-8 barcode format, clearer label layout (brand, SELLING PRICE, MRP, taller barcode, bold digits, name + size), left-aligned receipt on A4, and Import data / Activity log moved into Settings -> Data & backup. No new installer built.
 **Developer:** Meninges Labs
 **Working branch:** `v1.3.1` (package version 1.3.1; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
@@ -26,7 +26,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 - Backups use `VACUUM INTO`, SQLite integrity check, SHA-256 and a guarded restore with an automatic pre-restore backup.
 - Printing uses hidden Electron windows through the installed Windows driver; raw ESC/POS is not assumed.
 - Barcodes are generated internally as EAN-13 by default (in-store prefix 20–29), with UPC-A and legacy Code 128 available. The check digit is calculated, existing barcode values are never rewritten, and generated numbers are not GS1-registered retail identifiers. Labels detect the symbology per stored value.
-- **Label legibility:** Code 128 uses Code C for long numeric runs, reducing bar count by roughly a third while preserving the scanned value. Labels show the shop name, product name, selling price, MRP, a taller barcode, the human-readable barcode number and colour/size. SKU is shown only on labels 30 mm or taller. A per-variant **UPC-A** action regenerates an existing Code 128 label code after an explicit warning; the old label stops scanning and purchase/invoice history is unchanged.
+- **Label legibility:** Code 128 uses Code C for long numeric runs, reducing bar count by roughly a third while preserving the scanned value. Labels show the shop name, product name, selling price, MRP, a taller barcode, the human-readable barcode number and colour/size. SKU is shown only on labels 30 mm or taller. A per-variant **New code** action regenerates an existing label code as **EAN-8** or **UPC-A** after an explicit warning; the old label stops scanning and purchase/invoice history is unchanged. EAN-8 prints the widest bars on 50 x 25 mm stock.
 - **Scanner Enter:** the billing scanner field submits the live DOM value rather than waiting for React state to flush, so a fast keyboard-wedge scan cannot produce a stale "not found" lookup.
 - **Vyapar import** (`/vyapar-import`, owner/manager) reads `.vyp` or `.vyb.zip` read-only, checks SQLite integrity, previews counts/warnings, creates a verified backup, and imports products, categories, customers, suppliers, sales, payments, purchases and expenses in one transaction. The source hash blocks duplicate imports. Negative stock, zero prices, invoice numbers, dates, discounts and balances are preserved. Services, estimates, payment-outs, opening balances and zero-amount expenses are reported as skipped.
 - **Negative stock** is stored as a real inventory state with a migration that removes the non-negative table constraints. `inventory_balances` and `stock_movements` allow negative balances; sales, corrections, filters, dashboard counts and valuation show the signed value. A correction records previous quantity, new quantity, difference, user, reason and timestamp.
@@ -41,7 +41,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **51/51 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
+| `npm test` | **53/53 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |

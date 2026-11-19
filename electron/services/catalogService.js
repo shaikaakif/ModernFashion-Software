@@ -668,7 +668,7 @@ export function createCatalogService({ db, auth }) {
     const current = db.prepare('SELECT * FROM product_variants WHERE id = ?').get(id);
     if (!current) fail('Product variant not found.');
     const symbology = String(input.symbology || 'upca').toLowerCase();
-    if (!['upca', 'ean13'].includes(symbology)) fail('Choose UPC-A or EAN-13.');
+    if (!['upca', 'ean13', 'ean8'].includes(symbology)) fail('Choose EAN-8, EAN-13 or UPC-A.');
     return transaction(db, () => {
       const config = normalizeBarcodeConfig({ ...getSetting(db, 'barcode'), symbology });
       let barcode = '';
@@ -680,7 +680,7 @@ export function createCatalogService({ db, auth }) {
           break;
         }
       }
-      if (!barcode) fail('Could not generate a unique UPC-A barcode.');
+      if (!barcode) fail(`Could not generate a unique ${symbology.toUpperCase()} barcode.`);
       db.prepare('UPDATE product_variants SET barcode = ?, updated_at = ? WHERE id = ?').run(barcode, nowIso(), id);
       writeAudit(db, {
         userId: user.user.id,

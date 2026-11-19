@@ -21,6 +21,7 @@ import {
   Tag,
 } from 'antd';
 import {
+  AuditOutlined,
   BarcodeOutlined,
   CloudUploadOutlined,
   DeleteOutlined,
@@ -154,7 +155,14 @@ export default function SettingsPage() {
     }
     try {
       JsBarcode(node, barcodeText, {
-        format: barcodeSymbology === 'ean13' ? 'EAN13' : barcodeSymbology === 'upca' ? 'UPC' : 'CODE128',
+        format:
+          barcodeSymbology === 'ean8'
+            ? 'EAN8'
+            : barcodeSymbology === 'ean13'
+              ? 'EAN13'
+              : barcodeSymbology === 'upca'
+                ? 'UPC'
+                : 'CODE128',
         width: 2,
         height: 58,
         displayValue: true,
@@ -755,11 +763,12 @@ export default function SettingsPage() {
               <Form.Item
                 name="barcodeSymbology"
                 label="Symbology"
-                extra="EAN-13 is compact and recommended for retail scanning."
+                extra="EAN-8 prints the widest, clearest bars on small 50 x 25 mm labels."
               >
                 <Select
                   options={[
-                    { value: 'ean13', label: 'EAN-13 — 13 digits (recommended)' },
+                    { value: 'ean8', label: 'EAN-8 — 8 digits (widest bars)' },
+                    { value: 'ean13', label: 'EAN-13 — 13 digits' },
                     { value: 'upca', label: 'UPC-A — 12 digits' },
                     { value: 'code128', label: 'Code 128 — legacy alphanumeric' },
                   ]}
@@ -1225,12 +1234,19 @@ export default function SettingsPage() {
       </SectionCard>
 
       <SectionCard
-        title="Storage"
+        title="Storage & data tools"
         subtitle="Your shop data is stored on this computer and is included in every backup."
         extra={
-          <Button icon={<CloudUploadOutlined />} onClick={() => navigate('/vyapar-import')}>
-            Import from Vyapar
-          </Button>
+          <Space wrap>
+            <Button icon={<CloudUploadOutlined />} onClick={() => navigate('/import')}>
+              Import data
+            </Button>
+            {can('audit.view') ? (
+              <Button icon={<AuditOutlined />} onClick={() => navigate('/audit')}>
+                Activity log
+              </Button>
+            ) : null}
+          </Space>
         }
       >
         {diagnostics.data ? (
@@ -1257,7 +1273,7 @@ export default function SettingsPage() {
     { key: 'hardware', label: 'Hardware', children: hardwarePanel },
     { key: 'offers', label: 'Offers', children: offersPanel },
   ];
-  if (backupPanel) items.push({ key: 'backup', label: 'Backup & restore', children: backupPanel });
+  if (backupPanel) items.push({ key: 'backup', label: 'Data & backup', children: backupPanel });
   items.push({
     key: 'about',
     label: 'About',
