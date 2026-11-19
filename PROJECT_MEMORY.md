@@ -1,13 +1,13 @@
 # Modern Fashion POS — Project Memory
 
-**Last updated:** 2026-11-18
-**Implementation checkpoint:** v1.3.1 public release, code commit `b4f2a235`
-**Verification record:** v1.3.1 GitHub Release `450073657` published and publicly verified
-**Current public release:** 1.3.1 - label legibility, scanner Enter fix and per-variant UPC-A regeneration on top of 1.3.0.
-**Previous public releases:** 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** EAN-8 barcode format, clearer label layout (brand, SELLING PRICE, MRP, taller barcode, bold digits, name + size), left-aligned receipt on A4, and Import data / Activity log moved into Settings -> Data & backup. No new installer built.
+**Last updated:** 2026-11-19
+**Implementation checkpoint:** v1.3.2 public release, code commit `b04f9701`
+**Verification record:** v1.3.2 GitHub Release published and publicly verified
+**Current public release:** 1.3.2 - EAN-8 label codes, clearer label typography, left-aligned A4 receipt and Import data / Activity log moved into Settings.
+**Previous public releases:** 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
+**Unreleased branch work:** none; release asset built from the `v1.3.2` tag.
 **Developer:** Meninges Labs
-**Working branch:** `v1.3.1` (package version 1.3.1; tagged release)
+**Working branch:** `v1.3.1` (package version 1.3.2; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
