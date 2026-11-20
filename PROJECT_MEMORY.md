@@ -1,13 +1,13 @@
 # Modern Fashion POS — Project Memory
 
-**Last updated:** 2026-11-19
-**Implementation checkpoint:** v1.4.0 public release, code commit `0404c1ab`
-**Verification record:** v1.4.0 GitHub Release published and publicly verified
-**Current public release:** 1.4.0 - 77 mm thermal receipt redesign, per-item percent/rupee discounts on New Sale and a page-scrolling billing screen.
-**Previous public releases:** 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** none; release asset built from the `v1.4.0` tag.
+**Last updated:** 2026-11-20
+**Implementation checkpoint:** v1.4.1 public release, code commit `d34e4721`
+**Verification record:** v1.4.1 GitHub Release published and publicly verified
+**Current public release:** 1.4.1 - receipt fitted to the 72 mm print head so nothing clips, true-width receipt preview and a fitted A4 page preview.
+**Previous public releases:** 1.4.0, 1.3.2, 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
+**Unreleased branch work:** none; release asset built from the `v1.4.1` tag.
 **Developer:** Meninges Labs
-**Working branch:** `v1.3.1` (package version 1.4.0; tagged release)
+**Working branch:** `v1.3.1` (package version 1.4.1; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
