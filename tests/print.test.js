@@ -304,9 +304,9 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
   assert.doesNotMatch(html, /Powered by Modern Fashion POS/);
   assert.match(html, /We appreciate your business\./);
   assert.match(html, /Keep the bill\./);
-  assert.match(html, /width: 58mm/);
-  assert.match(html, /padding: 2mm 2mm 3mm/);
-  assert.match(html, /body \{ width: 58mm; margin: 0;/);
+  assert.match(html, /width: 48mm/);
+  assert.match(html, /padding: 2mm 1mm 3mm/);
+  assert.match(html, /body \{ width: 48mm; margin: 0;/);
   assert.doesNotMatch(html, /You saved/);
   assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
   assert.doesNotMatch(html, /Round off/);
@@ -496,9 +496,9 @@ function receiptFor(sale, overrides = {}) {
 
 test('77 mm thermal receipt keeps a three-product sale complete and compact', () => {
   const html = receiptFor(receiptSale(3));
-  assert.match(html, /width: 77mm/);
+  assert.match(html, /width: 72mm/);
   assert.match(html, /class="w77"/);
-  assert.match(html, /padding: 2mm 0.3mm 3mm/);
+  assert.match(html, /padding: 2mm 1mm 3mm/);
   assert.match(html, /max-height:20mm/);
   assert.equal((html.match(/class="item-name"/g) || []).length, 3);
   assert.match(html, /Invoice <b>MF-TEST-0001<\/b>/);
@@ -541,10 +541,11 @@ test('an item discount prints once as a compact note under the item', () => {
       amountPaidPaise: 74900,
     })
   );
-  assert.match(html, /Disc\. - ₹50 \(6\.3%\)/);
-  assert.match(html, /<td class="num amount">₹749<\/td>/);
+  assert.match(html, /Qty 1 · Black \/ 30/);
+  assert.match(html, /class="item-disc">Disc 6\.3% −₹50/);
+  assert.match(html, /<td class="num amount">749<\/td>/);
   assert.match(html, /Total discount<\/td><td>- ₹50<\/td>/);
-  assert.equal((html.match(/Disc\. -/g) || []).length, 1);
+  assert.equal((html.match(/Disc 6\.3%/g) || []).length, 1);
 });
 
 test('a tax invoice shows GSTIN and tax only when real values exist', () => {
@@ -572,6 +573,6 @@ test('cash change and partial balance print distinct footers', () => {
 test('58 mm receipts keep the compact layout and inner padding', () => {
   const html = receiptFor(receiptSale(1), { widthMm: 58 });
   assert.match(html, /class="w58"/);
-  assert.match(html, /width: 58mm/);
-  assert.match(html, /padding: 2mm 2mm 3mm/);
+  assert.match(html, /width: 48mm/);
+  assert.match(html, /padding: 2mm 1mm 3mm/);
 });

@@ -103,13 +103,13 @@ function invoiceTitle(tax) {
   return tax?.enabled ? 'TAX INVOICE' : 'INVOICE';
 }
 
-function receiptMoney(paise) {
+function receiptMoney(paise, { symbol = true } = {}) {
   const amount = (Number(paise) || 0) / 100;
   const text = amount.toLocaleString('en-IN', {
     minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
     maximumFractionDigits: 2,
   });
-  return `₹${text}`;
+  return symbol ? `₹${text}` : text;
 }
 
 // GSTIN is printed only when a real one is configured; the check keeps a
@@ -129,11 +129,14 @@ export function receiptHtml({
   duplicate = false,
   sample = false,
 }) {
-  // 77 mm paper has about 76.4 mm of usable width; the 0.3 mm side padding
-  // keeps ink off the roll edges without wasting printable space.
-  const width = widthMm === 58 ? 58 : 77;
-  const compact = width === 58;
-  const sidePadding = compact ? 2 : 0.3;
+  // 77 mm paper sits on an 80 mm-class head (576 dots at 203 dpi = 72 mm of
+  // printable width). The body must be the head width, not the paper width,
+  // or the last few millimetres are cut off the right edge. 58 mm paper uses a
+  // 384-dot head (48 mm).
+  const paperWidth = widthMm === 58 ? 58 : 77;
+  const printWidth = paperWidth === 58 ? 48 : 72;
+  const compact = paperWidth === 58;
+  const sidePadding = 1;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -164,18 +167,21 @@ export function receiptHtml({
       const gross = Number(item.unitPricePaise) * Number(item.quantity);
       const discount = Number(item.discountPaise || 0);
       const discountPercent = gross > 0 ? (discount * 100) / gross : 0;
-      const meta = [item.variantLabel].filter(Boolean).join(' · ');
+      // Qty and variant share one compact line under the name; a discount gets
+      // its own small line so the amount never wraps mid-number.
+      const meta = [`Qty ${Number(item.quantity)}`, item.variantLabel || ''].filter(Boolean).join(' · ');
+      const discountNote =
+        discount > 0
+          ? `Disc ${discountPercent > 0 ? `${discountPercent.toFixed(1)}% ` : ''}−${receiptMoney(discount)}`
+          : '';
       return `<tr>
         <td class="item">
           <span class="item-name">${escapeHtml(item.productName)}</span>
-          ${meta ? `<span class="item-meta">${escapeHtml(meta)}</span>` : ''}
-          ${discount > 0 ? `<span class="item-disc">Disc. - ${receiptMoney(discount)}${
-            discountPercent > 0 ? ` (${discountPercent.toFixed(1)}%)` : ''
-          }</span>` : ''}
+          <span class="item-meta">${escapeHtml(meta)}</span>
+          ${discountNote ? `<span class="item-disc">${escapeHtml(discountNote)}</span>` : ''}
         </td>
-        <td class="num">${Number(item.quantity)}</td>
-        <td class="num">${receiptMoney(item.unitPricePaise)}</td>
-        <td class="num amount">${receiptMoney(item.lineTotalPaise)}</td>
+        <td class="num">${receiptMoney(item.unitPricePaise, { symbol: false })}</td>
+        <td class="num amount">${receiptMoney(item.lineTotalPaise, { symbol: false })}</td>
       </tr>`;
     })
     .join('');
@@ -197,8 +203,8 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  /* 77 mm roll: body is the paper width, padding leaves ~76.4 mm of content. */
-  body { width: ${width}mm; margin: 0; padding: 2mm ${sidePadding}mm 3mm; font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: ${fs(
+  /* 77 mm paper, 72 mm thermal head: the body must stay inside the head. */
+  body { width: ${printWidth}mm; margin: 0; padding: 2mm ${sidePadding}mm 3mm; font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: ${fs(
     compact ? 10.5 : 12.5
   )}; line-height: 1.35; text-align: left; -webkit-font-smoothing: antialiased; }
   .center { text-align: center; }
@@ -220,10 +226,9 @@ export function receiptHtml({
   .items { width: 100%; margin-top: 1mm; border-collapse: collapse; table-layout: fixed; }
   .items th { padding: 1mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8.5 : 10)}; font-weight: 700; letter-spacing: 0.05em; text-align: left; text-transform: uppercase; }
   .items th.num, .items td.num { padding-left: 1mm; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .items th:nth-child(1) { width: 46%; }
-  .items th:nth-child(2) { width: 9%; }
-  .items th:nth-child(3) { width: 20%; }
-  .items th:nth-child(4) { width: 25%; }
+  .items th:nth-child(1) { width: 54%; }
+  .items th:nth-child(2) { width: 21%; }
+  .items th:nth-child(3) { width: 25%; }
   .items td { padding: 1.3mm 0 0; vertical-align: top; font-size: ${fs(compact ? 10 : 12)}; text-align: left; overflow-wrap: anywhere; }
   .items td.amount { font-weight: 700; }
   .item-name { display: block; font-weight: 700; line-height: 1.25; }
@@ -264,7 +269,7 @@ export function receiptHtml({
       : ''
   }
   <table class="items">
-    <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
+    <thead><tr><th>Item</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
     <tbody>${itemRows}</tbody>
   </table>
   <table class="totals">
@@ -534,8 +539,10 @@ export function labelsHtml({ labels, business, options = {}, preview = false }) 
 }
 
 export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 77 }) {
-  const width = widthMm === 58 ? 58 : 77;
-  const sidePadding = width === 58 ? 2 : 0.3;
+  // The test page must fit the same printable head width as a real receipt.
+  const paperWidth = widthMm === 58 ? 58 : 77;
+  const width = paperWidth === 58 ? 48 : 72;
+  const sidePadding = 1;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -566,7 +573,7 @@ export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl =
     <div class="banner">NOT A SALE · NO STOCK OR ACCOUNTING RECORD CREATED</div>
     <div class="row"><span>Printer test</span><span>PASS if readable</span></div>
     <div class="row"><span>Invoice title</span><span>${invoiceTitle(tax)}</span></div>
-    <div class="row"><span>Paper width</span><span>${width} mm</span></div>
+    <div class="row"><span>Paper / print</span><span>${paperWidth} / ${width} mm</span></div>
     <div class="row"><span>Date</span><span>${escapeHtml(formatDateTime(new Date().toISOString()))}</span></div>
     <div class="row"><span>Amount</span><span>Rs. 0.00</span></div>
     <div class="row big"><span>Total</span><span>Rs. 0.00</span></div>

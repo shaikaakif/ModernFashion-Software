@@ -1,7 +1,7 @@
 # Graph Report - ModernFashion-Software  (2026-11-20)
 
 ## Corpus Check
-- 101 files · ~124,503 words
+- 101 files · ~124,657 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 6 file(s) not represented in the graph (top: (none) 4, .ico 1, .css 1)
 
@@ -11,7 +11,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `dd56711e`
+- Built from commit: `95513c9d`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -96,7 +96,7 @@
 7. `getSetting()` - 61 edges
 8. `useSession()` - 45 edges
 9. `requireText()` - 44 edges
-10. `createPrintService()` - 42 edges
+10. `optionalText()` - 42 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Data and money` --references--> `transaction()`  [INFERRED]
@@ -105,10 +105,10 @@
   tests/helpers.js → electron/core/database.js
 - `receiptFor()` --calls--> `receiptHtml()`  [EXTRACTED]
   tests/print.test.js → electron/hardware/documents.js
-- `createSaleService()` --calls--> `computeCartTotals()`  [EXTRACTED]
-  electron/services/saleService.js → shared/money.js
-- `createTestApp()` --calls--> `createSaleService()`  [EXTRACTED]
-  tests/helpers.js → electron/services/saleService.js
+- `createTestApp()` --calls--> `createAuditService()`  [EXTRACTED]
+  tests/helpers.js → electron/services/auditService.js
+- `createTestApp()` --calls--> `createAuthService()`  [EXTRACTED]
+  tests/helpers.js → electron/services/authService.js
 
 ## Import Cycles
 - None detected.
@@ -390,15 +390,15 @@ Nodes (6): ProductPicker(), PurchasesPage(), exportPurchases(), openDetail(), su
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `electron` connect `print.test.js` to `createPrintService`, `main.js`, `devDependencies`, `devDependencies`, `@vitejs/plugin-react`?**
-  _High betweenness centrality (0.170) - this node is a cross-community bridge._
+  _High betweenness centrality (0.181) - this node is a cross-community bridge._
 - **Should `vyaparService.js` be split into smaller, more focused modules?**
   _Cohesion score 0.1402116402116402 - nodes in this community are weakly interconnected._
-- **Why does `xlsx` connect `devDependencies` to `importService.js`, `helpers.js`?**
-  _High betweenness centrality (0.069) - this node is a cross-community bridge._
+- **Why does `fail()` connect `requireText` to `authService.js`, `vyaparService.js`, `createPrintService`, `optionalText`, `print.test.js`, `requireDateKey`, `main.js`, `writeAudit`, `createIpcHandlers`, `createSaleService`, `businessDate`, `importService.js`, `createReportService`, `createBackupService`?**
+  _High betweenness centrality (0.076) - this node is a cross-community bridge._
 - **Should `api` be split into smaller, more focused modules?**
   _Cohesion score 0.0712280701754386 - nodes in this community are weakly interconnected._
-- **Why does `fail()` connect `requireText` to `authService.js`, `vyaparService.js`, `createPrintService`, `optionalText`, `print.test.js`, `requireDateKey`, `main.js`, `writeAudit`, `createIpcHandlers`, `createSaleService`, `businessDate`, `importService.js`, `createReportService`, `createBackupService`?**
-  _High betweenness centrality (0.065) - this node is a cross-community bridge._
+- **Why does `xlsx` connect `devDependencies` to `importService.js`, `helpers.js`?**
+  _High betweenness centrality (0.068) - this node is a cross-community bridge._
 - **Should `createPrintService` be split into smaller, more focused modules?**
   _Cohesion score 0.05390893470790378 - nodes in this community are weakly interconnected._
 - **Should `4. Scope and modules` be split into smaller, more focused modules?**

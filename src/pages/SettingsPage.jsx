@@ -648,7 +648,7 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="form-grid three">
-              <Form.Item name="receiptWidthMm" label="Receipt paper width" extra="77 mm roll prints on 76.4 mm of usable width.">
+              <Form.Item name="receiptWidthMm" label="Receipt paper width" extra="77 mm roll prints on the 72 mm thermal head, so nothing clips on the right.">
                 <Select
                   options={[
                     { value: 77, label: '77 mm (thermal roll)' },

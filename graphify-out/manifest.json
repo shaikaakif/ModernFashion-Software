@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "electron/hardware/documents.js": {
-    "mtime": 1795173079.8232508,
-    "seen": 1795173452.4619966,
-    "ast_hash": "e699a17d8989f95c6172346aa231d663",
+    "mtime": 1795176379.104443,
+    "seen": 1795176480.5435357,
+    "ast_hash": "9a1290c0adf9091fe54777049a5c4385",
     "semantic_hash": ""
   },
   "electron/hardware/printService.js": {
@@ -192,9 +192,9 @@
     "semantic_hash": ""
   },
   "package.json": {
-    "mtime": 1795084927.9132924,
-    "seen": 1795086385.8423843,
-    "ast_hash": "67bf1af09d486d68c2a08bf9df0d1828",
+    "mtime": 1795173582.0667539,
+    "seen": 1795176480.5435882,
+    "ast_hash": "926761c12a223fd390f2b611cb1e6c3e",
     "semantic_hash": ""
   },
   "scripts/dev.mjs": {
@@ -348,9 +348,9 @@
     "semantic_hash": ""
   },
   "src/pages/SettingsPage.jsx": {
-    "mtime": 1795173394.2949119,
-    "seen": 1795173452.4622335,
-    "ast_hash": "6cc1ccd086c77fa67efc1c479c874eee",
+    "mtime": 1795176453.3761888,
+    "seen": 1795176480.5436478,
+    "ast_hash": "cd9de6a10cd1e4e0b6ba8d5dbdee0826",
     "semantic_hash": ""
   },
   "src/pages/SetupPage.jsx": {
@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "PROJECT_MEMORY.md": {
-    "mtime": 1795173437.892591,
-    "seen": 1795173452.4623237,
-    "ast_hash": "894962eb46053bd22e82df43575e7e2e",
+    "mtime": 1795176461.968073,
+    "seen": 1795176480.5437086,
+    "ast_hash": "3bd322934a86de93146d2696bd3ff058",
     "semantic_hash": ""
   },
   "electron/core/logo.js": {
@@ -492,15 +492,15 @@
     "semantic_hash": ""
   },
   "tests/print.test.js": {
-    "mtime": 1795173188.8798769,
-    "seen": 1795173452.4622774,
-    "ast_hash": "2b5c848a2f1219b0159e36557f1ed871",
+    "mtime": 1795176382.1332822,
+    "seen": 1795176480.5436745,
+    "ast_hash": "4d284d99a4643ce0117a59b53b9fbaf0",
     "semantic_hash": ""
   },
   "Docs/RELEASES.md": {
-    "mtime": 1795086361.4987578,
-    "seen": 1795086385.842475,
-    "ast_hash": "2f520fad0e15c456bc01407d136c6c39",
+    "mtime": 1795173586.832414,
+    "seen": 1795176480.5437036,
+    "ast_hash": "0443bb12edd2da4b5588b635d8df7138",
     "semantic_hash": ""
   },
   "electron/services/brandingService.js": {
@@ -612,9 +612,9 @@
     "semantic_hash": ""
   },
   "package-lock.json": {
-    "mtime": 1795084927.9227567,
-    "seen": 1795086385.842487,
-    "ast_hash": "3d120283c77a0b1e199f5fdd15015c44",
+    "mtime": 1795173582.0798385,
+    "seen": 1795176480.5437143,
+    "ast_hash": "9af2ab56cf0b19c1d77b763962fb79bf",
     "semantic_hash": ""
   }
 }
