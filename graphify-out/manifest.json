@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "electron/hardware/documents.js": {
-    "mtime": 1795176379.104443,
-    "seen": 1795176480.5435357,
-    "ast_hash": "9a1290c0adf9091fe54777049a5c4385",
+    "mtime": 1795176712.7206218,
+    "seen": 1795176791.2545433,
+    "ast_hash": "469e7f7f2299f49c9df419fae451bcf4",
     "semantic_hash": ""
   },
   "electron/hardware/printService.js": {
@@ -492,9 +492,9 @@
     "semantic_hash": ""
   },
   "tests/print.test.js": {
-    "mtime": 1795176382.1332822,
-    "seen": 1795176480.5436745,
-    "ast_hash": "4d284d99a4643ce0117a59b53b9fbaf0",
+    "mtime": 1795176733.8422387,
+    "seen": 1795176791.2546647,
+    "ast_hash": "ff7b498bd048170ac76dfe082d831f1a",
     "semantic_hash": ""
   },
   "Docs/RELEASES.md": {
@@ -528,9 +528,9 @@
     "semantic_hash": ""
   },
   "src/pages/InvoiceWorkspace.jsx": {
-    "mtime": 1795173386.874931,
-    "seen": 1795173452.462206,
-    "ast_hash": "147080fe47b618da60b733addb742591",
+    "mtime": 1795176672.1013706,
+    "seen": 1795176791.2546282,
+    "ast_hash": "55c68ef390ded4c19cc0610312d1a9bb",
     "semantic_hash": ""
   },
   "src/pages/SetupWizard.jsx": {
