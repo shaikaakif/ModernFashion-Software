@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Descriptions, Segmented, Space, Tag } from 'antd';
 import {
   ArrowLeftOutlined,
@@ -10,6 +10,11 @@ import {
 import { api } from '@/app/api';
 import { formatDate, formatDateTime, money, paymentLabel } from '@/app/format';
 import { ErrorPanel, LoadingPanel, StatusTag } from '@/app/components';
+
+const MM_TO_PX = 96 / 25.4;
+// A4 at 96 dpi; the preview is scaled down to fit its column.
+const A4_WIDTH = Math.round(MM_TO_PX * 210);
+const A4_HEIGHT = Math.round(MM_TO_PX * 297);
 
 export default function InvoiceWorkspace({
   detail,
@@ -26,6 +31,13 @@ export default function InvoiceWorkspace({
 }) {
   const [paper, setPaper] = useState('77');
   const [preview, setPreview] = useState({ html: '', error: null, loading: true });
+  const wrapRef = useRef(null);
+  const frameRef = useRef(null);
+  const [receiptHeight, setReceiptHeight] = useState(640);
+  const [a4Scale, setA4Scale] = useState(1);
+  const a4 = paper === 'a4';
+  // The printed body is 72 mm on a 77 mm roll and 48 mm on a 58 mm roll.
+  const receiptWidth = Number(paper) === 58 ? MM_TO_PX * 48 : MM_TO_PX * 72;
 
   useEffect(() => {
     let active = true;
@@ -46,6 +58,29 @@ export default function InvoiceWorkspace({
       active = false;
     };
   }, [detail?.id, paper]);
+
+  useEffect(() => {
+    if (!a4) return undefined;
+    fitA4Scale();
+    window.addEventListener('resize', fitA4Scale);
+    return () => window.removeEventListener('resize', fitA4Scale);
+  }, [a4, preview.html]);
+
+  function fitA4Scale() {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const scale = Math.min(1, wrap.clientWidth / A4_WIDTH);
+    setA4Scale(scale > 0.1 ? scale : 1);
+  }
+
+  function fitPreview() {
+    if (a4) {
+      fitA4Scale();
+      return;
+    }
+    const height = frameRef.current?.contentDocument?.documentElement?.scrollHeight;
+    if (height) setReceiptHeight(height);
+  }
 
   if (loading || !detail) return <LoadingPanel label="Opening the invoice…" />;
 
@@ -177,12 +212,23 @@ export default function InvoiceWorkspace({
           ) : preview.error ? (
             <ErrorPanel error={preview.error} onRetry={() => setPaper((value) => value)} />
           ) : (
-            <div className={`invoice-preview-frame-wrap ${paper === 'a4' ? 'is-a4' : 'is-thermal'}`}>
+            <div
+              ref={wrapRef}
+              className={`invoice-preview-frame-wrap ${a4 ? 'is-a4' : 'is-thermal'}`}
+              style={a4 ? { height: Math.round(A4_HEIGHT * a4Scale) } : undefined}
+            >
               <iframe
+                ref={frameRef}
                 title={`Invoice ${detail.invoiceNo} preview`}
                 srcDoc={preview.html}
-                sandbox=""
-                className="invoice-preview-frame"
+                sandbox="allow-same-origin"
+                className={`invoice-preview-frame ${a4 ? 'is-a4' : 'is-thermal'}`}
+                style={
+                  a4
+                    ? { width: A4_WIDTH, height: A4_HEIGHT, transform: `scale(${a4Scale})` }
+                    : { width: receiptWidth, height: receiptHeight }
+                }
+                onLoad={fitPreview}
               />
             </div>
           )}

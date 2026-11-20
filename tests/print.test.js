@@ -6,7 +6,7 @@ import path from 'node:path';
 import { addStaff, completeSale, createProduct, createTestApp, login, setupOwner } from './helpers.js';
 import { barcodeExample, formatBarcode, generatedBarcode, isValidEan13, isValidEan8, isValidUpcA, normalizeBarcodeConfig, symbologyForBarcode } from '../shared/barcode.js';
 import { readLogoDataUrl } from '../electron/core/logo.js';
-import { receiptHtml, labelHtml } from '../electron/hardware/documents.js';
+import { receiptHtml, invoiceHtml, labelHtml } from '../electron/hardware/documents.js';
 
 function sampleSale() {
   return {
@@ -575,4 +575,22 @@ test('58 mm receipts keep the compact layout and inner padding', () => {
   assert.match(html, /class="w58"/);
   assert.match(html, /width: 48mm/);
   assert.match(html, /padding: 2mm 1mm 3mm/);
+});
+
+test('the A4 invoice previews as a full sheet with its print margins', () => {
+  const sale = receiptSale(1);
+  const html = invoiceHtml({
+    sale: {
+      ...sale,
+      items: [{ ...sale.items[0], hsnCode: '—', taxablePaise: 100000, taxPaise: 0 }],
+      taxEnabled: true,
+    },
+    business: { name: 'MODERN FASHION', phone: '7093230999', addressLines: ['HYD 48'] },
+    invoice: {},
+    receipt: {},
+    tax: { enabled: true, gstin: '36ABCDE1234F1Z5' },
+    logoDataUrl: '',
+  });
+  assert.match(html, /@media screen \{\s*body \{ width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm 12mm; \}\s*\}/);
+  assert.match(html, /Total payable/);
 });

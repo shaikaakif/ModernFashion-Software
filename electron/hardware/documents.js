@@ -355,6 +355,10 @@ export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; color: #1d1d1f; background: #fff; }
   body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; line-height: 1.45; }
+  /* On-screen preview only: show the real A4 sheet with its print margins. */
+  @media screen {
+    body { width: 210mm; min-height: 297mm; margin: 0 auto; padding: 14mm 12mm; }
+  }
   .top { display: flex; justify-content: space-between; gap: 24px; border-bottom: 2px solid #202124; padding-bottom: 14px; }
   .brand { display: flex; gap: 14px; align-items: flex-start; }
   .logo { max-height: 22mm; max-width: 52mm; object-fit: contain; }
