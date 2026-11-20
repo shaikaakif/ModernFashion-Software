@@ -29,7 +29,7 @@ export function createSettingsService({ db, auth }) {
     const hardwareCurrent = getSetting(db, 'hardware');
     const barcodeCurrent = getSetting(db, 'barcode');
     const width = Number(input.receiptWidthMm ?? input.paperWidthMm ?? hardwareCurrent.receiptWidthMm);
-    const receiptWidthMm = [58, 80].includes(width) ? width : hardwareCurrent.receiptWidthMm;
+    const receiptWidthMm = width === 58 ? 58 : 77;
     let barcode;
     try {
       barcode = normalizeBarcodeConfig({
@@ -105,8 +105,12 @@ export function createSettingsService({ db, auth }) {
   function getSnapshot() {
     // Trusted main-process consumers (printing) need the full settings. This
     // method is never mapped to IPC and performs no renderer permission check.
+    const settings = getAllSettings(db);
+    // 77 mm is the shop roll; older profiles stored 80 and still print at 77.
+    const receiptWidthMm = Number(settings.hardware?.receiptWidthMm) === 58 ? 58 : 77;
     return {
-      ...getAllSettings(db),
+      ...settings,
+      hardware: { ...settings.hardware, receiptWidthMm },
       businessPublic: publicBusiness(db),
       hasLogo: Boolean(getSetting(db, 'business').logoPath),
       offers: offerRows(),
@@ -339,9 +343,7 @@ export function createSettingsService({ db, auth }) {
         receiptPrinter: optionalText(input.receiptPrinter ?? current.receiptPrinter, { max: 200 }),
         labelPrinter: optionalText(input.labelPrinter ?? current.labelPrinter, { max: 200 }),
         autoPrintReceipt: Boolean(input.autoPrintReceipt ?? current.autoPrintReceipt),
-        receiptWidthMm: [58, 80].includes(Number(input.receiptWidthMm ?? current.receiptWidthMm))
-          ? Number(input.receiptWidthMm ?? current.receiptWidthMm)
-          : current.receiptWidthMm,
+        receiptWidthMm: Number(input.receiptWidthMm ?? current.receiptWidthMm) === 58 ? 58 : 77,
         labelWidthMm: requireInt(input.labelWidthMm ?? current.labelWidthMm, 'Label width', { min: 20, max: 150 }),
         labelHeightMm: requireInt(input.labelHeightMm ?? current.labelHeightMm, 'Label height', { min: 10, max: 150 }),
         labelCopies: requireInt(input.labelCopies ?? current.labelCopies, 'Label copies', { min: 1, max: 100 }),

@@ -158,7 +158,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
       html: receiptHtml({
         ...data,
         logoDataUrl: logoFrom(settings),
-        widthMm: Number(widthMm || settings.hardware.receiptWidthMm || 80) === 58 ? 58 : 80,
+        widthMm: Number(widthMm || settings.hardware.receiptWidthMm || 77) === 58 ? 58 : 77,
         duplicate,
       }),
     };
@@ -185,13 +185,13 @@ export function createPrintService({ auth, saleService, catalogService, settings
     return { ...result, ...printed, invoiceNo: data.sale.invoiceNo, physicalVerification: 'unverified' };
   }
 
-  async function previewSale(saleId, { widthMm = 80, a4 = false } = {}) {
+  async function previewSale(saleId, { widthMm = 77, a4 = false } = {}) {
     requirePrintPermission('sales.print');
     const id = requireInt(saleId, 'Invoice', { min: 1 });
     requireSaleAccess(id);
     const data = saleService.receiptData(id);
     const settings = settingsSnapshot();
-    const paperWidth = Number(widthMm) === 58 ? 58 : 80;
+    const paperWidth = Number(widthMm) === 58 ? 58 : 77;
     return {
       format: a4 ? 'a4' : 'receipt',
       widthMm: a4 ? 210 : paperWidth,
@@ -305,7 +305,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
       receipt: settings.receipt,
       tax: settings.tax,
       logoDataUrl: logoFrom(settings),
-      widthMm: Number(settings.hardware.receiptWidthMm || 80),
+      widthMm: Number(settings.hardware.receiptWidthMm || 77),
     });
     return printHtml({ html, printerName: settings.hardware.receiptPrinter });
   }
@@ -358,7 +358,7 @@ export function createPrintService({ auth, saleService, catalogService, settings
   function previewReceipt(input = {}) {
     requirePrintPermission('settings.manage');
     const preview = settingsService.previewPrint(input);
-    const widthMm = Number(preview.hardware.receiptWidthMm || 80);
+    const widthMm = Number(preview.hardware.receiptWidthMm || 77);
     return {
       html: receiptHtml({
         sale: sampleSale(),

@@ -24,7 +24,7 @@ export default function InvoiceWorkspace({
   onWhatsapp,
   onVoid,
 }) {
-  const [paper, setPaper] = useState('80');
+  const [paper, setPaper] = useState('77');
   const [preview, setPreview] = useState({ html: '', error: null, loading: true });
 
   useEffect(() => {
@@ -33,7 +33,7 @@ export default function InvoiceWorkspace({
     setPreview((current) => ({ ...current, loading: true, error: null }));
     api('print.previewSale', {
       saleId: detail.id,
-      widthMm: paper === 'a4' ? 80 : Number(paper),
+      widthMm: paper === 'a4' ? 77 : Number(paper),
       a4: paper === 'a4',
     })
       .then((result) => {
@@ -108,7 +108,7 @@ export default function InvoiceWorkspace({
                   type="primary"
                   icon={<PrinterOutlined />}
                   loading={actionBusy === 'receipt'}
-                  onClick={() => onPrintReceipt({ widthMm: paper === 'a4' ? 80 : Number(paper) })}
+                  onClick={() => onPrintReceipt({ widthMm: paper === 'a4' ? 77 : Number(paper) })}
                 >
                   Print bill
                 </Button>
@@ -166,7 +166,7 @@ export default function InvoiceWorkspace({
               value={paper}
               onChange={setPaper}
               options={[
-                { label: '80 mm', value: '80' },
+                { label: '77 mm', value: '77' },
                 { label: '58 mm', value: '58' },
                 { label: 'A4', value: 'a4' },
               ]}

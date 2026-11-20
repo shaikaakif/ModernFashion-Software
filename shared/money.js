@@ -73,12 +73,13 @@ export function roundToRupee(paise) {
 /**
  * Compute the authoritative cart totals.
  *
- * lines: [{ quantity, unitPricePaise, taxRateBp, lineDiscountBp? }]
+ * lines: [{ quantity, unitPricePaise, taxRateBp, lineDiscountBp?, lineDiscountPaise? }]
  * options: { billDiscountPaise?, roundToRupee?: boolean }
  *
- * lineDiscountBp is in basis points (500 = 5%). Bill discount is a flat paise
- * amount applied across lines pro-rata after line discounts. Tax is computed on
- * the discounted taxable value of each line.
+ * lineDiscountBp is in basis points (500 = 5%). lineDiscountPaise is an
+ * absolute per-line discount and wins when both are supplied. Bill discount is
+ * a flat paise amount applied across lines pro-rata after line discounts. Tax
+ * is computed on the discounted taxable value of each line.
  */
 export function computeCartTotals(lines, options = {}) {
   const safeLines = (lines || []).map((line) => {
@@ -87,7 +88,10 @@ export function computeCartTotals(lines, options = {}) {
     const taxRateBp = Math.min(2800, Math.max(0, Math.trunc(Number(line.taxRateBp) || 0)));
     const lineDiscountBp = Math.min(10000, Math.max(0, Math.trunc(Number(line.lineDiscountBp) || 0)));
     const gross = quantity * unitPricePaise;
-    const lineDiscount = roundHalfUp((gross * lineDiscountBp) / 10000);
+    const explicitPaise = Number(line.lineDiscountPaise);
+    const lineDiscount = Number.isFinite(explicitPaise) && explicitPaise > 0
+      ? Math.trunc(explicitPaise)
+      : roundHalfUp((gross * lineDiscountBp) / 10000);
     return {
       quantity,
       unitPricePaise,

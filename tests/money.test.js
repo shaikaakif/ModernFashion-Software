@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { allocate, computeCartTotals, pickBestOffer, roundToRupee } from '../shared/money.js';
+import { cartLineDiscountPaise } from '../shared/cart.js';
 
 test('allocate never loses or invents paise', () => {
   assert.deepEqual(allocate(100, [1, 1, 1]), [34, 33, 33]);
@@ -50,6 +51,31 @@ test('a bill discount is allocated pro-rata before tax', () => {
   assert.equal(totals.preRoundPaise, 51450);
   assert.equal(totals.totalPaise, 51500);
   assert.equal(totals.roundOffPaise, 50);
+});
+
+test('an explicit line discount pins the amount and never goes below zero', () => {
+  const totals = computeCartTotals([
+    { quantity: 2, unitPricePaise: 20000, taxRateBp: 0, lineDiscountBp: 5000, lineDiscountPaise: 7000 },
+  ]);
+  assert.equal(totals.lines[0].discountPaise, 7000);
+  assert.equal(totals.lines[0].totalPaise, 33000);
+
+  const capped = computeCartTotals([{ quantity: 1, unitPricePaise: 20000, taxRateBp: 0, lineDiscountPaise: 999999 }]);
+  assert.equal(capped.lines[0].discountPaise, 20000);
+  assert.equal(capped.lines[0].totalPaise, 0);
+
+  const taxed = computeCartTotals([{ quantity: 2, unitPricePaise: 20000, taxRateBp: 500, lineDiscountPaise: 4000 }]);
+  assert.equal(taxed.taxablePaise, 36000);
+  assert.equal(taxed.taxPaise, 1800);
+  assert.equal(taxed.totalPaise, 37800);
+});
+
+test('cart line discounts follow quantity for percent and stay fixed for rupees', () => {
+  const line = { quantity: 2, unitPricePaise: 20000, discountMode: 'percent', discountValue: 10 };
+  assert.equal(cartLineDiscountPaise(line), 4000);
+  assert.equal(cartLineDiscountPaise({ ...line, quantity: 3 }), 6000);
+  assert.equal(cartLineDiscountPaise({ ...line, discountMode: 'amount', discountValue: 100 }), 10000);
+  assert.equal(cartLineDiscountPaise({ ...line, discountMode: 'amount', discountValue: 99999 }), 40000);
 });
 
 test('best offer respects dates, minimum bill and maximum cap', () => {

@@ -2,6 +2,7 @@
  * Pure cart helpers used by the POS screen. Kept independent of React so the
  * repeated-scan and quantity behaviour can be unit tested.
  */
+import { roundHalfUp } from './money.js';
 
 export function createLineKey(variantId) {
   return `line-${variantId}`;
@@ -23,8 +24,25 @@ export function makeCartLine(item) {
     taxRateBp: Number(item.taxRateBp) || 0,
     availableStock: Number(item.stock) || 0,
     quantity: 1,
+    // Per-line discount: mode 'percent' keeps the percent when quantity
+    // changes; mode 'amount' is a rupee value capped at the line gross.
+    discountMode: 'percent',
+    discountValue: 0,
     lowStockThreshold: Number(item.lowStockThreshold) || 0,
   };
+}
+
+/** Resolved line discount in paise, capped at the gross amount. */
+export function cartLineDiscountPaise(line) {
+  const gross = line.quantity * line.unitPricePaise;
+  if (gross <= 0) return 0;
+  const value = Math.max(0, Number(line.discountValue) || 0);
+  const paise = line.discountMode === 'amount' ? Math.round(value * 100) : roundHalfUp((gross * value) / 100);
+  return Math.min(gross, paise);
+}
+
+export function setLineDiscount(lines, variantId, patch) {
+  return lines.map((line) => (line.variantId === variantId ? { ...line, ...patch } : line));
 }
 
 /**
@@ -79,5 +97,13 @@ export function cartGrossPaise(lines) {
 export function cartToPayload(lines) {
   return lines
     .filter((line) => line.quantity > 0)
-    .map((line) => ({ variantId: line.variantId, quantity: line.quantity }));
+    .map((line) => {
+      const discount =
+        line.discountValue > 0
+          ? line.discountMode === 'amount'
+            ? { discountPaise: cartLineDiscountPaise(line) }
+            : { discountPercent: line.discountValue }
+          : {};
+      return { variantId: line.variantId, quantity: line.quantity, ...discount };
+    });
 }

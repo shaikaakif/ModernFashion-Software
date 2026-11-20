@@ -94,22 +94,28 @@ function addressLines(business) {
   return (business?.addressLines || []).filter(Boolean).map((line) => `<div>${escapeHtml(line)}</div>`).join('');
 }
 
-function logoMarkup(logoDataUrl, { maxHeight = '16mm', className = 'logo' } = {}) {
+function logoMarkup(logoDataUrl, { maxHeight = '16mm', maxWidth = '70%', className = 'logo' } = {}) {
   if (!logoDataUrl) return '';
-  return `<img class="${className}" src="${logoDataUrl}" alt="" style="max-height:${maxHeight};max-width:70%;object-fit:contain;" />`;
+  return `<img class="${className}" src="${logoDataUrl}" alt="" style="max-height:${maxHeight};max-width:${maxWidth};object-fit:contain;" />`;
 }
 
 function invoiceTitle(tax) {
   return tax?.enabled ? 'TAX INVOICE' : 'INVOICE';
 }
 
-function termsMarkup(invoice, receipt) {
-  const terms = String(invoice?.terms || '').trim();
-  const footer = String(receipt?.footerNote || '').trim();
-  const lines = [];
-  if (terms) lines.push(`<div class="terms"><strong>Terms &amp; Conditions</strong><div>${escapeHtml(terms).replace(/\n/g, '<br/>')}</div></div>`);
-  if (footer) lines.push(`<div class="footer-note">${escapeHtml(footer).replace(/\n/g, '<br/>')}</div>`);
-  return lines.join('');
+function receiptMoney(paise) {
+  const amount = (Number(paise) || 0) / 100;
+  const text = amount.toLocaleString('en-IN', {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  });
+  return `₹${text}`;
+}
+
+// GSTIN is printed only when a real one is configured; the check keeps a
+// placeholder value out of a tax invoice.
+function validGstin(value) {
+  return /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][A-Z0-9]Z[A-Z0-9]$/.test(String(value || '').trim());
 }
 
 export function receiptHtml({
@@ -119,27 +125,25 @@ export function receiptHtml({
   receipt,
   tax,
   logoDataUrl = '',
-  widthMm = 80,
+  widthMm = 77,
   duplicate = false,
   sample = false,
 }) {
-  const width = widthMm === 58 ? 58 : 80;
+  // 77 mm paper has about 76.4 mm of usable width; the 0.3 mm side padding
+  // keeps ink off the roll edges without wasting printable space.
+  const width = widthMm === 58 ? 58 : 77;
   const compact = width === 58;
-  const sidePadding = compact ? 3 : 4;
+  const sidePadding = compact ? 2 : 0.3;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
-  const logoHeight = Math.min(24, Math.max(8, Number(invoice?.logoHeightMm || 16)));
+  // Thermal receipts need a logo that reads across the counter; 20 mm is the floor.
+  const logoHeight = Math.min(30, Math.max(20, Number(invoice?.logoHeightMm || 20)));
   const showTitle = invoice?.showTitle !== false;
   const showAddress = invoice?.showAddress !== false;
   const showPhone = invoice?.showPhone !== false;
-  const showState = invoice?.showState !== false;
   const showGstin = invoice?.showGstin !== false;
-  const showPayment = receipt?.showPayment !== false;
   const showAmountReceived = receipt?.showAmountReceived !== false;
-  const showPoweredBy = receipt?.showPoweredBy !== false;
-  const showItemDiscounts = receipt?.showItemDiscounts !== false;
-  const showSku = receipt?.showSku !== false;
   const showTax = Boolean(tax?.enabled) && Number(sale.taxPaise) > 0 && receipt?.showTax !== false;
   const inclusiveTax = showTax && Boolean(sale.pricesIncludeTax);
   const balance = Math.max(0, Number(sale.balancePaise || 0));
@@ -147,53 +151,41 @@ export function receiptHtml({
   const discountTotal = Number(sale.discountTotalPaise || 0);
   const headerNote = String(receipt?.headerNote || '').trim();
   const returnPolicy = String(business?.returnPolicy || '').trim();
-  const stateLine = [
-    showState
-      ? business?.stateCode
-        ? `${business.stateCode} - ${business.stateName || ''}`
-        : business?.stateName
-      : '',
-    showPhone ? business?.phone : '',
-  ]
+  const terms = String(invoice?.terms || '').trim();
+  const policies = [terms, returnPolicy]
     .filter(Boolean)
-    .join(' · ');
-  const totalQuantity = Number(sale.items?.reduce((sum, item) => sum + item.quantity, 0) || 0);
+    .filter((value, index, all) => all.indexOf(value) === index);
+  const gstin = validGstin(tax?.gstin) ? String(tax.gstin).trim() : '';
+  const phone = showPhone ? String(business?.phone || '').trim() : '';
+  const showCustomer = receipt?.showCustomer !== false;
 
   const itemRows = (sale.items || [])
     .map((item) => {
-      const gross = item.unitPricePaise * item.quantity;
-      const discount = item.discountPaise || 0;
+      const gross = Number(item.unitPricePaise) * Number(item.quantity);
+      const discount = Number(item.discountPaise || 0);
       const discountPercent = gross > 0 ? (discount * 100) / gross : 0;
-      return `<tr class="item-row">
-        <td>
+      const meta = [item.variantLabel].filter(Boolean).join(' · ');
+      return `<tr>
+        <td class="item">
           <span class="item-name">${escapeHtml(item.productName)}</span>
-          <span class="item-meta">${escapeHtml(item.variantLabel)}${
-            showSku && item.sku ? ` · ${escapeHtml(item.sku)}` : ''
-          }</span>
+          ${meta ? `<span class="item-meta">${escapeHtml(meta)}</span>` : ''}
+          ${discount > 0 ? `<span class="item-disc">Disc. - ${receiptMoney(discount)}${
+            discountPercent > 0 ? ` (${discountPercent.toFixed(1)}%)` : ''
+          }</span>` : ''}
         </td>
-        <td class="num">${item.quantity}</td>
-        <td class="num">${money(item.unitPricePaise)}</td>
-        <td class="num">${money(gross)}</td>
-      </tr>
-      ${
-        showItemDiscounts && discount > 0
-          ? `<tr class="sub-row"><td colspan="3">Discount${
-              discountPercent > 0 ? ` (${discountPercent.toFixed(1)}%)` : ''
-            }</td><td class="num">- ${money(discount)}</td></tr>`
-          : ''
-      }
-      <tr class="sub-row final"><td colspan="3">Final amount</td><td class="num">${money(
-        item.lineTotalPaise
-      )}</td></tr>`;
+        <td class="num">${Number(item.quantity)}</td>
+        <td class="num">${receiptMoney(item.unitPricePaise)}</td>
+        <td class="num amount">${receiptMoney(item.lineTotalPaise)}</td>
+      </tr>`;
     })
     .join('');
 
   const amountRows = showAmountReceived
-    ? `<tr><td>Amount paid</td><td>${money(sale.amountPaidPaise)}</td></tr>${
+    ? `<tr><td>Amount received</td><td>${receiptMoney(sale.amountPaidPaise)}</td></tr>${
         balance > 0
-          ? `<tr><td>Balance due</td><td>${money(balance)}</td></tr>`
+          ? `<tr class="due"><td>Balance due</td><td>${receiptMoney(balance)}</td></tr>`
           : change > 0
-            ? `<tr><td>Change returned</td><td>${money(change)}</td></tr>`
+            ? `<tr><td>Change</td><td>${receiptMoney(change)}</td></tr>`
             : ''
       }`
     : '';
@@ -205,127 +197,96 @@ export function receiptHtml({
   @page { margin: 0; }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: #fff; color: #000; }
-  /* Left-aligned on the paper: an 80 mm receipt printed to A4 sits at the left edge. */
-  body { width: ${width}mm; margin: 0; padding: 9mm ${sidePadding}mm 8mm; font-family: "Segoe UI", "Trebuchet MS", Arial, Helvetica, sans-serif; font-size: ${fs(
-    compact ? 10.5 : 11.5
-  )}; line-height: 1.55; text-align: left; }
+  /* 77 mm roll: body is the paper width, padding leaves ~76.4 mm of content. */
+  body { width: ${width}mm; margin: 0; padding: 2mm ${sidePadding}mm 3mm; font-family: "Segoe UI", Arial, Helvetica, sans-serif; font-size: ${fs(
+    compact ? 10.5 : 12.5
+  )}; line-height: 1.35; text-align: left; -webkit-font-smoothing: antialiased; }
   .center { text-align: center; }
-  .header { padding-bottom: 3mm; border-bottom: 1px solid #000; text-align: center; }
-  .logo { display: block; margin: 0 auto 3mm; max-width: 68%; object-fit: contain; }
-  .business-name { font-size: ${fs(compact ? 16 : 18)}; font-weight: 800; letter-spacing: 0.05em; line-height: 1.2; text-transform: uppercase; overflow-wrap: anywhere; }
-  .business-meta { margin-top: 1.2mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; overflow-wrap: anywhere; }
-  .return-policy { margin-top: 2mm; font-size: ${fs(compact ? 9 : 10)}; font-weight: 700; line-height: 1.5; text-transform: uppercase; overflow-wrap: anywhere; }
-  .title { margin: 4mm 0 2.5mm; font-size: ${fs(compact ? 12 : 13)}; font-weight: 800; letter-spacing: 0.12em; text-align: center; text-transform: uppercase; }
-  .duplicate, .sample { margin: 2.5mm 0; padding: 1.5mm 2mm; border: 1px dashed #000; font-size: ${fs(9)}; font-weight: 700; letter-spacing: 0.05em; text-align: center; }
+  .header { text-align: center; }
+  .logo { display: block; width: auto; margin: 0 auto 1.5mm; max-width: 62%; object-fit: contain; }
+  .business-name { font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; letter-spacing: 0.06em; line-height: 1.15; text-transform: uppercase; overflow-wrap: anywhere; }
+  .business-meta { margin-top: 0.5mm; font-size: ${fs(compact ? 9 : 11)}; font-weight: 500; line-height: 1.35; overflow-wrap: anywhere; }
+  .gst { font-weight: 700; }
+  .title { margin: 2mm 0 1.5mm; font-size: ${fs(compact ? 12 : 14)}; font-weight: 800; letter-spacing: 0.18em; text-align: center; text-transform: uppercase; }
+  .duplicate, .sample { margin: 0 0 1.5mm; padding: 1mm 0; border: 1px dashed #000; font-size: ${fs(compact ? 9 : 10.5)}; font-weight: 700; letter-spacing: 0.06em; text-align: center; }
   .sample { border-style: solid; }
-  .header-note { margin: 2mm 0; font-size: ${fs(9)}; line-height: 1.5; text-align: center; overflow-wrap: anywhere; }
-  .section-label { margin: 3mm 0 1mm; font-size: ${fs(compact ? 8 : 9)}; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
-  .meta { width: 100%; margin-top: 1mm; border-collapse: collapse; }
-  .meta td { padding: 0.9mm 0; vertical-align: top; font-size: ${fs(compact ? 9 : 10)}; text-align: left; overflow-wrap: anywhere; }
-  .meta td:first-child { width: 26%; font-weight: 700; }
-  .meta td:last-child { padding-left: 3mm; font-weight: 600; text-align: right; }
-  .separator { margin: 3mm 0; border-top: 1px dashed #000; }
-  .items { width: 100%; border-collapse: collapse; table-layout: fixed; }
-  .items th { padding: 1.4mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8 : 9.5)}; font-weight: 700; letter-spacing: 0.04em; text-align: left; text-transform: uppercase; }
-  .items th.num, .items td.num { padding-left: 1.2mm; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  .items th:nth-child(2), .items td:nth-child(2), .items th:nth-child(3), .items td:nth-child(3) { padding-right: 1.2mm; }
-  .items th:nth-child(1) { width: 41%; }
-  .items th:nth-child(2) { width: 10%; }
-  .items th:nth-child(3) { width: 24%; }
+  .header-note { margin: 0 0 1.5mm; font-size: ${fs(compact ? 9 : 10.5)}; line-height: 1.4; text-align: center; overflow-wrap: anywhere; }
+  .bill-meta { display: flex; justify-content: space-between; gap: 2mm; padding: 1mm 0; border-top: 1px solid #000; border-bottom: 1px solid #000; font-size: ${fs(
+    compact ? 9.5 : 11
+  )}; line-height: 1.4; }
+  .bill-meta b { font-weight: 700; }
+  .bill-customer { padding: 0.8mm 0 1.2mm; font-size: ${fs(compact ? 9.5 : 11)}; line-height: 1.4; overflow-wrap: anywhere; }
+  .bill-customer b { font-weight: 700; }
+  .items { width: 100%; margin-top: 1mm; border-collapse: collapse; table-layout: fixed; }
+  .items th { padding: 1mm 0; border-bottom: 1px solid #000; font-size: ${fs(compact ? 8.5 : 10)}; font-weight: 700; letter-spacing: 0.05em; text-align: left; text-transform: uppercase; }
+  .items th.num, .items td.num { padding-left: 1mm; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .items th:nth-child(1) { width: 46%; }
+  .items th:nth-child(2) { width: 9%; }
+  .items th:nth-child(3) { width: 20%; }
   .items th:nth-child(4) { width: 25%; }
-  .items td { padding: 1.4mm 0 0; vertical-align: top; font-size: ${fs(compact ? 9.5 : 11)}; word-break: break-word; overflow-wrap: anywhere; text-align: left; }
-  .item-row td { padding-top: 2.2mm; }
-  .item-name { display: block; font-weight: 600; line-height: 1.4; overflow-wrap: anywhere; }
-  .item-meta { display: block; margin-top: 0.4mm; color: #333; font-size: ${fs(compact ? 8 : 9)}; line-height: 1.45; overflow-wrap: anywhere; }
-  .sub-row td { padding: 0.7mm 0; font-size: ${fs(compact ? 9 : 10)}; }
-  .sub-row.final td { padding-top: 1mm; font-weight: 700; }
-  .totals { width: 100%; margin-top: 3mm; border-collapse: collapse; }
-  .totals td { padding: 1mm 0; font-size: ${fs(compact ? 9.5 : 10.5)}; text-align: left; }
+  .items td { padding: 1.3mm 0 0; vertical-align: top; font-size: ${fs(compact ? 10 : 12)}; text-align: left; overflow-wrap: anywhere; }
+  .items td.amount { font-weight: 700; }
+  .item-name { display: block; font-weight: 700; line-height: 1.25; }
+  .item-meta { display: block; color: #222; font-size: ${fs(compact ? 8.5 : 10)}; line-height: 1.25; }
+  .item-disc { display: block; color: #222; font-size: ${fs(compact ? 8.5 : 10)}; line-height: 1.25; }
+  .totals { width: 100%; margin-top: 1.5mm; border-collapse: collapse; }
+  .totals td { padding: 0.8mm 0; font-size: ${fs(compact ? 10 : 11.5)}; text-align: left; }
   .totals td:last-child { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
-  .totals .grand td { padding-top: 2.2mm; border-top: 1px solid #000; font-size: ${fs(compact ? 17 : 20)}; font-weight: 800; }
-  .savings { display: flex; justify-content: space-between; gap: 2mm; margin-top: 2.5mm; padding: 1.8mm 0; border-top: 1px dashed #000; border-bottom: 1px dashed #000; font-size: ${fs(compact ? 11 : 12)}; font-weight: 800; text-transform: uppercase; }
-  .words { margin-top: 3mm; padding-top: 1.6mm; border-top: 1px dotted #777; font-size: ${fs(compact ? 8.5 : 9.5)}; line-height: 1.55; }
-  .words strong { display: block; margin-top: 0.5mm; font-weight: 700; }
-  .terms { margin-top: 3mm; font-size: ${fs(compact ? 9 : 10)}; line-height: 1.55; overflow-wrap: anywhere; }
-  .terms strong { display: block; margin-bottom: 0.8mm; font-size: ${fs(9.5)}; letter-spacing: 0.04em; text-transform: uppercase; }
-  .closing { margin-top: 4mm; padding-top: 3mm; border-top: 1px dashed #000; text-align: center; }
-  .closing strong { display: block; font-size: ${fs(compact ? 11 : 12.5)}; font-weight: 800; line-height: 1.45; overflow-wrap: anywhere; }
-  .closing div { margin-top: 1mm; font-size: ${fs(9)}; line-height: 1.55; overflow-wrap: anywhere; }
-  .closing .closing-note { margin-top: 1.5mm; font-size: ${fs(8.5)}; color: #333; }
-  .closing .powered { margin-top: 2.5mm; color: #555; font-size: ${fs(8)}; text-align: center; }
-  .gst { font-size: ${fs(9)}; }
+  .totals .grand td { padding: 1.6mm 0 1mm; border-top: 1.5px solid #000; font-size: ${fs(compact ? 15 : 18)}; font-weight: 800; }
+  .totals .due td { font-weight: 800; }
+  .footer { margin-top: 2.5mm; padding-top: 2mm; border-top: 1px dashed #555; text-align: center; }
+  .footer .thanks { font-size: ${fs(compact ? 10.5 : 12)}; font-weight: 800; letter-spacing: 0.04em; line-height: 1.35; text-transform: uppercase; overflow-wrap: anywhere; }
+  .footer .policy, .footer .note { margin-top: 1mm; font-size: ${fs(compact ? 8.5 : 10)}; line-height: 1.35; overflow-wrap: anywhere; }
+  .footer .policy { font-weight: 700; text-transform: uppercase; }
 </style></head>
-<body class="${compact ? 'w58' : 'w80'}">
+<body class="${compact ? 'w58' : 'w77'}">
   <div class="header">
-    ${showLogo ? logoMarkup(logoDataUrl, { maxHeight: `${logoHeight}mm` }) : ''}
-    <div class="center">
-      <div class="business-name">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
-      ${showAddress ? `<div class="business-meta">${addressLines(business)}</div>` : ''}
-      ${stateLine ? `<div class="business-meta">${escapeHtml(stateLine)}</div>` : ''}
-      ${showGstin && tax?.enabled && tax?.gstin ? `<div class="business-meta gst">GSTIN: ${escapeHtml(tax.gstin)}</div>` : ''}
-      ${returnPolicy ? `<div class="return-policy">${escapeHtml(returnPolicy)}</div>` : ''}
-    </div>
+    ${showLogo ? logoMarkup(logoDataUrl, { maxHeight: `${logoHeight}mm`, maxWidth: '62%' }) : ''}
+    <div class="business-name">${escapeHtml(business?.name || 'MODERN FASHION')}</div>
+    ${showAddress ? `<div class="business-meta">${addressLines(business)}</div>` : ''}
+    ${phone ? `<div class="business-meta">Phone: ${escapeHtml(phone)}</div>` : ''}
+    ${showGstin && tax?.enabled && gstin ? `<div class="business-meta gst">GSTIN: ${escapeHtml(gstin)}</div>` : ''}
   </div>
-  ${showTitle ? `<div class="center title">${invoiceTitle(tax)}</div>` : ''}
+  ${showTitle ? `<div class="title">${invoiceTitle(tax)}</div>` : ''}
   ${sample ? '<div class="sample">SAMPLE PREVIEW · NOT A SALE</div>' : ''}
   ${duplicate ? `<div class="duplicate">${escapeHtml(invoice?.duplicateLabel || 'DUPLICATE COPY')}</div>` : ''}
   ${headerNote ? `<div class="header-note">${escapeHtml(headerNote).replace(/\n/g, '<br/>')}</div>` : ''}
-  <div class="section-label">Invoice details</div>
-  <table class="meta">
-    ${
-      receipt?.showCustomer !== false && sale.customerName
-        ? `<tr><td>Customer</td><td>${escapeHtml(sale.customerName)}</td></tr>`
-        : ''
-    }
-    ${
-      receipt?.showCustomer !== false && sale.customerPhone
-        ? `<tr><td>Mobile</td><td>${escapeHtml(sale.customerPhone)}</td></tr>`
-        : ''
-    }
-    ${
-      receipt?.showCustomer !== false && sale.customerGstin
-        ? `<tr><td>GSTIN</td><td>${escapeHtml(sale.customerGstin)}</td></tr>`
-        : ''
-    }
-    <tr><td>Invoice</td><td>${escapeHtml(sale.invoiceNo)}</td></tr>
-    <tr><td>Date</td><td>${escapeHtml(formatDateTime(sale.completedAt || sale.saleDate))}</td></tr>
-    ${receipt?.showCashier !== false ? `<tr><td>Cashier</td><td>${escapeHtml(sale.cashierName || '')}</td></tr>` : ''}
-    ${showPayment ? `<tr><td>Payment</td><td>${escapeHtml(paymentLabel(sale.paymentMethod))}</td></tr>` : ''}
-  </table>
-  <div class="separator"></div>
-  <div class="section-label">Purchase details</div>
-  <table class="items">
-    <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Amount</th></tr></thead>
-    <tbody>${itemRows}</tbody>
-  </table>
-  <div class="separator"></div>
-  <table class="totals">
-    <tr><td>Total quantity</td><td>${totalQuantity}</td></tr>
-    <tr><td>Subtotal</td><td>${money(sale.subtotalPaise)}</td></tr>
-    ${discountTotal > 0 ? `<tr><td>Total discount</td><td>- ${money(discountTotal)}</td></tr>` : ''}
-    ${showTax ? `<tr><td>${inclusiveTax ? 'Tax included' : 'Tax'}</td><td>${money(sale.taxPaise)}</td></tr>` : ''}
-    ${Number(sale.roundOffPaise) !== 0 ? `<tr><td>Round off</td><td>${Number(sale.roundOffPaise) > 0 ? '+' : '-'} ${money(
-      Math.abs(sale.roundOffPaise)
-    )}</td></tr>` : ''}
-    <tr class="grand"><td>Grand Total</td><td>${money(sale.totalPaise)}</td></tr>
-    ${amountRows}
-  </table>
-  <div class="words">Amount in words<strong>${escapeHtml(amountInWords(sale.totalPaise))}</strong></div>
+  <div class="bill-meta"><span>Invoice <b>${escapeHtml(sale.invoiceNo)}</b></span><span>${escapeHtml(formatDate(sale.completedAt || sale.saleDate))}</span></div>
   ${
-    receipt?.showSavings !== false && discountTotal > 0
-      ? `<div class="savings"><span>Total savings</span><strong>${money(discountTotal)}</strong></div>`
+    showCustomer && (sale.customerName || sale.customerPhone || sale.customerGstin)
+      ? `<div class="bill-customer">${[
+          sale.customerName ? `Customer: <b>${escapeHtml(sale.customerName)}</b>` : '',
+          sale.customerPhone ? `Mobile: ${escapeHtml(sale.customerPhone)}` : '',
+          sale.customerGstin ? `GSTIN: ${escapeHtml(sale.customerGstin)}` : '',
+        ]
+          .filter(Boolean)
+          .join(' · ')}</div>`
       : ''
   }
-  ${termsMarkup(invoice, { ...receipt, footerNote: '' })}
-  <div class="closing">
-    <strong>THANK YOU FOR CHOOSING MODERN FASHION!</strong>
-    <div>We truly appreciate your business.</div>
-    <div>We look forward to welcoming you again.</div>
-    ${receipt?.footerNote ? `<div class="closing-note">${escapeHtml(receipt.footerNote).replace(/\n/g, '<br/>')}</div>` : ''}
-    ${showPoweredBy ? '<div class="powered">Powered by Modern Fashion POS · Engineered by Meninges Labs</div>' : ''}
+  <table class="items">
+    <thead><tr><th>Item</th><th class="num">Qty</th><th class="num">Price</th><th class="num">Amount</th></tr></thead>
+    <tbody>${itemRows}</tbody>
+  </table>
+  <table class="totals">
+    <tr><td>Subtotal</td><td>${receiptMoney(sale.subtotalPaise)}</td></tr>
+    ${discountTotal > 0 ? `<tr><td>Total discount</td><td>- ${receiptMoney(discountTotal)}</td></tr>` : ''}
+    ${showTax ? `<tr><td>${inclusiveTax ? 'Tax included' : 'Tax'}</td><td>${receiptMoney(sale.taxPaise)}</td></tr>` : ''}
+    ${Number(sale.roundOffPaise) !== 0 ? `<tr><td>Round off</td><td>${Number(sale.roundOffPaise) > 0 ? '+' : '-'} ${receiptMoney(
+      Math.abs(sale.roundOffPaise)
+    )}</td></tr>` : ''}
+    <tr class="grand"><td>Grand Total</td><td>${receiptMoney(sale.totalPaise)}</td></tr>
+    ${amountRows}
+  </table>
+  <div class="footer">
+    <div class="thanks">${escapeHtml(invoice?.thankYou || 'Thank you for shopping with us!')}</div>
+    ${policies
+      .map((policy) => `<div class="policy">${escapeHtml(policy).replace(/\n/g, '<br/>')}</div>`)
+      .join('')}
+    ${receipt?.footerNote ? `<div class="note">${escapeHtml(receipt.footerNote).replace(/\n/g, '<br/>')}</div>` : ''}
   </div>
 </body></html>`;
 }
+
 
 export function invoiceHtml({ sale, business, invoice, receipt, tax, logoDataUrl = '' }) {
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
@@ -572,13 +533,13 @@ export function labelsHtml({ labels, business, options = {}, preview = false }) 
   return `<!doctype html><html><head><meta charset="utf-8" /><title>Barcode labels</title>${previewCss}</head><body>${pages}</body></html>`;
 }
 
-export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 80 }) {
-  const width = widthMm === 58 ? 58 : 80;
-  const sidePadding = width === 58 ? 3 : 4;
+export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl = '', widthMm = 77 }) {
+  const width = widthMm === 58 ? 58 : 77;
+  const sidePadding = width === 58 ? 2 : 0.3;
   const scale = Math.min(1.3, Math.max(0.8, Number(receipt?.fontScale || 100) / 100));
   const fs = (size) => `${(size * scale).toFixed(2)}px`;
   const showLogo = invoice?.showLogo !== false && Boolean(logoDataUrl);
-  const logoHeight = Math.min(30, Math.max(8, Number(invoice?.logoHeightMm || 16)));
+  const logoHeight = Math.min(30, Math.max(10, Number(invoice?.logoHeightMm || 20)));
   const stateLine = [
     business?.stateCode ? `${business.stateCode} - ${business.stateName || ''}` : business?.stateName,
     invoice?.showPhone !== false ? business?.phone : '',
@@ -589,8 +550,8 @@ export function testReceiptHtml({ business, invoice, receipt, tax, logoDataUrl =
   <style>
     @page { margin: 0; }
     html, body { margin: 0; padding: 0; color: #000; background: #fff; }
-    body { width: ${width}mm; margin: 0; padding: 8mm ${sidePadding}mm 5mm; font-family: Arial, sans-serif; font-size: ${fs(10)}; line-height: 1.4; }
-    .center { text-align: center; } .logo { display:block; margin:0 auto 2mm; max-width:70%; object-fit:contain; }
+    body { width: ${width}mm; margin: 0; padding: 2mm ${sidePadding}mm 3mm; font-family: Arial, sans-serif; font-size: ${fs(11)}; line-height: 1.4; }
+    .center { text-align: center; } .logo { display:block; margin:0 auto 1.5mm; max-width:62%; object-fit:contain; }
     .title { margin: 2mm 0; font-size: ${fs(14)}; font-weight: 800; letter-spacing: 0.1em; }
     .banner { margin: 2mm 0; padding: 1.5mm; border: 1px dashed #000; font-size: ${fs(8)}; font-weight: 700; text-align: center; }
     .row { display:flex; justify-content:space-between; gap:2mm; border-top:1px dotted #777; padding:0.8mm 0; }

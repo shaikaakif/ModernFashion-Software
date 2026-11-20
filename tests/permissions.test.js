@@ -94,7 +94,7 @@ test('trusted settings snapshot used by printing is not exposed through the rend
   addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
 
   const snapshot = app.services.settings.getSnapshot();
-  assert.equal(snapshot.hardware.receiptWidthMm, 80);
+  assert.equal(snapshot.hardware.receiptWidthMm, 77);
   assert.ok(Array.isArray(snapshot.offers));
   assert.ok(Array.isArray(app.services.settings.getPublic().offers));
 

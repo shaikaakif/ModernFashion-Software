@@ -67,7 +67,7 @@ export default function SetupWizard({ firstRun = false, onFinish }) {
           invoiceTitle: settings.tax.invoiceTitle || 'Invoice',
           prefix: settings.invoice.prefix || 'MF',
           purchasePrefix: settings.invoice.purchasePrefix || 'PUR',
-          receiptWidthMm: settings.hardware.receiptWidthMm || 80,
+          receiptWidthMm: settings.hardware.receiptWidthMm || 77,
           terms: settings.invoice.terms || '',
           thankYou: settings.invoice.thankYou || '',
           whatsappCaption: settings.receipt.whatsappCaption || '',
@@ -345,7 +345,7 @@ export default function SetupWizard({ firstRun = false, onFinish }) {
               <Form.Item name="receiptWidthMm" label="Receipt paper">
                 <Select
                   options={[
-                    { value: 80, label: '80 mm' },
+                    { value: 77, label: '77 mm (thermal roll)' },
                     { value: 58, label: '58 mm' },
                   ]}
                 />
@@ -428,7 +428,7 @@ export default function SetupWizard({ firstRun = false, onFinish }) {
               <Descriptions.Item label="GSTIN">{value.gstin || 'Not configured'}</Descriptions.Item>
               <Descriptions.Item label="Tax">{value.taxEnabled ? 'Enabled' : 'Disabled'}</Descriptions.Item>
               <Descriptions.Item label="Invoice prefix">{value.prefix || '—'}</Descriptions.Item>
-              <Descriptions.Item label="Receipt paper">{value.receiptWidthMm || 80} mm</Descriptions.Item>
+              <Descriptions.Item label="Receipt paper">{value.receiptWidthMm || 77} mm</Descriptions.Item>
               <Descriptions.Item label="Backup folder" span={2}>
                 {value.backupDirectory || 'Default application folder'}
               </Descriptions.Item>

@@ -5,7 +5,7 @@
 **Verification record:** v1.3.2 GitHub Release published and publicly verified
 **Current public release:** 1.3.2 - EAN-8 label codes, clearer label typography, left-aligned A4 receipt and Import data / Activity log moved into Settings.
 **Previous public releases:** 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** none; release asset built from the `v1.3.2` tag.
+**Unreleased branch work:** 77 mm thermal receipt redesign, per-item percent/rupee discounts on New Sale, and the New Sale page now scrolls as one page instead of trapping products in a fixed-height box. No installer built.
 **Developer:** Meninges Labs
 **Working branch:** `v1.3.1` (package version 1.3.2; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
@@ -33,7 +33,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 - **User lifecycle** supports owner-only removal and restoration. Removed users are disabled, cannot sign in or start shifts, and remain in **Users & shifts → Removed Users** with role, removal date/actor, invoice count and shift history. Historical invoices keep their cashier. Vyapar legacy cashiers become disabled legacy users, not the importing owner.
 - **Sales terminal** (`/pos`) auto-collapses the sidebar, restores the previous preference on exit, uses a full-width customer/invoice header, a spacious scanner-first item table and a fixed summary/action footer. Cash/Credit, customer search, discounts, payment, thermal/A4/PDF save actions and F2/F8 keyboard shortcuts are retained.
 - The print layout is owner-editable: logo visibility/size, header fields, receipt sections, notes, terms, paper width and font scale, with a live sample preview that records nothing.
-- **Receipt composition:** centred logo/brand/address/GSTIN and invoice title; left-aligned invoice labels with right-aligned values; left-aligned item descriptions with right-aligned qty/rate/amount; left totals labels with right monetary values and a prominent Grand Total; centred exact closing message and powered-by line. Custom footer notes are preserved under the closing message.
+- **Receipt composition (77 mm roll, 76.4 mm usable):** centred logo (20 mm minimum height) over a compact centred brand/address/phone block and a validated GSTIN only when tax is enabled; TAX INVOICE title; one ruled Invoice/date row; Customer and Mobile only. Items print as Item | Qty | Price | Amount with an inline `Disc. - amount (pct)` note and no SKU, cashier, payment method, amount-in-words, savings banner or powered-by line. Totals show Subtotal, Total discount, Tax when applicable, Round off when non-zero, a prominent Grand Total, Amount received and Balance due or Change. Footer carries the thank-you line, the configured return/exchange policy and an optional footer note. A three-item sale renders about 165 mm of paper.
 - GitHub Releases and `electron-updater` are wired for the installed build. A successful update starts from **Releases**, creates a verified SQLite backup first, and replaces program files only.
 - Graphify graph and Ponytail skills are installed in the project. Knowledge graph output is under `graphify-out/`.
 
@@ -41,7 +41,7 @@ Version 1 is implemented as an offline-first Windows desktop POS:
 
 | Check | Status |
 |---|---|
-| `npm test` | **53/53 passing** on the `v1.2.1` development branch (adds Vyapar `.vyp`/`.vyb.zip`, negative stock, user removal/restore, EAN-13/UPC-A, barcode-studio, CSV/Excel import and receipt-alignment coverage) |
+| `npm test` | **65/65 passing** on the `v1.3.1` branch (adds 77 mm receipt layout, per-line percent/rupee discounts, discount persistence and stock coverage to the earlier Vyapar, EAN-8 and import suites) |
 | `npm run build` | Passing (one large-chunk warning; acceptable for a local desktop app) |
 | `npm run lint` | Passing |
 | Packaged NSIS EXE v1.1.0 | Published: `release/ModernFashionPOS-Setup-1.1.0.exe` (128,286,994 bytes) plus blockmap and `latest.yml` |
@@ -112,7 +112,7 @@ Do not upgrade "implemented" to "production-ready" until the hardware checklist 
 ### Printing
 
 - Receipts, A4 invoices and labels are HTML rendered in a hidden `BrowserWindow` and submitted to a named Windows printer.
-- Owner-editable layout lives in **Settings → Print & barcodes**. It controls paper width, logo visibility/height, header fields, receipt section toggles, header/footer notes, terms, closing line and font scale. The live preview is a sample document, not a sale.
+- Owner-editable layout lives in **Settings → Print & barcodes**. It controls paper width (77 mm or 58 mm), logo visibility/height, header fields, customer/tax/amount-received toggles, header/footer notes, terms and font scale. The live preview is a sample document, not a sale.
 - `shared/barcode.js` normalizes the prefix/digit width; `electron/services/catalogService.js` uses it only for newly generated barcodes. Changing the format never rewrites existing product barcode values.
 - A successful driver callback means the driver accepted the job, not that paper physically emerged. The UI and docs must keep the `physicalVerification: "unverified"` distinction.
 - `print.open` / `print.showFolder` are restricted to app-managed data folders.

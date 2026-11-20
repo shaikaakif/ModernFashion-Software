@@ -152,3 +152,66 @@ test('voiding requires the sales.void permission', (t) => {
   assert.throws(() => app.services.sales.voidSale(sale.id, { reason: 'Not allowed' }), { code: 'FORBIDDEN' });
   assert.equal(stockOf(app, variant.id), 4);
 });
+
+test('per-item percent and rupee discounts are priced, stored and applied once', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const first = createProduct(app, { name: 'First Tee', pricePaise: 20000, openingStock: 5 });
+  const second = createProduct(app, { name: 'Second Tee', pricePaise: 10000, openingStock: 4 });
+
+  const { sale } = completeSale(app, first.variants[0].id, {
+    items: [
+      { variantId: first.variants[0].id, quantity: 2, discountPercent: 10 },
+      { variantId: second.variants[0].id, quantity: 1, discountPaise: 1500 },
+    ],
+    amountPaidPaise: 44500,
+  });
+
+  assert.equal(sale.subtotalPaise, 50000);
+  assert.equal(sale.discountTotalPaise, 5500);
+  assert.equal(sale.totalPaise, 44500);
+  assert.equal(stockOf(app, first.variants[0].id), 3);
+  assert.equal(stockOf(app, second.variants[0].id), 3);
+
+  const stored = app.services.sales.getSale(sale.id);
+  assert.equal(stored.items[0].discountPaise, 4000);
+  assert.equal(stored.items[0].lineTotalPaise, 36000);
+  assert.equal(stored.items[1].discountPaise, 1500);
+  assert.equal(stored.items[1].lineTotalPaise, 8500);
+  assert.equal(stored.discountTotalPaise, 5500);
+  assert.equal(stored.totalPaise, 44500);
+});
+
+test('a fixed item discount wins over a percentage on the same line', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  const product = createProduct(app, { pricePaise: 20000, openingStock: 2 });
+  const { sale } = completeSale(app, product.variants[0].id, {
+    items: [{ variantId: product.variants[0].id, quantity: 1, discountPercent: 50, discountPaise: 1000 }],
+    amountPaidPaise: 19000,
+  });
+  assert.equal(sale.discountTotalPaise, 1000);
+  assert.equal(sale.totalPaise, 19000);
+});
+
+test('item discounts require the discount permission', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
+  const product = createProduct(app, { pricePaise: 20000, openingStock: 2 });
+
+  logout(app);
+  login(app, '9000000002');
+  assert.throws(
+    () =>
+      app.services.sales.complete({
+        idempotencyKey: 'cashier-item-discount',
+        items: [{ variantId: product.variants[0].id, quantity: 1, discountPercent: 10 }],
+        paymentMethod: 'cash',
+        amountPaidPaise: 18000,
+      }),
+    { code: 'FORBIDDEN' }
+  );
+  assert.equal(stockOf(app, product.variants[0].id), 2);
+  assert.equal(saleCount(app), 0);
+});

@@ -74,7 +74,7 @@ export default function SettingsPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [logoBusy, setLogoBusy] = useState(false);
   const [previewBusy, setPreviewBusy] = useState(false);
-  const [preview, setPreview] = useState({ html: '', widthMm: 80, error: '' });
+  const [preview, setPreview] = useState({ html: '', widthMm: 77, error: '' });
   const [previewNonce, setPreviewNonce] = useState(0);
   const barcodeRef = useRef(null);
 
@@ -616,7 +616,7 @@ export default function SettingsPage() {
   );
 
   const logoOn = printValues?.showLogo !== false;
-  const previewWidth = Math.round((preview.widthMm || 80) * 3.78);
+  const previewWidth = Math.round((preview.widthMm || 77) * 3.78);
 
   const printPanel = (
     <div className="settings-stack">
@@ -648,18 +648,18 @@ export default function SettingsPage() {
               </div>
             </div>
             <div className="form-grid three">
-              <Form.Item name="receiptWidthMm" label="Receipt paper width">
+              <Form.Item name="receiptWidthMm" label="Receipt paper width" extra="77 mm roll prints on 76.4 mm of usable width.">
                 <Select
                   options={[
-                    { value: 58, label: '58 mm' },
-                    { value: 80, label: '80 mm' },
+                    { value: 77, label: '77 mm (thermal roll)' },
+                    { value: 58, label: '58 mm (small roll)' },
                   ]}
                 />
               </Form.Item>
               <Form.Item name="fontScale" label="Text size (%)" extra="80–130%. Values apply to the thermal receipt.">
                 <InputNumber min={80} max={130} style={{ width: '100%' }} />
               </Form.Item>
-              <Form.Item name="logoHeightMm" label="Logo height (mm)">
+              <Form.Item name="logoHeightMm" label="Logo height (mm)" extra="Receipt logos print at least 20 mm tall.">
                 <InputNumber min={8} max={30} disabled={!logoOn} style={{ width: '100%' }} />
               </Form.Item>
             </div>
@@ -678,10 +678,7 @@ export default function SettingsPage() {
               <Form.Item name="showPhone" label="Print phone" valuePropName="checked">
                 <Switch />
               </Form.Item>
-              <Form.Item name="showState" label="Print state" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item name="showGstin" label="Print GSTIN (when tax is enabled)" valuePropName="checked">
+              <Form.Item name="showGstin" label="Print GSTIN (only when configured and tax is enabled)" valuePropName="checked">
                 <Switch />
               </Form.Item>
             </div>
@@ -691,28 +688,10 @@ export default function SettingsPage() {
               <Form.Item name="showCustomer" label="Customer" valuePropName="checked">
                 <Switch />
               </Form.Item>
-              <Form.Item name="showCashier" label="Cashier" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item name="showSku" label="SKU on items" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item name="showItemDiscounts" label="Item discount lines" valuePropName="checked">
-                <Switch />
-              </Form.Item>
               <Form.Item name="showTax" label="Tax rows" valuePropName="checked">
                 <Switch />
               </Form.Item>
-              <Form.Item name="showSavings" label="Savings banner" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item name="showPayment" label="Payment method" valuePropName="checked">
-                <Switch />
-              </Form.Item>
               <Form.Item name="showAmountReceived" label="Amount received & change" valuePropName="checked">
-                <Switch />
-              </Form.Item>
-              <Form.Item name="showPoweredBy" label="Powered-by line" valuePropName="checked">
                 <Switch />
               </Form.Item>
             </div>
@@ -828,7 +807,7 @@ export default function SettingsPage() {
 
       <SectionCard
         title="Live receipt preview"
-        subtitle={`Sample for ${preview.widthMm || 80} mm paper. Nothing is recorded or printed by this preview.`}
+        subtitle={`Sample for ${preview.widthMm || 77} mm paper. Nothing is recorded or printed by this preview.`}
         extra={
           <Button
             icon={<ReloadOutlined />}

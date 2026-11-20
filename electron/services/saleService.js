@@ -16,7 +16,7 @@ import { recordStockMovement } from '../core/inventory.js';
 import { transaction } from '../core/database.js';
 import { allocateSequence, formatInvoiceNumber, peekSequence } from '../core/sequences.js';
 import { getSetting, publicBusiness } from '../core/settings.js';
-import { computeCartTotals, pickBestOffer } from '../../shared/money.js';
+import { computeCartTotals, pickBestOffer, roundHalfUp } from '../../shared/money.js';
 
 const PAYMENT_METHODS = ['cash', 'upi', 'card', 'bank_transfer', 'credit'];
 
@@ -104,19 +104,29 @@ export function createSaleService({ db, auth }) {
       if (variant.product_status !== 'active' || variant.status !== 'active') {
         fail(`${variant.product_name} is inactive and cannot be sold.`);
       }
-      return { variant, quantity };
+      const discountPercent = Math.max(0, Math.min(100, Number(item.discountPercent) || 0));
+      const discountPaise = Math.max(0, Math.trunc(Number(item.discountPaise) || 0));
+      return { variant, quantity, discountPercent, discountPaise };
     });
   }
 
   function computeSale({ items, offer, manualDiscountPaise, user, dateKey }) {
     const tax = getSetting(db, 'tax');
     const taxEnabled = Boolean(tax.enabled);
-    const pricedLines = items.map(({ variant, quantity }) => ({
-      variant,
-      quantity,
-      unitPricePaise: variant.price_paise,
-      taxRateBp: taxEnabled ? variant.tax_rate_bp : 0,
-    }));
+    const pricedLines = items.map(({ variant, quantity, discountPercent, discountPaise }) => {
+      const unitPricePaise = variant.price_paise;
+      const gross = quantity * unitPricePaise;
+      // One resolved absolute discount per line: a fixed amount wins over a
+      // percentage, and neither can take the line below zero.
+      const requested = discountPaise > 0 ? discountPaise : roundHalfUp((gross * discountPercent) / 100);
+      return {
+        variant,
+        quantity,
+        unitPricePaise,
+        taxRateBp: taxEnabled ? variant.tax_rate_bp : 0,
+        lineDiscountPaise: Math.min(gross, Math.max(0, requested)),
+      };
+    });
     const subtotalPaise = pricedLines.reduce((sum, line) => sum + line.quantity * line.unitPricePaise, 0);
     const offerResult = pickBestOffer(offer, subtotalPaise, dateKey);
     const autoDiscountPaise = offerResult ? offerResult.discountPaise : 0;
@@ -125,16 +135,17 @@ export function createSaleService({ db, auth }) {
     const limitPercent = Number(settings.manualDiscountMaxPercent || 0);
     const override = user.permissions.includes('sales.discount.override');
     const manual = Math.max(0, Number(manualDiscountPaise) || 0);
-    if (manual > 0 && !manualAllowed) {
+    const lineDiscountTotal = pricedLines.reduce((sum, line) => sum + line.lineDiscountPaise, 0);
+    if ((manual > 0 || lineDiscountTotal > 0) && !manualAllowed) {
       throw new AppError('Your account is not allowed to apply manual discounts.', 'FORBIDDEN');
     }
-    if (manual > 0 && !override) {
+    if ((manual > 0 || lineDiscountTotal > 0) && !override) {
       const maxPaise = Math.floor((subtotalPaise * limitPercent) / 100);
-      if (manual > maxPaise) {
-        fail(`Manual discount exceeds the permitted ${limitPercent}% limit (maximum ₹${(maxPaise / 100).toFixed(2)}).`, 'DISCOUNT_LIMIT');
+      if (lineDiscountTotal + manual > maxPaise) {
+        fail(`Discount exceeds the permitted ${limitPercent}% limit (maximum ₹${(maxPaise / 100).toFixed(2)}).`, 'DISCOUNT_LIMIT');
       }
     }
-    if (manual > subtotalPaise) fail('Discount cannot exceed the bill subtotal.');
+    if (manual + lineDiscountTotal > subtotalPaise) fail('Discount cannot exceed the bill subtotal.');
     const useManual = manual > autoDiscountPaise;
     const appliedDiscount = useManual ? manual : autoDiscountPaise;
     const totals = computeCartTotals(
@@ -142,7 +153,7 @@ export function createSaleService({ db, auth }) {
         quantity: line.quantity,
         unitPricePaise: line.unitPricePaise,
         taxRateBp: line.taxRateBp,
-        lineDiscountBp: 0,
+        lineDiscountPaise: line.lineDiscountPaise,
       })),
       { billDiscountPaise: appliedDiscount, roundToRupee: true, pricesIncludeTax: taxEnabled && Boolean(tax.pricesIncludeTax) }
     );

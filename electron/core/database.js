@@ -66,7 +66,7 @@ export const DEFAULT_SETTINGS = {
     receiptPrinter: '',
     labelPrinter: '',
     autoPrintReceipt: true,
-    receiptWidthMm: 80,
+    receiptWidthMm: 77,
     labelWidthMm: 50,
     labelHeightMm: 25,
     labelCopies: 1,

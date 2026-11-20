@@ -154,6 +154,7 @@ test('owner print settings persist, preview without saving and drive new barcode
   assert.match(variant.barcode, /^AB\d{8}$/);
 
   app.services.settings.updatePrint({ barcodeSymbology: 'code128', barcodePrefix: 'CD', barcodeDigits: 10, receiptWidthMm: 80 });
+  assert.equal(app.services.settings.getSnapshot().hardware.receiptWidthMm, 77, '80 mm is migrated to the 77 mm roll');
   const existing = app.services.catalog.getProduct(product.id).variants[0];
   assert.equal(existing.barcode, variant.barcode, 'Existing barcode values must never be rewritten.');
 
@@ -240,10 +241,9 @@ test('receipt HTML honors logo, section, text and font settings', () => {
   assert.match(html, /Exchange within 7 days with a valid bill\./);
   assert.match(html, /font-size: 12\.60px/);
   assert.match(html, /text-align: center/);
-  assert.match(html, /\.meta td:last-child[^}]*text-align: right/);
-  assert.match(html, /THANK YOU FOR CHOOSING MODERN FASHION!/);
-  assert.match(html, /We truly appreciate your business\./);
-  assert.match(html, /We look forward to welcoming you again\./);
+  assert.match(html, /\.totals td:last-child[^}]*text-align: right/);
+  assert.match(html, /Visit again/);
+  assert.doesNotMatch(html, /We truly appreciate your business/);
   assert.match(html, /Grand Total/);
 
   const withLogo = receiptHtml({
@@ -256,7 +256,7 @@ test('receipt HTML honors logo, section, text and font settings', () => {
     widthMm: 80,
   });
   assert.match(withLogo, /<img/);
-  assert.match(withLogo, /max-height:18mm/);
+  assert.match(withLogo, /max-height:20mm/);
   assert.match(withLogo, /INVOICE/);
 
   const taxReceipt = receiptHtml({
@@ -300,14 +300,12 @@ test('receipt redesign keeps the business policy, footer and hides empty rows', 
     widthMm: 58,
   });
   assert.match(html, /NO RETURN \/ EXCHANGE WITHIN 3 DAYS/);
-  assert.match(html, /THANK YOU FOR CHOOSING MODERN FASHION!/);
-  assert.match(html, /We truly appreciate your business\./);
-  assert.match(html, /We look forward to welcoming you again\./);
-  assert.match(html, /Powered by Modern Fashion POS · Engineered by Meninges Labs/);
+  assert.match(html, /class="thanks">Thanks for shopping with us!/);
+  assert.doesNotMatch(html, /Powered by Modern Fashion POS/);
   assert.match(html, /We appreciate your business\./);
   assert.match(html, /Keep the bill\./);
   assert.match(html, /width: 58mm/);
-  assert.match(html, /padding: 9mm 3mm 8mm/);
+  assert.match(html, /padding: 2mm 2mm 3mm/);
   assert.match(html, /body \{ width: 58mm; margin: 0;/);
   assert.doesNotMatch(html, /You saved/);
   assert.doesNotMatch(html, /<tr><td>Discount<\/td>/);
@@ -444,4 +442,136 @@ test('regenerating a barcode as UPC-A replaces the label code and audits it', (t
     app.db.prepare("SELECT COUNT(*) AS c FROM audit_logs WHERE action = 'variant.barcode_regenerated'").get().c,
     1
   );
+});
+
+function receiptSale(count, overrides = {}) {
+  const items = Array.from({ length: count }, (_, index) => ({
+    productName: `Product ${index + 1}`,
+    variantLabel: 'Blue / M',
+    quantity: 1,
+    unitPricePaise: 100000,
+    discountPaise: 0,
+    lineTotalPaise: 100000,
+    taxPaise: 0,
+  }));
+  const subtotalPaise = 100000 * count;
+  return {
+    invoiceNo: 'MF-TEST-0001',
+    completedAt: '2026-11-17T10:30:00.000Z',
+    customerName: 'Test Customer',
+    customerPhone: '9000000000',
+    paymentMethod: 'cash',
+    paymentStatus: 'paid',
+    pricesIncludeTax: false,
+    items,
+    subtotalPaise,
+    discountTotalPaise: 0,
+    taxPaise: 0,
+    roundOffPaise: 0,
+    totalPaise: subtotalPaise,
+    amountPaidPaise: subtotalPaise,
+    balancePaise: 0,
+    changePaise: 0,
+    ...overrides,
+  };
+}
+
+function receiptFor(sale, overrides = {}) {
+  return receiptHtml({
+    sale,
+    business: {
+      name: 'MODERN FASHION',
+      addressLines: ['13-431/C/48', 'Moghal Ka Nala', 'Pillar No. 101, Attapur Ring Road', 'Hyderabad, Telangana - 500048'],
+      phone: '7093230999',
+      returnPolicy: 'No return / exchange within 3 days',
+    },
+    invoice: { logoHeightMm: 16 },
+    receipt: {},
+    tax: { enabled: false },
+    logoDataUrl: 'data:image/png;base64,AAAA',
+    widthMm: 77,
+    ...overrides,
+  });
+}
+
+test('77 mm thermal receipt keeps a three-product sale complete and compact', () => {
+  const html = receiptFor(receiptSale(3));
+  assert.match(html, /width: 77mm/);
+  assert.match(html, /class="w77"/);
+  assert.match(html, /padding: 2mm 0.3mm 3mm/);
+  assert.match(html, /max-height:20mm/);
+  assert.equal((html.match(/class="item-name"/g) || []).length, 3);
+  assert.match(html, /Invoice <b>MF-TEST-0001<\/b>/);
+  assert.match(html, /class="title">INVOICE</);
+  assert.match(html, /Customer: <b>Test Customer<\/b>/);
+  assert.match(html, /Mobile: 9000000000/);
+  assert.match(html, /Amount received/);
+  assert.match(html, /No return \/ exchange within 3 days/i);
+  assert.doesNotMatch(html, /Cashier/i);
+  assert.doesNotMatch(html, /SKU/i);
+  assert.doesNotMatch(html, /Powered by/);
+  assert.doesNotMatch(html, /Amount in words|Rupees Only/i);
+  assert.doesNotMatch(html, /Final amount/i);
+});
+
+test('a ten-product receipt prints one row per product without clipping', () => {
+  const html = receiptFor(receiptSale(10));
+  assert.equal((html.match(/class="item-name"/g) || []).length, 10);
+  assert.match(html, /Product 10/);
+  assert.doesNotMatch(html, /-webkit-line-clamp/);
+});
+
+test('long product names wrap inside the 77 mm receipt', () => {
+  const name = 'Premium Handloom Cotton Straight Kurta with Embroidered Neckline and Three Quarter Sleeves';
+  const [item] = receiptSale(1).items;
+  const html = receiptFor(receiptSale(1, { items: [{ ...item, productName: name }] }));
+  assert.ok(html.includes(name));
+  assert.match(html, /\.items td \{[^}]*overflow-wrap: anywhere/);
+});
+
+test('an item discount prints once as a compact note under the item', () => {
+  const html = receiptFor(
+    receiptSale(1, {
+      items: [
+        { productName: 'Bootcut Jeans', variantLabel: 'Black / 30', quantity: 1, unitPricePaise: 79900, discountPaise: 5000, lineTotalPaise: 74900 },
+      ],
+      subtotalPaise: 79900,
+      discountTotalPaise: 5000,
+      totalPaise: 74900,
+      amountPaidPaise: 74900,
+    })
+  );
+  assert.match(html, /Disc\. - ₹50 \(6\.3%\)/);
+  assert.match(html, /<td class="num amount">₹749<\/td>/);
+  assert.match(html, /Total discount<\/td><td>- ₹50<\/td>/);
+  assert.equal((html.match(/Disc\. -/g) || []).length, 1);
+});
+
+test('a tax invoice shows GSTIN and tax only when real values exist', () => {
+  const taxed = receiptFor(receiptSale(1, { taxPaise: 4750, totalPaise: 99750, amountPaidPaise: 99750 }), {
+    tax: { enabled: true, gstin: '36ABCDE1234F1Z5' },
+  });
+  assert.match(taxed, /class="title">TAX INVOICE</);
+  assert.match(taxed, /GSTIN: 36ABCDE1234F1Z5/);
+  assert.match(taxed, /<td>Tax<\/td>/);
+  assert.match(taxed, /Grand Total/);
+
+  const placeholder = receiptFor(receiptSale(1), { tax: { enabled: true, gstin: 'GSTIN-123' } });
+  assert.doesNotMatch(placeholder, /GSTIN:/);
+});
+
+test('cash change and partial balance print distinct footers', () => {
+  const cash = receiptFor(receiptSale(1, { amountPaidPaise: 200000, changePaise: 100000 }));
+  assert.match(cash, /<td>Change<\/td><td>₹1,000<\/td>/);
+  assert.doesNotMatch(cash, /Balance due/);
+
+  const partial = receiptFor(receiptSale(1, { amountPaidPaise: 50000, balancePaise: 50000 }));
+  assert.match(partial, /<td>Balance due<\/td><td>₹500<\/td>/);
+});
+
+test('58 mm receipts keep the compact layout and inner padding', () => {
+  const html = receiptFor(receiptSale(1), { widthMm: 58 });
+  assert.match(html, /class="w58"/);
+  assert.match(html, /width: 58mm/);
+  assert.match(html, /padding: 2mm 2mm 3mm/);
 });

@@ -27,7 +27,7 @@ import {
   SearchOutlined,
   UserAddOutlined,
 } from '@ant-design/icons';
-import { addToCart, cartGrossPaise, cartToPayload, removeLine, setQuantity } from '@shared/cart.js';
+import { addToCart, cartGrossPaise, cartLineDiscountPaise, cartToPayload, removeLine, setLineDiscount, setQuantity } from '@shared/cart.js';
 import { computeCartTotals, pickBestOffer, toPaise } from '@shared/money.js';
 import { api, errorMessage } from '@/app/api';
 import { useAsync, useDebouncedValue } from '@/app/hooks';
@@ -87,7 +87,7 @@ export default function PosPage() {
           quantity: line.quantity,
           unitPricePaise: line.unitPricePaise,
           taxRateBp: taxEnabled ? line.taxRateBp : 0,
-          lineDiscountBp: 0,
+          lineDiscountPaise: cartLineDiscountPaise(line),
         })),
         { billDiscountPaise: appliedDiscountPaise, roundToRupee: true, pricesIncludeTax: inclusiveTax }
       ),
@@ -225,6 +225,15 @@ export default function PosPage() {
 
   function updateQuantity(line, quantity) {
     setCart(setQuantity(cart, line.variantId, quantity, { allowExceedStock: true }));
+  }
+
+  function updateDiscountMode(line, mode) {
+    if (mode === line.discountMode) return;
+    const gross = line.quantity * line.unitPricePaise;
+    const currentPaise = cartLineDiscountPaise(line);
+    // Convert the current discount so switching %/₹ keeps the same money off.
+    const value = mode === 'amount' ? currentPaise / 100 : gross > 0 ? (currentPaise * 100) / gross : 0;
+    setCart(setLineDiscount(cart, line.variantId, { discountMode: mode, discountValue: Number(value.toFixed(2)) }));
   }
 
   function clearCart() {
@@ -524,12 +533,6 @@ export default function PosPage() {
             }}
             columns={[
               {
-                title: 'Barcode',
-                dataIndex: 'barcode',
-                width: 170,
-                render: (value) => <span className="mono small">{value}</span>,
-              },
-              {
                 title: 'Item',
                 dataIndex: 'productName',
                 render: (value, row) => (
@@ -550,7 +553,7 @@ export default function PosPage() {
               },
               {
                 title: 'Qty',
-                width: 100,
+                width: 90,
                 align: 'center',
                 render: (_, row) => (
                   <InputNumber
@@ -559,27 +562,54 @@ export default function PosPage() {
                     value={row.quantity}
                     onChange={(value) => updateQuantity(row, value)}
                     onPressEnter={focusScan}
-                    style={{ width: 72 }}
+                    style={{ width: 68 }}
                     aria-label={`Quantity for ${row.productName}`}
                   />
                 ),
               },
-              { title: 'Unit', width: 70, render: () => 'Pcs' },
               {
                 title: 'Price',
                 dataIndex: 'unitPricePaise',
                 align: 'right',
-                width: 120,
+                width: 110,
                 render: money,
               },
               {
                 title: 'Discount',
                 key: 'discount',
-                align: 'right',
-                width: 110,
+                width: 190,
                 render: (_, row, index) => {
                   const line = totals.lines[index];
-                  return line?.discountPaise ? money(line.discountPaise) : '—';
+                  return (
+                    <div className="cart-discount">
+                      <InputNumber
+                        min={0}
+                        max={row.discountMode === 'percent' ? 100 : (row.quantity * row.unitPricePaise) / 100}
+                        precision={2}
+                        value={row.discountValue}
+                        onChange={(value) =>
+                          setCart(setLineDiscount(cart, row.variantId, { discountValue: value || 0 }))
+                        }
+                        onPressEnter={focusScan}
+                        disabled={!canDiscount}
+                        style={{ width: 84 }}
+                        aria-label={`Discount for ${row.productName}`}
+                      />
+                      <Segmented
+                        size="small"
+                        value={row.discountMode}
+                        onChange={(mode) => updateDiscountMode(row, mode)}
+                        disabled={!canDiscount}
+                        options={[
+                          { value: 'percent', label: '%' },
+                          { value: 'amount', label: '₹' },
+                        ]}
+                      />
+                      {line?.discountPaise ? (
+                        <small className="muted">−{money(line.discountPaise)}</small>
+                      ) : null}
+                    </div>
+                  );
                 },
               },
               {
@@ -596,10 +626,16 @@ export default function PosPage() {
                 title: 'Final amount',
                 key: 'total',
                 align: 'right',
-                width: 140,
+                width: 130,
                 render: (_, row, index) => {
                   const line = totals.lines[index];
-                  return <strong>{money(line?.totalPaise || row.unitPricePaise * row.quantity)}</strong>;
+                  const gross = row.unitPricePaise * row.quantity;
+                  return (
+                    <div className="cart-final">
+                      <strong>{money(line?.totalPaise ?? gross)}</strong>
+                      {line?.discountPaise ? <small className="muted"><s>{money(gross)}</s></small> : null}
+                    </div>
+                  );
                 },
               },
               {
