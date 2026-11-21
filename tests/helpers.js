@@ -18,6 +18,7 @@ import { createAuditService } from '../electron/services/auditService.js';
 import { createBackupService } from '../electron/services/backupService.js';
 import { createBrandingService } from '../electron/services/brandingService.js';
 import { createVyaparService } from '../electron/services/vyaparService.js';
+import { createMaintenanceService } from '../electron/services/maintenanceService.js';
 
 const silentLogger = { info() {}, warn() {}, error() {}, debug() {} };
 
@@ -59,6 +60,7 @@ export function createTestApp(t) {
     backupService: services.backup,
     logger: silentLogger,
   });
+  services.maintenance = createMaintenanceService({ db, auth });
 
   t.after(() => {
     try {

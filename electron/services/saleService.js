@@ -132,7 +132,12 @@ export function createSaleService({ db, auth }) {
     const autoDiscountPaise = offerResult ? offerResult.discountPaise : 0;
     const manualAllowed = user.permissions.includes('sales.discount');
     const settings = getSetting(db, 'pos');
-    const limitPercent = Number(settings.manualDiscountMaxPercent || 0);
+    // Cashiers have their own ceiling; everyone else uses the general limit.
+    const limitPercent = Number(
+      (user.user.roleCode === 'cashier'
+        ? settings.cashierManualDiscountMaxPercent
+        : settings.manualDiscountMaxPercent) || 0
+    );
     const override = user.permissions.includes('sales.discount.override');
     const manual = Math.max(0, Number(manualDiscountPaise) || 0);
     const lineDiscountTotal = pricedLines.reduce((sum, line) => sum + line.lineDiscountPaise, 0);

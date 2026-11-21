@@ -644,6 +644,16 @@ const MIGRATIONS = [
       }
     },
   },
+  {
+    version: 6,
+    name: 'cashier_discount_permission',
+    up(db) {
+      db.prepare('INSERT OR IGNORE INTO role_permissions (role_code, permission_code) VALUES (?, ?)').run(
+        'cashier',
+        'sales.discount'
+      );
+    },
+  },
 ];
 
 function seedPermissionsAndRoles(db) {

@@ -223,6 +223,23 @@ export default function PosPage() {
     }
   }
 
+  // Results follow the typed text; a barcode still goes straight through
+  // handleScan on Enter and clears the list when the item is added.
+  const liveQuery = useDebouncedValue(scan, 250);
+  useEffect(() => {
+    const text = liveQuery.trim();
+    if (text.length < 2) return undefined;
+    let active = true;
+    api('catalog.posSearch', { query: text })
+      .then((rows) => {
+        if (active) setSearchResults(rows);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [liveQuery]);
+
   function updateQuantity(line, quantity) {
     setCart(setQuantity(cart, line.variantId, quantity, { allowExceedStock: true }));
   }

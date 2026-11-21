@@ -20,6 +20,7 @@ import { createReportService } from './services/reportService.js';
 import { createUserService } from './services/userService.js';
 import { createAuditService } from './services/auditService.js';
 import { createBackupService } from './services/backupService.js';
+import { createMaintenanceService } from './services/maintenanceService.js';
 import { createExportService } from './services/exportService.js';
 import { createPrintService } from './hardware/printService.js';
 import { createUpdateService } from './services/updateService.js';
@@ -179,6 +180,7 @@ async function bootstrap() {
     logger,
     onRestore: scheduleRestore,
   });
+  const maintenance = createMaintenanceService({ db, auth });
   const vyapar = createVyaparService({ db, auth, backupService: backup, logger });
   services = {
     app,
@@ -198,6 +200,7 @@ async function bootstrap() {
     users,
     audit,
     backup,
+    maintenance,
   };
 
   const printService = createPrintService({

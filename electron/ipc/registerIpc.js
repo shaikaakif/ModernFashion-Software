@@ -21,6 +21,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     users,
     audit,
     backup,
+    maintenance,
   } = services;
 
   function chooseLogo() {
@@ -322,6 +323,7 @@ export function createIpcHandlers({ services, paths, printService, exportService
     'settings.getLogo': () => settings.getLogo(),
     'settings.previewPrint': (payload) => settings.previewPrint(payload),
     'settings.updatePrint': (payload) => settings.updatePrint(payload),
+    'data.wipe': (payload) => maintenance.wipe(payload),
     'settings.chooseLogo': chooseLogo,
     'settings.clearLogo': clearLogo,
     'settings.offers': () => settings.listOffers(),

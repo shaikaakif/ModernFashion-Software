@@ -194,7 +194,7 @@ test('a fixed item discount wins over a percentage on the same line', (t) => {
   assert.equal(sale.totalPaise, 19000);
 });
 
-test('item discounts require the discount permission', (t) => {
+test('cashier discounts are blocked while the cashier limit is zero', (t) => {
   const app = createTestApp(t);
   setupOwner(app);
   addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
@@ -210,8 +210,35 @@ test('item discounts require the discount permission', (t) => {
         paymentMethod: 'cash',
         amountPaidPaise: 18000,
       }),
-    { code: 'FORBIDDEN' }
+    { code: 'DISCOUNT_LIMIT' }
   );
   assert.equal(stockOf(app, product.variants[0].id), 2);
   assert.equal(saleCount(app), 0);
+});
+
+test('cashiers can discount up to their own limit', (t) => {
+  const app = createTestApp(t);
+  setupOwner(app);
+  app.services.settings.updatePos({ cashierManualDiscountMaxPercent: 10 });
+  addStaff(app, { name: 'Cashier One', mobile: '9000000002', roleCode: 'cashier' });
+  const product = createProduct(app, { pricePaise: 100000, mrpPaise: 120000, openingStock: 2 });
+
+  logout(app);
+  login(app, '9000000002');
+  const { sale } = completeSale(app, product.variants[0].id, {
+    items: [{ variantId: product.variants[0].id, quantity: 1, discountPercent: 10 }],
+    amountPaidPaise: 90000,
+  });
+  assert.equal(sale.discountTotalPaise, 10000);
+  assert.equal(sale.totalPaise, 90000);
+
+  assert.throws(
+    () =>
+      completeSale(app, product.variants[0].id, {
+        idempotencyKey: 'cashier-over-limit',
+        items: [{ variantId: product.variants[0].id, quantity: 1, discountPercent: 20 }],
+        amountPaidPaise: 80000,
+      }),
+    { code: 'DISCOUNT_LIMIT' }
+  );
 });

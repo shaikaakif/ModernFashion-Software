@@ -774,7 +774,18 @@ export default function ReportsPage() {
         extra={
           <Space wrap>
             <BrandMark size={38} />
-            <RangePicker value={range} onChange={(value) => setRange(value || [])} allowClear={false} format="DD MMM YYYY" />
+            <RangePicker
+              value={range}
+              onChange={(value) => setRange(value || [])}
+              allowClear={false}
+              format="DD MMM YYYY"
+              presets={[
+                { label: 'Today', value: [dayjs(), dayjs()] },
+                { label: 'This month', value: [dayjs().startOf('month'), dayjs()] },
+                { label: 'This year', value: [dayjs().startOf('year'), dayjs()] },
+                { label: 'Lifetime', value: [dayjs('2000-01-01'), dayjs()] },
+              ]}
+            />
             <Button icon={<ReloadOutlined />} onClick={reloadAll}>
               Refresh
             </Button>

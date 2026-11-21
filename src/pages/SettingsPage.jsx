@@ -5,6 +5,7 @@ import {
   App as AntApp,
   AutoComplete,
   Button,
+  Checkbox,
   DatePicker,
   Descriptions,
   Divider,
@@ -61,7 +62,7 @@ function filesize(bytes) {
 }
 
 export default function SettingsPage() {
-  const { can, refresh, refreshBranding } = useSession();
+  const { can, user, refresh, refreshBranding } = useSession();
   const { message, modal } = AntApp.useApp();
   const navigate = useNavigate();
   const [tab, setTab] = useState('business');
@@ -76,6 +77,7 @@ export default function SettingsPage() {
   const [previewBusy, setPreviewBusy] = useState(false);
   const [preview, setPreview] = useState({ html: '', widthMm: 77, error: '' });
   const [previewNonce, setPreviewNonce] = useState(0);
+  const [wipe, setWipe] = useState({ scope: '', password: '', confirmed: false, busy: false });
   const barcodeRef = useRef(null);
 
   const settings = useAsync(() => api('settings.get'), []);
@@ -399,6 +401,29 @@ export default function SettingsPage() {
       message.error(errorMessage(error));
     } finally {
       setSaving('');
+    }
+  }
+
+  function openWipe(scope) {
+    setWipe({ scope, password: '', confirmed: false, busy: false });
+  }
+
+  async function runWipe() {
+    if (!wipe.confirmed || !wipe.scope) return;
+    setWipe((current) => ({ ...current, busy: true }));
+    try {
+      // A verified backup is taken first so the owner can roll back.
+      const backupResult = await api('backup.create');
+      const result = await api('data.wipe', { scope: wipe.scope, password: wipe.password });
+      const deleted = Object.values(result.counts || {}).reduce((sum, count) => sum + Number(count || 0), 0);
+      message.success(`Deleted ${deleted} rows. Backup kept at ${backupResult.path}`, 8);
+      setWipe({ scope: '', password: '', confirmed: false, busy: false });
+      settings.reload();
+      backups.reload();
+      diagnostics.reload();
+    } catch (error) {
+      message.error(errorMessage(error));
+      setWipe((current) => ({ ...current, busy: false }));
     }
   }
 
@@ -882,13 +907,17 @@ export default function SettingsPage() {
       <SectionCard title="Discounts & payment" subtitle="Limits are enforced by the sales service, not only by the screen.">
         <Form form={posForm} layout="vertical" onFinish={submitPos} requiredMark={false}>
           <div className="form-grid three">
-            <Form.Item name="manualDiscountMaxPercent" label="Manager discount limit (%)">
+            <Form.Item
+              name="manualDiscountMaxPercent"
+              label="Manager discount limit (%)"
+              extra="0 blocks discounts for managers and owners."
+            >
               <InputNumber min={0} max={100} precision={2} style={{ width: '100%' }} />
             </Form.Item>
             <Form.Item
               name="cashierManualDiscountMaxPercent"
               label="Cashier discount limit (%)"
-              extra="Cashiers without sales.discount permission cannot apply manual discounts at all."
+              extra="Cashiers can discount up to this percent. 0 blocks cashier discounts."
             >
               <InputNumber min={0} max={100} precision={2} style={{ width: '100%' }} />
             </Form.Item>
@@ -1240,6 +1269,71 @@ export default function SettingsPage() {
           <p className="muted">Storage details are available to the owner account.</p>
         )}
       </SectionCard>
+
+      {user?.roleCode === 'owner' ? (
+        <SectionCard
+          title="Delete data"
+          subtitle="Permanently removes records from this computer. A verified backup is created first."
+        >
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <div className="list-row">
+              <div>
+                <strong>Delete inventory and bills</strong>
+                <span className="muted small">
+                  Removes products, sales, purchases, payments and the stock ledger. Customers, suppliers, staff and
+                  settings stay.
+                </span>
+              </div>
+              <Button danger onClick={() => openWipe('inventory')}>
+                Delete inventory
+              </Button>
+            </div>
+            <div className="list-row">
+              <div>
+                <strong>Delete every shop record</strong>
+                <span className="muted small">
+                  Also removes customers, suppliers, expenses, categories and cash shifts. Staff logins, settings and
+                  the audit log stay.
+                </span>
+              </div>
+              <Button danger type="primary" onClick={() => openWipe('all')}>
+                Delete everything
+              </Button>
+            </div>
+          </Space>
+        </SectionCard>
+      ) : null}
+
+      <Modal
+        open={Boolean(wipe.scope)}
+        title={wipe.scope === 'all' ? 'Delete every shop record?' : 'Delete inventory and bills?'}
+        okText="Delete permanently"
+        okButtonProps={{ danger: true, disabled: !wipe.confirmed || wipe.password.length < 6 }}
+        confirmLoading={wipe.busy}
+        onOk={runWipe}
+        onCancel={() => setWipe({ scope: '', password: '', confirmed: false, busy: false })}
+      >
+        <p>
+          This cannot be undone from the app. A verified backup is created before anything is deleted.
+        </p>
+        <label className="field-label" htmlFor="wipe-password">
+          Your login password
+        </label>
+        <Input.Password
+          id="wipe-password"
+          value={wipe.password}
+          onChange={(event) => setWipe((current) => ({ ...current, password: event.target.value }))}
+          autoComplete="current-password"
+          placeholder="Owner password"
+        />
+        <Checkbox
+          checked={wipe.confirmed}
+          onChange={(event) => setWipe((current) => ({ ...current, confirmed: event.target.checked }))}
+          style={{ marginTop: 14 }}
+        >
+          I am 100% sure. Delete these records permanently.
+        </Checkbox>
+      </Modal>
     </div>
   ) : null;
 

@@ -76,6 +76,7 @@ export const ROLE_DEFAULTS = {
       'pos.use',
       'sales.view.own',
       'sales.print',
+      'sales.discount',
       'customers.view',
       'customers.manage',
     ],

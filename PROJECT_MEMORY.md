@@ -5,7 +5,7 @@
 **Verification record:** v1.4.1 GitHub Release published and publicly verified
 **Current public release:** 1.4.1 - receipt fitted to the 72 mm print head so nothing clips, true-width receipt preview and a fitted A4 page preview.
 **Previous public releases:** 1.4.0, 1.3.2, 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** none; release asset built from the `v1.4.1` tag.
+**Unreleased branch work:** live POS search, cashier discount limits, owner-only data wipe with password, and a Lifetime report preset. No installer built.
 **Developer:** Meninges Labs
 **Working branch:** `v1.3.1` (package version 1.4.1; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
