@@ -1,13 +1,13 @@
 # Modern Fashion POS — Project Memory
 
-**Last updated:** 2026-11-20
-**Implementation checkpoint:** v1.4.1 public release, code commit `d34e4721`
-**Verification record:** v1.4.1 GitHub Release published and publicly verified
-**Current public release:** 1.4.1 - receipt fitted to the 72 mm print head so nothing clips, true-width receipt preview and a fitted A4 page preview.
-**Previous public releases:** 1.4.0, 1.3.2, 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
-**Unreleased branch work:** live POS search, cashier discount limits, owner-only data wipe with password, and a Lifetime report preset. No installer built.
+**Last updated:** 2026-11-21
+**Implementation checkpoint:** v1.4.2 public release, code commit `66fc2e33`
+**Verification record:** v1.4.2 GitHub Release published and publicly verified
+**Current public release:** 1.4.2 - cashier discount limits, live POS search, owner-only data wipe with password and a lifetime report range.
+**Previous public releases:** 1.4.1, 1.4.0, 1.3.2, 1.3.1, 1.3.0, 1.2.4, 1.2.3, 1.2.2, 1.2.1, 1.2.0 and 1.1.0 - remain available for rollback.
+**Unreleased branch work:** none; release asset built from the `v1.4.2` tag.
 **Developer:** Meninges Labs
-**Working branch:** `v1.3.1` (package version 1.4.1; tagged release)
+**Working branch:** `v1.3.1` (package version 1.4.2; tagged release)
 **Authoritative scope:** `Docs/PROJECT_CONTEXT.md`
 **Visual rules:** `Docs/BRAND_KIT.md`
 **Release procedure:** `Docs/RELEASES.md`
